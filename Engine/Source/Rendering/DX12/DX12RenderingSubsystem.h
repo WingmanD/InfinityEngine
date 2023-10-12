@@ -27,7 +27,6 @@ struct DX12CommandList
 
 struct DX12CopyCommandList : public DX12CommandList
 {
-    bool ShouldExecute = false;
     std::optional<std::function<void()>> OnCompleted;
 };
 
@@ -51,7 +50,6 @@ public:
 
     ID3D12CommandQueue* GetCopyCommandQueue() const;
     DX12CopyCommandList RequestCopyCommandList();
-    void CloseCopyCommandList(DX12CopyCommandList& commandList);
     void ReturnCopyCommandList(DX12CopyCommandList& commandList);
     ComPtr<ID3D12Resource> CreateDefaultBuffer(ID3D12GraphicsCommandList* commandList, const void* data, UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) const;
 
@@ -113,7 +111,7 @@ private:
 
     ComPtr<ID3D12CommandQueue> _copyCommandQueue;
     LockFreeQueue<DX12CopyCommandList> _availableCopyCommandLists;
-    LockFreeQueue<DX12CopyCommandList> _closedCopyCommandLists;
+    LockFreeQueue<DX12CopyCommandList> _activeCopyCommandLists;
 
     FixedSlotDescriptorHeap _rtvHeap;
     FixedSlotDescriptorHeap _dsvHeap;

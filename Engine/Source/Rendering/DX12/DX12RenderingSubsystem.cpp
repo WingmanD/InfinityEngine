@@ -80,9 +80,15 @@ ID3D12CommandQueue* DX12RenderingSubsystem::GetCopyCommandQueue() const
 DX12CopyCommandList DX12RenderingSubsystem::RequestCopyCommandList()
 {
     DX12CopyCommandList commandList;
+
+    // todo multiple threads can write to a command list - use that instead of creating a new one
+    if (_activeCopyCommandLists.Dequeue(commandList))
+    {
+        return commandList;
+    }
+
     if (_availableCopyCommandLists.Dequeue(commandList))
     {
-        commandList.ShouldExecute = true;
         return commandList;
     }
 
@@ -101,19 +107,12 @@ DX12CopyCommandList DX12RenderingSubsystem::RequestCopyCommandList()
     const std::wstring name = L"Copy Command List " + std::to_wstring(id++);
     commandList.CommandList->SetName(name.c_str());
 
-    commandList.ShouldExecute = true;
     return commandList;
-}
-
-void DX12RenderingSubsystem::CloseCopyCommandList(DX12CopyCommandList& commandList)
-{
-    commandList.CommandList->Close();
-    _closedCopyCommandLists.Enqueue(std::move(commandList));
 }
 
 void DX12RenderingSubsystem::ReturnCopyCommandList(DX12CopyCommandList& commandList)
 {
-    _availableCopyCommandLists.Enqueue(std::move(commandList));
+    _activeCopyCommandLists.Enqueue(std::move(commandList));
 }
 
 ComPtr<ID3D12Resource> DX12RenderingSubsystem::CreateDefaultBuffer(
@@ -383,7 +382,6 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
             _closedCommandLists.pop_back();
         }
     }
-
 }
 
 std::shared_ptr<StaticMesh> DX12RenderingSubsystem::CreateStaticMesh(const std::string& name)
@@ -518,57 +516,44 @@ void DX12RenderingSubsystem::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FOR
 
 void DX12RenderingSubsystem::HandleCopyLists()
 {
-    static std::vector<ID3D12CommandList*> copyCommandLists;
-
-    if (_availableCopyCommandLists.IsEmpty() && _closedCopyCommandLists.IsEmpty())
+    if (_activeCopyCommandLists.IsEmpty())
     {
         return;
     }
 
+    std::vector<DX12CopyCommandList> currentCommandLists;
+    std::vector<ID3D12CommandList*> copyCommandLists;
+
     DX12CopyCommandList copyCommandList;
-    while (_availableCopyCommandLists.Dequeue(copyCommandList))
+    while (_activeCopyCommandLists.Dequeue(copyCommandList))
     {
-        if (copyCommandList.ShouldExecute)
-        {
-            CloseCopyCommandList(copyCommandList);
-        }
-    }
+        copyCommandList.CommandList->Close();
 
-    static std::vector<DX12CopyCommandList> lockedCopyCommandLists;
-    lockedCopyCommandLists.clear();
-
-    std::vector<std::function<void()>> callbacks;
-    while (_closedCopyCommandLists.Dequeue(copyCommandList))
-    {
         copyCommandLists.push_back(copyCommandList.CommandList.Get());
 
-        if (copyCommandList.OnCompleted.has_value())
-        {
-            callbacks.push_back(std::move(copyCommandList.OnCompleted.value()));
-            copyCommandList.OnCompleted.reset();
-        }
-
-        lockedCopyCommandLists.push_back(std::move(copyCommandList));
+        currentCommandLists.push_back(std::move(copyCommandList));
     }
 
     _copyCommandQueue->ExecuteCommandLists(static_cast<uint32>(copyCommandLists.size()), copyCommandLists.data());
     _copyCommandQueue->Signal(_copyFence.Get(), ++_copyFenceValue);
-
-    AsyncOnGPUCopyFenceEvent([callbacks, this]()
+    
+    AsyncOnGPUCopyFenceEvent([currentCommandLists, this]()
     {
-        for (const std::function<void()>& callback : callbacks)
+        if (Engine::Get().GetRenderingSubsystem() == nullptr)
         {
-            callback();
+            return;
         }
 
-        // todo lockedCopyCommandLists must be passed by value
-        for (DX12CopyCommandList& lockedCommandList : lockedCopyCommandLists)
+        for (DX12CopyCommandList commandList : currentCommandLists)
         {
-            lockedCommandList.Reset();
-            _availableCopyCommandLists.Enqueue(std::move(lockedCommandList));
-        }
+            if (commandList.OnCompleted.has_value())
+            {
+                commandList.OnCompleted.value()();
+            }
+
+            commandList.Reset();
+
+            _availableCopyCommandLists.Enqueue(std::move(commandList));
+        } 
     });
-
-    // todo what if a thread requests a command list while we are executing the above code and during execution?
-    // todo this must be reworked, it is horrible
 }
