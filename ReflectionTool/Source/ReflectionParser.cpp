@@ -405,7 +405,7 @@ std::string ReflectionParser::ParseType()
 
     _lexer.Back();
 
-    return Util::Trim(ss.str());
+    return Reflection::Util::Trim(ss.str());
 }
 
 std::optional<Argument> ReflectionParser::ParseArgument()

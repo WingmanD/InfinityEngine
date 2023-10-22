@@ -29,7 +29,7 @@ bool Engine::Initialize(HINSTANCE hInstance)
         return false;
     }
 
-    if (_renderingSubsystem->ConstructWindow(L"Swarm Engine") == nullptr)
+    if (_renderingSubsystem->ConstructWindow(L"Infinity Engine") == nullptr)
     {
         LOG(L"Failed to construct main window!");
         return false;
@@ -64,7 +64,8 @@ void Engine::Run()
 
 void Engine::Shutdown()
 {
-    TRACE_LOG("Engine shut down");
+    _assetManagerSubsystem.Shutdown();
+    _renderingSubsystem->Shutdown();
 }
 
 void Engine::RequestExit()

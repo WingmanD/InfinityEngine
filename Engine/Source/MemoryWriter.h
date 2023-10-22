@@ -38,7 +38,7 @@ template <typename T>
 MemoryWriter& operator<<(MemoryWriter& writer, const std::basic_string<T>& string)
 {
     writer << string.size();
-    writer.Write(reinterpret_cast<const std::byte*>(string.data()), string.size());
+    writer.Write(reinterpret_cast<const std::byte*>(string.data()), string.size() * sizeof(T));
 
     return writer;
 }
@@ -62,3 +62,62 @@ MemoryWriter& operator<<(MemoryWriter& writer, const std::vector<T>& vector)
 
     return writer;
 }
+
+MemoryWriter& operator<<(MemoryWriter& writer, const std::filesystem::path& path);
+
+// template <typename Key, typename Value>
+// MemoryWriter& operator<<(MemoryWriter& writer, const std::map<Key, Value>& map)
+// {
+//     writer << map.size();
+//
+//     for (const auto& [key, value] : map)
+//     {
+//         if constexpr (HasSerializationOperator<Key>)
+//         {
+//             writer << key;
+//         }
+//         else
+//         {
+//             writer.Write(reinterpret_cast<const std::byte*>(&key), sizeof(key));
+//         }
+//
+//         if constexpr (HasSerializationOperator<Value>)
+//         {
+//             writer << value;
+//         }
+//         else
+//         {
+//             writer.Write(reinterpret_cast<const std::byte*>(&value), sizeof(value));
+//         }
+//     }
+//
+//     return writer;
+// }
+
+// template <template <typename, typename> typename Map, typename Key, typename Value>
+// MemoryWriter& SerializeMap(MemoryWriter& writer, const Map<Key, Value>& map) {
+//     writer << map.size();
+//
+//     for (const auto& [key, value] : map)
+//     {
+//         if constexpr (HasSerializationOperator<Key>)
+//         {
+//             writer << key;
+//         }
+//         else
+//         {
+//             writer.Write(reinterpret_cast<const std::byte*>(&key), sizeof(key));
+//         }
+//
+//         if constexpr (HasSerializationOperator<Value>)
+//         {
+//             writer << value;
+//         }
+//         else
+//         {
+//             writer.Write(reinterpret_cast<const std::byte*>(&value), sizeof(value));
+//         }
+//     }
+//
+//     return writer;
+// }

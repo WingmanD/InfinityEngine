@@ -3,10 +3,8 @@
 #include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Core.h"
 #include <dxgi.h>
-#include <dxgi1_4.h>
 #include "d3dx12.h"
-#include "DynamicSlotDescriptorHeap.h"
-#include "FixedSlotDescriptorHeap.h"
+#include "DescriptorHeap.h"
 #include "ThreadPool.h"
 
 using Microsoft::WRL::ComPtr;
@@ -65,7 +63,7 @@ public:
 
     DescriptorHeap& GetRTVHeap();
     DescriptorHeap& GetDSVHeap();
-    DescriptorHeap& GetCBVHeap();
+    const std::shared_ptr<DescriptorHeap>& GetCBVHeap();
 
     void AsyncOnGPUFenceEvent(std::function<void()>&& callback);
     void AsyncOnGPUCopyFenceEvent(std::function<void()>&& callback);
@@ -77,7 +75,7 @@ public:
 
     virtual void Tick(double deltaTime) override;
 
-    virtual std::shared_ptr<StaticMesh> CreateStaticMesh(const std::string& name) override;
+    virtual std::unique_ptr<StaticMeshRenderingData> CreateStaticMeshRenderingData() override;
     virtual std::shared_ptr<Window> ConstructWindow(const std::wstring& title) override;
     virtual std::shared_ptr<Texture> CreateTexture(uint32 width, uint32 height) const override;
     virtual std::shared_ptr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) override;
@@ -113,9 +111,9 @@ private:
     LockFreeQueue<DX12CopyCommandList> _availableCopyCommandLists;
     LockFreeQueue<DX12CopyCommandList> _activeCopyCommandLists;
 
-    FixedSlotDescriptorHeap _rtvHeap;
-    FixedSlotDescriptorHeap _dsvHeap;
-    DynamicSlotDescriptorHeap _cbvHeap;
+    DescriptorHeap _rtvHeap;
+    DescriptorHeap _dsvHeap;
+    std::shared_ptr<DescriptorHeap> _cbvHeap;
 
     uint32 _cbvSrvUavDescriptorSize = 0;
 

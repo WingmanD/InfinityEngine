@@ -1,13 +1,12 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <vector>
-#include <cstdint>
 #include <memory>
 #include <optional>
 #include <typeinfo>
 
+#include "Core.h"
 #include "PropertyMap.h"
 #include "ReflectionTags.h"
 
@@ -48,9 +47,9 @@ public:
     }
 
     template <typename T>
-    static uint64_t CalculatePrimaryID()
+    static uint64 CalculatePrimaryID()
     {
-        uint64_t id = 5381;
+        uint64 id = 5381;
 
         id ^= HashTypeName(GetTypeName<T>());
 
@@ -58,9 +57,9 @@ public:
     }
 
     template <typename T, typename... ParentTypes>
-    static uint64_t CalculateFamilyID()
+    static uint64 CalculateFamilyID()
     {
-        uint64_t id = CalculatePrimaryID<T>();
+        uint64 id = CalculatePrimaryID<T>();
 
         if constexpr (sizeof...(ParentTypes) > 0)
         {
@@ -69,6 +68,15 @@ public:
 
         return id;
     }
+
+    template <typename T>
+    std::shared_ptr<T> NewObject() const
+    {
+        std::shared_ptr<Object> newObject = NewObject();
+        return std::dynamic_pointer_cast<T>(newObject);
+    }
+
+    std::shared_ptr<Object> NewObject() const;
 
     template <typename... CompositionTypes>
     void AddCompositionTypes()
@@ -114,10 +122,7 @@ public:
         return false;
     }
 
-    [[nodiscard]] const Object* GetCDO() const
-    {
-        return _cdo.get();
-    }
+    [[nodiscard]] const Object* GetCDO() const;
 
     template <typename T>
     [[nodiscard]] const T* GetCDO() const
@@ -125,17 +130,17 @@ public:
         return dynamic_cast<const T*>(_cdo.get());
     }
 
-    [[nodiscard]] uint64_t GetID() const
+    [[nodiscard]] uint64 GetID() const
     {
         return _id;
     }
 
-    [[nodiscard]] uint64_t GetFamilyID() const
+    [[nodiscard]] uint64 GetFamilyID() const
     {
         return _familyID;
     }
 
-    [[nodiscard]] uint64_t GetFullID() const
+    [[nodiscard]] uint64 GetFullID() const
     {
         return _fullID;
     }
@@ -176,11 +181,21 @@ public:
         auto property = _propertyMap.GetProperty<ObjectType, ValueType>(name);
         if (property == nullptr)
         {
+            for (Type* parentType : _parentTypes)
+            {
+                if (auto value = parentType->GetPropertyRef<ValueType>(object, name))
+                {
+                    return value;
+                }
+            }
+            
             return std::nullopt;
         }
 
         return property->GetRef(object);
     }
+
+    void ForEachPropertyWithTag(const std::string& tag, const std::function<void(PropertyBase*)>& callback) const;
 
 protected:
     Type() = default;
@@ -199,7 +214,7 @@ private:
         }
     }
 
-    [[nodiscard]] static uint64_t HashTypeName(const std::string& str);
+    [[nodiscard]] static uint64 HashTypeName(const std::string& str);
 
     void UpdateFullName();
 
@@ -207,9 +222,9 @@ private:
 
     std::unique_ptr<const Object> _cdo = nullptr;
 
-    uint64_t _id = -1;
-    uint64_t _familyID = -1;
-    uint64_t _fullID = -1;
+    uint64 _id = -1;
+    uint64 _familyID = -1;
+    uint64 _fullID = -1;
 
     std::string _name;
     std::string _fullName;

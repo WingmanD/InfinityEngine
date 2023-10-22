@@ -17,8 +17,16 @@ public:
 public:
     ConstantBuffer() = default;
 
-    ConstantBuffer(ID3D12Device* device, DescriptorHeap* heap) : _heap(heap)
+    ConstantBuffer(ID3D12Device* device, const std::shared_ptr<DescriptorHeap>& heap)
     {
+        if (device == nullptr || heap == nullptr)
+        {
+            DEBUG_BREAK();
+            return;
+        }
+        
+        _heap = heap;
+        
         constexpr uint32 size = DX12Statics::CalculateConstantBufferSize(sizeof(T));
 
         const CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
@@ -33,13 +41,10 @@ public:
             IID_PPV_ARGS(&_buffer)));
 
         ThrowIfFailed(_buffer->Map(0, nullptr, reinterpret_cast<void**>(&_mappedData)));
+        _isMapped = true;
 
-        _cpuHandle = _heap->RequestHeapResourceHandle(size);
-        _gpuHandle = _heap->GetGPUHeapResourceHandle(_cpuHandle);
-
-        // // todo everything must be 256 byte aligned on the heap - DynamicDescriptorHeap must handle this
-        // _cpuHandle = _heap->GetHeap()->GetCPUDescriptorHandleForHeapStart();
-        // _gpuHandle = _heap->GetHeap()->GetGPUDescriptorHandleForHeapStart();
+        _cpuHandle = heap->RequestHeapResourceHandle();
+        _gpuHandle = heap->GetGPUHeapResourceHandle(_cpuHandle);
 
         D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
         cbvDesc.BufferLocation = _buffer->GetGPUVirtualAddress();
@@ -49,10 +54,15 @@ public:
 
     ~ConstantBuffer()
     {
-        // todo buffer may not be mapped at all times
-        // todo weak ptr to heap - rendering subsystem must have a shared ptr to heap unfortunately
-        _buffer->Unmap(0, nullptr);
-        _heap->FreeHeapResourceHandle(_cpuHandle);
+        if (_isMapped)
+        {
+            _buffer->Unmap(0, nullptr);
+        }
+
+        if (const std::shared_ptr<DescriptorHeap> sharedHeap = _heap.lock())
+        {
+            sharedHeap->FreeHeapResourceHandle(_cpuHandle);
+        }
     }
 
     void Update() const
@@ -76,8 +86,9 @@ public:
     }
 
 private:
+    bool _isMapped = false;
     ComPtr<ID3D12Resource> _buffer;
-    DescriptorHeap* _heap;
+    std::weak_ptr<DescriptorHeap> _heap;
 
     std::byte* _mappedData = nullptr;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "Core.h"
 #include <vector>
 
@@ -43,7 +45,7 @@ MemoryReader& operator>>(MemoryReader& reader, std::basic_string<T>& string)
     reader >> size;
     string.resize(size);
 
-    reader.Read(reinterpret_cast<std::byte*>(string.data()), size);
+    reader.Read(reinterpret_cast<std::byte*>(string.data()), size * sizeof(T));
 
     return reader;
 }
@@ -66,6 +68,42 @@ MemoryReader& operator>>(MemoryReader& reader, std::vector<T>& vector)
     else
     {
         reader.Read(reinterpret_cast<const std::byte*>(vector.data()), vector.size());
+    }
+
+    return reader;
+}
+
+MemoryReader& operator>>(MemoryReader& reader, std::filesystem::path& path);
+
+template <typename Key, typename Value>
+MemoryReader& operator>>(MemoryReader& reader, std::map<Key, Value>& map)
+{
+    size_t size;
+    reader >> size;
+
+    for (size_t i = 0; i < size; ++i)
+    {
+        Key key;
+        if constexpr (HasDeserializationOperator<Key>)
+        {
+            reader >> key;
+        }
+        else
+        {
+            reader.Read(reinterpret_cast<std::byte*>(&key), sizeof(Key));
+        }
+
+        Value value;
+        if constexpr (HasDeserializationOperator<Value>)
+        {
+            reader >> value;
+        }
+        else
+        {
+            reader.Read(reinterpret_cast<std::byte*>(&value), sizeof(Value));
+        }
+
+        map[key] = value;
     }
 
     return reader;

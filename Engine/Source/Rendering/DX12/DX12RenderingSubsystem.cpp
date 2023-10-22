@@ -1,20 +1,18 @@
 ﻿#include "DX12RenderingSubsystem.h"
 
+#include <dxgi1_2.h>
 #include <string>
 #include <vector>
 
 #include "Core.h"
 #include "d3dx12.h"
-#include <dxgi1_2.h>
-
 #include "DX12RenderTarget.h"
 #include "DX12Shader.h"
-#include "DX12StaticMesh.h"
+#include "DX12StaticMeshRenderingData.h"
 #include "DX12Window.h"
 #include "ThreadPool.h"
 #include "Engine/Engine.h"
 #include "Rendering/Window.h"
-#include "FixedSlotDescriptorHeap.h"
 
 bool DX12RenderingSubsystem::IsGPUReady() const
 {
@@ -220,7 +218,7 @@ DescriptorHeap& DX12RenderingSubsystem::GetDSVHeap()
     return _dsvHeap;
 }
 
-DescriptorHeap& DX12RenderingSubsystem::GetCBVHeap()
+const std::shared_ptr<DescriptorHeap>& DX12RenderingSubsystem::GetCBVHeap()
 {
     return _cbvHeap;
 }
@@ -300,21 +298,21 @@ bool DX12RenderingSubsystem::Initialize()
     rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     rtvHeapDesc.NodeMask = 0;
-    _rtvHeap = FixedSlotDescriptorHeap(_device.Get(), rtvHeapDesc);
+    _rtvHeap = DescriptorHeap(_device.Get(), rtvHeapDesc);
 
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
     dsvHeapDesc.NumDescriptors = 100;
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     dsvHeapDesc.NodeMask = 0;
-    _dsvHeap = FixedSlotDescriptorHeap(_device.Get(), dsvHeapDesc);
+    _dsvHeap = DescriptorHeap(_device.Get(), dsvHeapDesc);
 
     D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
     cbvHeapDesc.NumDescriptors = 100;
     cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     cbvHeapDesc.NodeMask = 0;
-    _cbvHeap = DynamicSlotDescriptorHeap(_device.Get(), cbvHeapDesc);
+    _cbvHeap = std::make_shared<DescriptorHeap>(_device.Get(), cbvHeapDesc);
 
     DX12CommandList commandList;
 
@@ -344,7 +342,7 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
     HandleCopyLists();
 
     // todo multiple descriptor heaps
-    ID3D12DescriptorHeap* descriptorHeaps[] = {_cbvHeap.GetHeap().Get()};
+    ID3D12DescriptorHeap* descriptorHeaps[] = {_cbvHeap->GetHeap().Get()};
     _availableCommandLists[0].CommandList->SetDescriptorHeaps(1, descriptorHeaps);
 
     for (std::shared_ptr<DX12Window>& window : _windows)
@@ -384,9 +382,9 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
     }
 }
 
-std::shared_ptr<StaticMesh> DX12RenderingSubsystem::CreateStaticMesh(const std::string& name)
+std::unique_ptr<StaticMeshRenderingData> DX12RenderingSubsystem::CreateStaticMeshRenderingData()
 {
-    return Engine::Get().GetAssetManager().NewAsset<DX12StaticMesh>(name);
+    return std::make_unique<DX12StaticMeshRenderingData>();
 }
 
 std::shared_ptr<Window> DX12RenderingSubsystem::ConstructWindow(const std::wstring& title)
@@ -536,7 +534,7 @@ void DX12RenderingSubsystem::HandleCopyLists()
 
     _copyCommandQueue->ExecuteCommandLists(static_cast<uint32>(copyCommandLists.size()), copyCommandLists.data());
     _copyCommandQueue->Signal(_copyFence.Get(), ++_copyFenceValue);
-    
+
     AsyncOnGPUCopyFenceEvent([currentCommandLists, this]()
     {
         if (Engine::Get().GetRenderingSubsystem() == nullptr)
@@ -554,6 +552,6 @@ void DX12RenderingSubsystem::HandleCopyLists()
             commandList.Reset();
 
             _availableCopyCommandLists.Enqueue(std::move(commandList));
-        } 
+        }
     });
 }

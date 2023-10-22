@@ -100,12 +100,26 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
             for (size_t i = 0; i < typeInfo.Properties.size(); ++i)
             {
                 const PropertyInfo& property = typeInfo.Properties[i];
-                // todo attributes
+
+                std::stringstream propertyAttributes;
+                for (size_t attributeIndex = 0; attributeIndex < property.Attributes.size(); ++attributeIndex)
+                {
+                    const Argument& attribute = property.Attributes[attributeIndex];
+                    propertyAttributes << "\"" << attribute.Name << "\"";
+                    if (attributeIndex < property.Attributes.size() - 1)
+                    {
+                        propertyAttributes << ", ";
+                    }
+                }
+
+                const std::string tmp = propertyAttributes.str();
+
                 std::print(propertyMapDefinition,
-                           R"(                  .WithProperty("{}", &{}::{}))",
+                           R"(                  .WithProperty("{}", &{}::{}, {{ {} }}))",
                            property.Name,
                            typeInfo.Name,
-                           property.Name);
+                           property.Name,
+                           propertyAttributes.str());
                 if (i < typeInfo.Properties.size() - 1)
                 {
                     propertyMapDefinition << " \\\n";
@@ -132,12 +146,18 @@ public: \
     {{ \
         return StaticType(); \
     }} \
+    \
+    virtual std::shared_ptr<Object> Duplicate() const override \
+    {{ \
+        return std::make_shared<{}>(*this); \
+    }} \
+    \
 private:
-
 )",
                    macroName,
                    createTypeFunction,
-                   propertyMapDefinition.str());
+                   propertyMapDefinition.str(),
+                   typeInfo.Name);
 
 
         _reflectionInitializer.RegisterType(typeInfo.Name);

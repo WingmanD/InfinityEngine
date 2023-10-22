@@ -1,5 +1,5 @@
 [requires]
-tinyobjloader/2.0.0-rc10
+assimp/5.2.2
 
 [generators]
 cmake

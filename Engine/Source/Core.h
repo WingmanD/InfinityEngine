@@ -38,13 +38,6 @@ inline double GetTimeInSeconds()
     return milliseconds / 1000.0;
 }
 
-inline std::wstring ToWString(const std::string& str)
-{
-    std::vector<wchar_t> buffer(str.size());
-    MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, buffer.data(), static_cast<int32>(str.size()));
-    return buffer.data();
-}
-
 inline void ThrowIfFailed(HRESULT hr)
 {
     if (FAILED(hr))

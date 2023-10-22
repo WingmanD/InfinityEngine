@@ -64,3 +64,13 @@ MemoryReader& MemoryReader::operator>>(std::byte& byte)
     byte = _bytes[_index++];
     return *this;
 }
+
+MemoryReader& operator>>(MemoryReader& reader, std::filesystem::path& path)
+{
+    std::string pathString;
+    reader >> pathString;
+    
+    path = pathString;
+    
+    return reader;
+}

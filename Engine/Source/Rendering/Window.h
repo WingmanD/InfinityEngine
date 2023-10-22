@@ -1,10 +1,11 @@
 ﻿#pragma once
 
 #include "Core.h"
+#include "NonCopyable.h"
 
 class RenderingSubsystem;
 
-class Window
+class Window : public NonCopyable<Window>
 {
 public:
     enum class WindowState

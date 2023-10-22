@@ -1,35 +1,57 @@
 #pragma once
 
 #include "Engine/Subsystems/EngineSubsystem.h"
-#include "Singleton.h"
 #include "Asset.h"
-#include <fstream>
-
 #include "PackageManifest.h"
-#include "PassKey.h"
+#include <fstream>
+#include <set>
+
+#include "IDGenerator.h"
 
 template <typename Base, typename Derived>
-concept IsA = std::is_base_of_v<Base, Base>;
+concept IsA = std::is_base_of_v<Base, Derived>;
 
 class AssetManager : public EngineSubsystem
 {
 public:
+    static AssetManager& Get();
+
     ~AssetManager() override;
 
+    std::shared_ptr<Asset> NewAsset(const Type* type, const std::wstring& name);
+
     template <typename T>
-    std::shared_ptr<T> NewAsset(const std::string& name) requires IsA<Asset, T>
+    std::shared_ptr<T> NewAsset(const std::wstring& name) requires IsA<Asset, T>
     {
-        auto asset = std::make_shared<T>(name);
-        RegisterAsset(asset);
+        return std::dynamic_pointer_cast<T>(NewAsset(T::StaticType(), name));
+    }
+
+    void DeleteAsset(const std::shared_ptr<Asset>& asset);
+
+    template <typename T, typename... Args>
+    std::shared_ptr<T> Import(const std::filesystem::path& path, Args&&... args) requires IsA<Asset, T>
+    {
+        std::filesystem::path actualPath = path;
+        if (path.is_relative())
+        {
+            actualPath = GetProjectRootPath() / path;
+        }
+
+        auto asset = T::Import(*this, actualPath, std::forward<Args>(args)...);
+        asset->SetImportPath(actualPath);
+        asset->SetIsLoaded(true, {});
+        
         return asset;
     }
 
-    template <typename T, typename... Params>
-    std::shared_ptr<T> Import(Params... params) requires IsA<Asset, T>
+    void ImportFromDialog(const Type* type);
+
+    std::shared_ptr<Asset> FindAssetByName(const std::wstring& name) const;
+
+    template <typename T>
+    std::shared_ptr<T> FindAssetByName(const std::wstring& name) const requires IsA<Asset, T>
     {
-        auto asset = T::Import(params...);
-        RegisterAsset(asset);
-        return asset;
+        return std::dynamic_pointer_cast<T>(FindAssetByName(name));
     }
 
     std::shared_ptr<Asset> FindAsset(uint64 id) const;
@@ -40,22 +62,37 @@ public:
         return std::dynamic_pointer_cast<T>(FindAsset(id));
     }
 
+    bool RegisterAsset(const std::shared_ptr<Asset>& asset);
+    bool UnregisterAsset(const std::shared_ptr<Asset>& asset);
+
+    void MarkDirtyForAutosave(const std::shared_ptr<const Asset>& asset);
+
     const std::filesystem::path& GetProjectRootPath() const;
 
 public:
     virtual bool Initialize() override;
+    virtual void Shutdown() override;
 
 private:
+    IDGenerator _idGenerator;
+    
     std::unique_ptr<PackageManifest> _manifest;
     std::fstream _assetCache;
 
     std::unordered_map<uint64, std::shared_ptr<Asset>> _assetMap;
+    std::unordered_map<std::wstring, uint64> _assetNameMap;
 
     std::filesystem::path _projectRootPath;
+    std::filesystem::path _assetCacheDirectory;
+
+    std::set<uint64> _assetIDsToAutosave;
 
 private:
     std::filesystem::path FindProjectRootPath() const;
 
-    bool RegisterAsset(const std::shared_ptr<Asset>& asset);
-    bool UnregisterAsset(const std::shared_ptr<Asset>& asset);
+    void OnAssetMapChanged();
+    bool Load();
+    bool Save();
+
+    void AutosaveAssets() const;
 };

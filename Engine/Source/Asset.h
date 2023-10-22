@@ -1,39 +1,65 @@
 ﻿#pragma once
 
 #include "Object.h"
+#include "ISerializeable.h"
 #include "MemoryReader.h"
 #include "MemoryWriter.h"
+#include "PassKey.h"
 #include <string>
 #include "Asset.reflection.h"
-#include "PassKey.h"
 
 class AssetManager;
 
 REFLECTED()
-class Asset : public Object
+class Asset : public Object, public ISerializeable
 {
     ASSET_GENERATED()
 
 public:
     Asset() = default;
-    // todo fix this mess
-    explicit Asset(std::string name);
-    explicit Asset(std::string name, std::filesystem::path importPath);
+    explicit Asset(std::wstring name);
 
-    virtual bool Serialize(MemoryWriter& writer);
+    virtual bool Initialize();
 
-    // todo deserialize must be static and return Asset*
-    virtual bool Deserialize(MemoryReader& reader);
+    virtual bool Serialize(MemoryWriter& writer) const override;
+    virtual bool Deserialize(MemoryReader& reader) override;
 
-    [[nodiscard]] uint64_t GetAssetID() const;
+    void SetAssetPath(const std::filesystem::path& path);
+    [[nodiscard]] const std::filesystem::path& GetAssetPath() const;
 
-    [[nodiscard]] const std::string& GetName() const;
-    
+    void SetAssetID(uint64 id, PassKey<AssetManager>);
+    [[nodiscard]] uint64 GetAssetID() const;
+
+    void SetName(const std::wstring& name);
+    [[nodiscard]] const std::wstring& GetName() const;
+
+    void SetIsLoaded(bool value, PassKey<AssetManager>);
+    bool IsLoaded() const;
+
+    void Load();
+    void Save() const;
+
+    void LoadDescription(MemoryReader& reader, PassKey<AssetManager>);
+    void SaveDescription(MemoryWriter& writer, PassKey<AssetManager>) const;
+
+    void SetImportPath(const std::filesystem::path& path);
+    [[nodiscard]] const std::filesystem::path& GetImportPath() const;
+
+protected:
+    void SetIsLoaded(bool value);
+    void MarkDirtyForAutosave() const;
+
 private:
-    uint64_t _id = 0;
+    uint64 _id = 0;
 
-    std::string _name;
+    PROPERTY(Editable, DisplayName = "Name")
+    std::wstring _name;
 
-    PROPERTY(VisibleInEditor, DisplayName = "Import Path")
+    PROPERTY(Visible, DisplayName = "Import Path")
     std::filesystem::path _importPath;
+
+    PROPERTY(Visible, DisplayName = "Asset Path")
+    std::filesystem::path _assetPath;
+
+    bool _isLoaded = false;
 };

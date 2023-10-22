@@ -10,3 +10,8 @@ Type* Object::GetType() const
 {
     return StaticType();
 }
+
+std::shared_ptr<Object> Object::Duplicate() const
+{
+    return std::make_shared<Object>(*this);
+}

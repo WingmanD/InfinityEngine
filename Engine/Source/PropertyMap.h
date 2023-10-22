@@ -1,9 +1,11 @@
 ﻿#pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
 
+class Object;
 struct PropertyBase
 {
 };
@@ -41,9 +43,16 @@ public:
     PropertyMap() = default;
 
     template <typename ObjectType, typename ValueType>
-    PropertyMap& WithProperty(const std::string& name, ValueType ObjectType::* memberPointer)
+    PropertyMap& WithProperty(const std::string& name, ValueType ObjectType::* memberPointer, const std::vector<std::string> attributes = {})
     {
         GetPropertyMap()[name] = std::make_unique<Property<ObjectType, ValueType>>(memberPointer);
+        PropertyBase* property = GetPropertyMap()[name].get();
+
+        for (const std::string& attribute : attributes)
+        {
+            _attributeToPropertyMap[attribute].push_back(property);
+        }
+
         return *this;
     }
 
@@ -59,6 +68,19 @@ public:
         return static_cast<Property<ObjectType, PropertyType>*>(property);
     }
 
+    void ForEachPropertyWithTag(const std::string& tag, const std::function<void(PropertyBase*)>& callback) const
+    {
+        if (!_attributeToPropertyMap.contains(tag))
+        {
+            return;
+        }
+
+        for (PropertyBase* property : _attributeToPropertyMap.at(tag))
+        {
+            callback(property);
+        }
+    }
+
 protected:
     std::unordered_map<std::string, std::unique_ptr<PropertyBase>>& GetPropertyMap()
     {
@@ -67,4 +89,5 @@ protected:
 
 private:
     std::unordered_map<std::string, std::unique_ptr<PropertyBase>> _propertyMap;
+    std::unordered_map<std::string, std::vector<PropertyBase*>> _attributeToPropertyMap;
 };

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <filesystem>
+#include <fstream>
 #include <string>
 
 // todo singleton
@@ -9,7 +10,9 @@ class Logger
 public:
     static Logger& GetInstance();
 
-    void Log(const std::wstring& message) const;
+    bool Initialize();
+
+    void Log(const std::wstring& message);
 
     void SetPrintToConsole(bool value);
     void SetPrintToFile(bool value);
@@ -20,7 +23,8 @@ private:
     bool _printToConsole = true;
     bool _printToFile = true;
 
-    std::filesystem::path _file;
+    std::filesystem::path _path;
+    std::wofstream _file;
 
     // category
 };

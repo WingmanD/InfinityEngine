@@ -11,5 +11,5 @@ class Shader : public Asset
 public:
     Shader() = default;
     
-    Shader(const std::string& name, std::filesystem::path::iterator::reference path);
+    Shader(const std::wstring& name);
 };

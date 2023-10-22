@@ -63,7 +63,13 @@ void ReflectionInitializer::ParseExistingHeaderFile(const std::filesystem::path&
         }
 
         const std::filesystem::path relativeIncludePath = line.substr(10, line.size() - 11);
-        AddInclude(outputDirectory / relativeIncludePath);
+        const std::filesystem::path includePath = outputDirectory / relativeIncludePath;
+        if (!exists(includePath))
+        {
+            continue;
+        }
+        
+        AddInclude(includePath);
     }
 
     // collect existing registered types
@@ -71,8 +77,11 @@ void ReflectionInitializer::ParseExistingHeaderFile(const std::filesystem::path&
     {
         if (line.ends_with("::StaticType();"))
         {
-            Util::Trim(line);
-            RegisterType(line.substr(0, line.find_first_of(':')));
+            Reflection::Util::Trim(line);
+            const std::string className = line.substr(0, line.find_first_of(':'));
+
+            // todo check if class is included - this happens after class is deleted
+            RegisterType(className);
         }
     }
 }

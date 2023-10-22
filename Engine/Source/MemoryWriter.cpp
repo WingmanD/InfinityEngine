@@ -16,7 +16,7 @@ bool MemoryWriter::WriteToFile(std::ofstream& file) const
 
     const uint64 num = _bytes.size();
     file.write(reinterpret_cast<const char*>(&num), sizeof(num));
-    file.write(reinterpret_cast<const char*>(_bytes.data()), static_cast<size_t>(_bytes.size()));
+    file.write(reinterpret_cast<const char*>(_bytes.data()), num);
 
     return file.good();
 }
@@ -30,4 +30,12 @@ MemoryWriter& MemoryWriter::operator<<(std::byte byte)
 {
     _bytes.push_back(byte);
     return *this;
+}
+
+MemoryWriter& operator<<(MemoryWriter& writer, const std::filesystem::path& path)
+{
+    const std::string pathString = path.string();
+    writer << pathString;
+
+    return writer;
 }

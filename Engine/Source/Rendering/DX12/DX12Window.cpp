@@ -2,10 +2,11 @@
 #include "Engine/Engine.h"
 #include "DX12RenderingSubsystem.h"
 #include "DX12RenderTarget.h"
-#include <DirectXColors.h>
 #include "DX12Material.h"
 #include "DX12Shader.h"
-#include "DX12StaticMesh.h"
+#include "DX12StaticMeshRenderingData.h"
+#include "Rendering/StaticMeshRenderingData.h"
+#include <DirectXColors.h>
 #include <numbers>
 
 DX12Window::DX12Window(DX12RenderingSubsystem* renderingSubsystem, uint32 width, uint32 height,
@@ -56,12 +57,23 @@ bool DX12Window::Initialize()
 
     RequestResize(GetWidth(), GetHeight());
 
-    auto shader = Engine::Get().GetAssetManager().Import<DX12Shader>(GetDX12RenderingSubsystem(), "C:/Projects/SwarmEngine/Engine/Content/Shaders/DefaultShader.hlsl");
-    auto material = make_shared<DX12Material>("DefaultMaterial", shader);
+    AssetManager& assetManager = Engine::Get().GetAssetManager();
 
-    _staticMeshTest = GetDX12RenderingSubsystem()->CreateStaticMesh("StaticMeshTest");
-    dynamic_cast<DX12StaticMesh*>(_staticMeshTest.get())->Initialize();
-    _staticMeshTest->SetMaterial(material);
+    // auto shader = assetManager.Import<DX12Shader>("Engine/Content/Shaders/DefaultShader.hlsl", *GetDX12RenderingSubsystem());
+    // auto material = assetManager.NewAsset<DX12Material>(L"DefaultMaterial");
+    // material->SetShader(shader);
+
+    //auto material = assetManager.FindAssetByName<Material>(L"DefaultMaterial");
+    //material->Load();
+    // static_cast<DX12Material*>(material.get())->Initialize();
+    // material->GetShader()->Load();
+    //
+
+    _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(L"SwarmDrone");
+    if (_staticMeshTest != nullptr)
+    {
+        _staticMeshTest->Load();
+    }
 
     return true;
 }
@@ -106,49 +118,53 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
     commandList->OMSetRenderTargets(1, &frameBuffer.RTVDescriptorHandle, true, &_depthStencilView);
 
     {
-        using namespace DirectX;
-
-        Vector3 pos = Vector3(5.0f, 1.0f, 2.0f);
-        Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
-        Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
-
-        XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-
-        XMFLOAT4X4 worldMatrix = XMFLOAT4X4(
-            1.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            1.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            1.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            1.0f);
-
-        XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
-        const float aspectRatio = static_cast<float>(GetWidth()) / static_cast<float>(GetHeight());
-        XMMATRIX proj = XMMatrixPerspectiveFovLH(0.25f * std::numbers::pi, aspectRatio, 1.0f, 1000.0f);
-
-        DX12StaticMesh* staticMesh = dynamic_cast<DX12StaticMesh*>(_staticMeshTest.get());
-        DX12Material* material = dynamic_cast<DX12Material*>(staticMesh->GetMaterial().get());
-
-        PerPassConstants& perPassConstants = material->GetPerPassConstants();
-        perPassConstants.Time += 0.008f;
-        XMStoreFloat4x4(&perPassConstants.World, XMMatrixTranspose(world));
-        XMStoreFloat4x4(&perPassConstants.ViewProjection, XMMatrixTranspose(view * proj));
-
-        material->Apply(commandList);
-
-        if (staticMesh->IsUploaded())
+        if (_staticMeshTest != nullptr)
         {
-            staticMesh->Draw(commandList);
+            using namespace DirectX;
+
+            Vector3 pos = Vector3(5.0f, 1.0f, 2.0f);
+            Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
+            Vector3 up = Vector3(0.0f, 0.0f, 1.0f);
+
+            XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+
+            XMFLOAT4X4 worldMatrix = XMFLOAT4X4(
+                1.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                1.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                1.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                1.0f);
+
+            XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
+            const float aspectRatio = static_cast<float>(GetWidth()) / static_cast<float>(GetHeight());
+            XMMATRIX proj = XMMatrixPerspectiveFovLH(0.25f * std::numbers::pi, aspectRatio, 1.0f, 1000.0f);
+
+            DX12Material* material = dynamic_cast<DX12Material*>(_staticMeshTest->GetMaterial().get());
+
+            PerPassConstants& perPassConstants = material->GetPerPassConstants();
+            perPassConstants.Time += 0.008f;
+            XMStoreFloat4x4(&perPassConstants.World, XMMatrixTranspose(world));
+            XMStoreFloat4x4(&perPassConstants.ViewProjection, XMMatrixTranspose(view * proj));
+            perPassConstants.CameraPosition = pos;
+            perPassConstants.CameraDirection = Vector3::Normalize(target - pos);
+
+            material->Apply(commandList);
+
+            if (_staticMeshTest->GetRenderingData()->IsUploaded())
+            {
+                static_cast<DX12StaticMeshRenderingData*>(_staticMeshTest->GetRenderingData())->SetupDrawing(commandList);
+            }
         }
     }
 

@@ -14,14 +14,18 @@ class Material : public Asset
 
 public:
     Material() = default;
-    Material(const std::string& name, const std::shared_ptr<Shader>& shader);
-    
+    Material(const std::wstring& name);
+
+    void SetShader(const std::shared_ptr<Shader>& shader);
     [[nodiscard]] std::shared_ptr<Shader> GetShader() const;
+
+    virtual bool Serialize(MemoryWriter& writer) const override;
+    virtual bool Deserialize(MemoryReader& reader) override;
 
 private:
     PROPERTY(EditableInEditor, DisplayName = "Roughness")
     float _roughness = 0.5f;
 
-    PROPERTY(EditableInEditor, DisplayName = "Shader")
+    PROPERTY(EditableInEditor, Load, DisplayName = "Shader")
     std::shared_ptr<Shader> _shader;
 };

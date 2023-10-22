@@ -1,5 +1,6 @@
 ﻿#include "Window.h"
 
+#include "StaticMesh.h"
 #include "Engine/Engine.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 
@@ -25,7 +26,7 @@ bool Window::Initialize()
     windowClass.hInstance = hInstance;
     windowClass.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
     windowClass.hCursor = LoadCursor(hInstance, IDC_ARROW);
-    windowClass.lpszClassName = L"SwarmEngineWindow";
+    windowClass.lpszClassName = L"InfinityEngineWindow";
 
     RegisterClassEx(&windowClass);
 
@@ -255,6 +256,17 @@ LRESULT Window::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     case WM_DESTROY:
         {
             Destroy();
+            return 0;
+        }
+
+        case WM_KEYUP:
+        {
+            if (wParam == VK_F1)
+            {
+                AssetManager& assetManager = Engine::Get().GetAssetManager();
+                assetManager.ImportFromDialog(StaticMesh::StaticType());
+            }
+
             return 0;
         }
     }
