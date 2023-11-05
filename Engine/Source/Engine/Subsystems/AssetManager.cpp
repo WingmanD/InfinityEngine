@@ -67,7 +67,6 @@ void AssetManager::DeleteAsset(const std::shared_ptr<Asset>& asset)
     if (!std::filesystem::remove(asset->GetAssetPath()))
     {
         LOG(L"Failed to delete asset file!");
-        return;
     }
 
     UnregisterAsset(asset);
@@ -119,14 +118,14 @@ bool AssetManager::UnregisterAsset(const std::shared_ptr<Asset>& asset)
         return false;
     }
 
+    _assetNameMap.erase(asset->GetName());
+
     if (_assetMap.erase(asset->GetAssetID()) > 0)
     {
         OnAssetMapChanged();
 
         return true;
     }
-
-    _assetNameMap.erase(asset->GetName());
 
     return false;
 }
@@ -139,6 +138,64 @@ void AssetManager::MarkDirtyForAutosave(const std::shared_ptr<const Asset>& asse
     }
 
     _assetIDsToAutosave.insert(asset->GetAssetID());
+}
+
+void AssetManager::RediscoverAssets()
+{
+    for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(_assetCacheDirectory))
+    {
+        if (!dirEntry.path().string().ends_with(".asset"))
+        {
+            continue;
+        }
+
+        std::ifstream file(dirEntry.path(), std::ios::binary);
+        if (!file.is_open())
+        {
+            LOG(L"Failed to open asset file {}!", dirEntry.path().wstring());
+            continue;
+        }
+
+        MemoryReader reader;
+        if (!reader.ReadFromFile(file))
+        {
+            LOG(L"Failed to read asset file {}!", dirEntry.path().wstring());
+            continue;
+        }
+
+        uint64 typeID;
+        reader >> typeID;
+
+        const Type* type = TypeRegistry::Get().FindTypeForID(typeID);
+        if (type == nullptr)
+        {
+            LOG(L"Failed to find type for asset file {}!", dirEntry.path().wstring());
+            continue;
+        }
+
+        uint64 assetID;
+        reader >> assetID;
+
+        if (!FindAsset(assetID))
+        {
+            std::shared_ptr<Asset> existingAsset = type->NewObject<Asset>();
+
+            reader.ResetOffset();
+
+            if (!existingAsset->Deserialize(reader))
+            {
+                LOG(L"Failed to deserialize asset from file {}!", dirEntry.path().wstring());
+                continue;
+            }
+            existingAsset->SetAssetPath(dirEntry);
+
+            if (!RegisterAsset(existingAsset))
+            {
+                LOG(L"Failed to register asset from file {}!", dirEntry.path().wstring());
+                continue;
+            }
+        }
+    }
 }
 
 void AssetManager::ImportFromDialog(const Type* type)
@@ -252,7 +309,7 @@ bool AssetManager::Initialize()
         return false;
     }
 
-    _assetCache.open(_assetCacheDirectory / "AssetCache.asset",
+    _assetCache.open(_assetCacheDirectory / "AssetCache.pak",
                      std::ios::in | std::ios::out | std::ios::binary | std::ios::app);
     if (!_assetCache.is_open())
     {
@@ -314,7 +371,7 @@ void AssetManager::OnAssetMapChanged()
 
 bool AssetManager::Load()
 {
-    const std::filesystem::path assetMapPath = _assetCacheDirectory / "EditorAssetMap.asset";
+    const std::filesystem::path assetMapPath = _assetCacheDirectory / "EditorAssetMap.pak";
     std::ifstream editorAssetMap(assetMapPath, std::ios::binary);
     if (!editorAssetMap.is_open())
     {
@@ -371,12 +428,15 @@ bool AssetManager::Load()
         asset->SetAssetID(assetID, {});
         asset->SetAssetPath(assetPath);
 
+        // todo this is a problem - we should read description first, then create asset - when we delete asset type, we can't deserialize it, which breaks all other asset descriptions
         LOG(L"Loading asset description {}...", assetPath.wstring());
         asset->LoadDescription(reader, {});
 
         _assetMap[asset->GetAssetID()] = asset;
         _assetNameMap[asset->GetName()] = asset->GetAssetID();
     }
+
+    RediscoverAssets();
 
     return true;
 }
@@ -385,7 +445,7 @@ bool AssetManager::Save()
 {
     AutosaveAssets();
 
-    std::ofstream editorAssetMap(_assetCacheDirectory / "EditorAssetMap.asset", std::ios::binary);
+    std::ofstream editorAssetMap(_assetCacheDirectory / "EditorAssetMap.pak", std::ios::binary);
     if (!editorAssetMap.is_open())
     {
         LOG(L"Failed to open editor asset map!");
@@ -419,7 +479,10 @@ void AssetManager::AutosaveAssets() const
         if (const std::shared_ptr<const Asset> asset = FindAsset(assetID))
         {
             LOG(L"Saving asset {}...", asset->GetName());
-            asset->Save();
+            if (!asset->Save())
+            {
+                LOG(L"Failed to save asset {}!", asset->GetName());
+            }
         }
     }
 }

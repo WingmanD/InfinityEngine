@@ -49,6 +49,11 @@ bool MemoryReader::ReadFromFile(std::ifstream& file, uint64 numBytesToRead)
     return true;
 }
 
+void MemoryReader::ResetOffset()
+{
+    _index = 0ull;
+}
+
 uint64 MemoryReader::GetNumRemainingBytes() const
 {
     return _bytes.size() - _index;

@@ -2,9 +2,26 @@
 #include "Type.h"
 #include "Object.h"
 
+Type* Type::WithPropertyMap(PropertyMap&& propertyMap)
+{
+    _propertyMap = std::move(propertyMap);
+    return this;
+}
+
+Type* Type::WithDataOffset(size_t offset)
+{
+    _dataOffset = offset;
+    return this;
+}
+
 std::shared_ptr<Object> Type::NewObject() const
 {
     return GetCDO()->Duplicate();
+}
+
+Object* Type::NewObjectAt(void* ptr) const
+{
+    return GetCDO()->DuplicateAt(ptr);
 }
 
 void Type::AddCompositionType(Type* type)
@@ -23,9 +40,70 @@ void Type::AddCompositionType(Type* type)
     UpdateFullName();
 }
 
+bool Type::IsA(const Type* type) const
+{
+    if (_id == type->_id)
+    {
+        return true;
+    }
+
+    for (Type* parentType : _parentTypes)
+    {
+        if (parentType->IsA(type))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Type::HasA(const Type* type) const
+{
+    if (_id == type->_id)
+    {
+        return true;
+    }
+
+    for (Type* compositionType : _compositionTypes)
+    {
+        if (compositionType->IsA(type))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 const Object* Type::GetCDO() const
 {
     return _cdo.get();
+}
+
+uint64 Type::GetID() const
+{
+    return _id;
+}
+
+uint64 Type::GetFamilyID() const
+{
+    return _familyID;
+}
+
+uint64 Type::GetFullID() const
+{
+    return _fullID;
+}
+
+const std::string& Type::GetName() const
+{
+    return _name;
+}
+
+const std::string& Type::GetFullName() const
+{
+    return _fullName;
 }
 
 uint64_t Type::HashTypeName(const std::string& str)
@@ -40,14 +118,42 @@ uint64_t Type::HashTypeName(const std::string& str)
     return hash;
 }
 
-void Type::ForEachPropertyWithTag(const std::string& tag, const std::function<void(PropertyBase*)>& callback) const
+size_t Type::GetSize() const
 {
-    _propertyMap.ForEachPropertyWithTag(tag, callback);
+    return _size;
+}
+
+size_t Type::GetAlignment() const
+{
+    return _alignment;
+}
+
+size_t Type::GetAlignedSize() const
+{
+    return _alignedSize;
+}
+
+size_t Type::GetDataOffset() const
+{
+    return _dataOffset;
+}
+
+bool Type::ForEachPropertyWithTag(const std::string& tag, const std::function<bool(PropertyBase*)>& callback) const
+{
+    if (!_propertyMap.ForEachPropertyWithTag(tag, callback))
+    {
+        return false;
+    }
 
     for (const Type* parentType : _parentTypes)
     {
-        parentType->ForEachPropertyWithTag(tag, callback);
-    } 
+        if (!parentType->ForEachPropertyWithTag(tag, callback))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void Type::AddParentType(Type* type)
@@ -97,4 +203,9 @@ void Type::UpdateFullName()
     }
 
     _fullName = ss.str();
+}
+
+auto operator<=>(const Type& lhs, const Type& rhs)
+{
+    return lhs.GetID() <=> rhs.GetID();
 }

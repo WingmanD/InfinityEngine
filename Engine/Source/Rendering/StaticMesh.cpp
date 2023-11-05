@@ -19,11 +19,11 @@ StaticMesh& StaticMesh::operator=(const StaticMesh& other)
     {
         return *this;
     }
-    
+
     _vertices = other._vertices;
     _indices = other._indices;
     _material = other._material;
-    
+
     return *this;
 }
 
@@ -34,7 +34,7 @@ StaticMesh::StaticMesh(std::wstring name) : Asset(std::move(name))
 bool StaticMesh::Initialize()
 {
     RenderingSubsystem* renderingSubsystem = Engine::Get().GetRenderingSubsystem();
-    
+
     _renderingData = renderingSubsystem->CreateStaticMeshRenderingData();
     if (_renderingData == nullptr)
     {
@@ -110,7 +110,13 @@ std::vector<std::shared_ptr<StaticMesh>> StaticMesh::BatchImport(const std::file
     std::vector<std::shared_ptr<StaticMesh>> meshes;
     for (uint32 i = 0; i < scene->mNumMeshes; ++i)
     {
-        std::shared_ptr newMesh = AssetManager::Get().NewAsset<StaticMesh>(Util::ToWString(scene->mMeshes[i]->mName.C_Str()));
+        std::wstring meshName = Util::ToWString(scene->mMeshes[i]->mName.C_Str());
+        std::shared_ptr newMesh = AssetManager::Get().NewAsset<StaticMesh>(meshName);
+        if (newMesh == nullptr)
+        {
+            LOG(L"Error creating new static mesh: {}", meshName);
+            continue;
+        }
 
         // todo import path, reimport (save index of mesh in scene?)
 
@@ -139,6 +145,11 @@ const std::vector<uint32_t>& StaticMesh::GetIndices() const
 
 void StaticMesh::SetMaterial(const std::shared_ptr<Material>& material)
 {
+    if (_material == material)
+    {
+        return;
+    }
+
     _material = material;
 
     MarkDirtyForAutosave();
@@ -217,7 +228,7 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
     _indices.shrink_to_fit();
 
     SetIsLoaded(true);
-    
+
     if (!Initialize())
     {
         LOG(L"Failed to initialize static mesh: {}", GetName());

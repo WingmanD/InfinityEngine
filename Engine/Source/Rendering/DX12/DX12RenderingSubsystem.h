@@ -31,6 +31,8 @@ struct DX12CopyCommandList : public DX12CommandList
 class DX12RenderingSubsystem : public RenderingSubsystem, public std::enable_shared_from_this<DX12RenderingSubsystem>
 {
 public:
+    static DX12RenderingSubsystem& Get();
+    
     explicit DX12RenderingSubsystem() = default;
     
     DX12RenderingSubsystem(const DX12RenderingSubsystem&) = delete;
@@ -75,8 +77,10 @@ public:
 
     virtual void Tick(double deltaTime) override;
 
-    virtual std::unique_ptr<StaticMeshRenderingData> CreateStaticMeshRenderingData() override;
     virtual std::shared_ptr<Window> ConstructWindow(const std::wstring& title) override;
+    
+    virtual std::unique_ptr<StaticMeshRenderingData> CreateStaticMeshRenderingData() override;
+    virtual std::unique_ptr<MaterialRenderingData> CreateMaterialRenderingData() override;
     virtual std::shared_ptr<Texture> CreateTexture(uint32 width, uint32 height) const override;
     virtual std::shared_ptr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) override;
 

@@ -1,11 +1,14 @@
 ﻿#pragma once
 
 #include <d3d12.h>
+#include <d3d12shader.h>
+#include <set>
 #include <wrl/client.h>
 #include "PassKey.h"
 #include "Rendering/Shader.h"
 #include "DX12Shader.reflection.h"
 
+struct MaterialParameter;
 using Microsoft::WRL::ComPtr;
 
 class RenderingSubsystem;
@@ -26,7 +29,7 @@ public:
     virtual bool Initialize() override;
 
     //void Apply(ID3D12GraphicsCommandList* commandList, PassKey<DX12RenderingSubsystem>);
-    void Apply(ID3D12GraphicsCommandList* commandList);
+    void Apply(ID3D12GraphicsCommandList* commandList) const;
 
     static std::shared_ptr<DX12Shader> Import(AssetManager& assetManager, const std::filesystem::path& path);
 
@@ -34,7 +37,7 @@ public:
     virtual bool Deserialize(MemoryReader& reader) override;
 
     const D3D12_ROOT_SIGNATURE_DESC& GetRootSignatureDesc(PassKey<DX12RenderingSubsystem>) const;
-
+    
 protected:
     bool Compile();
     
@@ -60,4 +63,7 @@ private:
 private:
     bool InitializeRootSignature(const DX12RenderingSubsystem& renderingSubsystem);
     void InitializePSO(const DX12RenderingSubsystem& renderingSubsystem);
+
+    bool ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameter>& constantBufferParameterTypes);
+    bool ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameter>& constantBufferParameterTypes) const;
 };

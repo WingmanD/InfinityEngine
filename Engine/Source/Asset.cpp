@@ -81,12 +81,12 @@ bool Asset::IsLoaded() const
     return _isLoaded;
 }
 
-void Asset::Load()
+bool Asset::Load()
 {
     // todo this must be refactored for packaged builds
     if (_isLoaded)
     {
-        return;
+        return true;
     }
 
     LOG(L"Loading asset {}...", _name);
@@ -94,32 +94,35 @@ void Asset::Load()
     std::ifstream file(_assetPath, std::ios::binary);
     if (!file.is_open())
     {
-        LOG(L"Failed to open file {} for reading!", _assetPath.wstring());
-        return;
+        LOG(L"Failed to open file {} for reading (asset {})!", _assetPath.wstring(), _name);
+        return false;
     }
 
     MemoryReader reader;
     if (!reader.ReadFromFile(file))
     {
         LOG(L"Failed to read asset {} from file {}!", _name, _assetPath.wstring());
-        return;
+        return false;
     }
 
     if (!Deserialize(reader))
     {
         LOG(L"Failed to deserialize asset {} from file {}!", _name, _assetPath.wstring());
-        return;
+        return false;
     }
 
     GetType()->ForEachPropertyWithTag("Load", [this](PropertyBase* property)
     {
+        // todo this should be dynamic cast
         const std::shared_ptr<Asset> valueRef = static_cast<Property<Asset, std::shared_ptr<Asset>>*>(property)->GetRef(this);
         if (valueRef == nullptr)
         {
-            return;
+            return true;
         }
         
         valueRef->Load();
+
+        return true;
     });
 
     _isLoaded = true;
@@ -128,27 +131,30 @@ void Asset::Load()
     {
         LOG(L"Failed to initialize asset {}!", _name);
         DEBUG_BREAK();
+        return false;
     }
+
+    return true;
 }
 
-void Asset::Save() const
+bool Asset::Save() const
 {
     if (!_isLoaded)
     {
-        return;
+        return false;
     }
     
     if (_assetPath.empty())
     {
         LOG(L"Asset {} has no asset path!", _name);
-        return;
+        return false;
     }
 
     std::ofstream file(_assetPath, std::ios::binary);
     if (!file.is_open())
     {
         LOG(L"Failed to open file {} for writing!", _assetPath.wstring());
-        return;
+        return false;
     }
 
     MemoryWriter writer;
@@ -156,7 +162,10 @@ void Asset::Save() const
     if (!writer.WriteToFile(file))
     {
         LOG(L"Failed to write asset {} to file {}!", _name, _assetPath.wstring());
+        return false;
     }
+
+    return true;
 }
 
 void Asset::LoadDescription(MemoryReader& reader, PassKey<AssetManager>)

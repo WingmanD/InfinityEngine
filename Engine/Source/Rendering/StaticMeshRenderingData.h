@@ -1,9 +1,8 @@
 ﻿#pragma once
 
 #include "NonCopyable.h"
-#include <memory>
-
 #include "PassKey.h"
+#include <memory>
 
 class StaticMesh;
 class RenderingSubsystem;

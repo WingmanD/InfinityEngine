@@ -14,6 +14,8 @@ public:
 
     bool ReadFromFile(std::ifstream& file, uint64 numBytesToRead = 0);
 
+    void ResetOffset();
+    
     uint64 GetNumRemainingBytes() const;
 
     [[nodiscard]] const std::vector<std::byte>& GetBytes() const;
@@ -43,6 +45,19 @@ MemoryReader& operator>>(MemoryReader& reader, std::basic_string<T>& string)
 {
     size_t size;
     reader >> size;
+
+    if (size == 0)
+    {
+        return reader;
+    }
+
+    if (size > reader.GetNumRemainingBytes())
+    {
+        LOG(L"MemoryReader::operator>> Invalid string size");
+        DEBUG_BREAK();
+        return reader;
+    }
+
     string.resize(size);
 
     reader.Read(reinterpret_cast<std::byte*>(string.data()), size * sizeof(T));

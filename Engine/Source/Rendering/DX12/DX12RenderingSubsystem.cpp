@@ -1,18 +1,23 @@
 ﻿#include "DX12RenderingSubsystem.h"
-
-#include <dxgi1_2.h>
-#include <string>
-#include <vector>
-
 #include "Core.h"
 #include "d3dx12.h"
 #include "DX12RenderTarget.h"
 #include "DX12Shader.h"
 #include "DX12StaticMeshRenderingData.h"
+#include "DX12MaterialRenderingData.h"
+#include "DX12MaterialParameterMap.h"
 #include "DX12Window.h"
 #include "ThreadPool.h"
 #include "Engine/Engine.h"
 #include "Rendering/Window.h"
+#include <dxgi1_2.h>
+#include <string>
+#include <vector>
+
+DX12RenderingSubsystem& DX12RenderingSubsystem::Get()
+{
+    return static_cast<DX12RenderingSubsystem&>(*Engine::Get().GetRenderingSubsystem());
+}
 
 bool DX12RenderingSubsystem::IsGPUReady() const
 {
@@ -382,11 +387,6 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
     }
 }
 
-std::unique_ptr<StaticMeshRenderingData> DX12RenderingSubsystem::CreateStaticMeshRenderingData()
-{
-    return std::make_unique<DX12StaticMeshRenderingData>();
-}
-
 std::shared_ptr<Window> DX12RenderingSubsystem::ConstructWindow(const std::wstring& title)
 {
     std::shared_ptr<DX12Window> window = std::make_shared<DX12Window>(this, 1280, 720, title);
@@ -398,6 +398,16 @@ std::shared_ptr<Window> DX12RenderingSubsystem::ConstructWindow(const std::wstri
     }
 
     return nullptr;
+}
+
+std::unique_ptr<StaticMeshRenderingData> DX12RenderingSubsystem::CreateStaticMeshRenderingData()
+{
+    return std::make_unique<DX12StaticMeshRenderingData>();
+}
+
+std::unique_ptr<MaterialRenderingData> DX12RenderingSubsystem::CreateMaterialRenderingData()
+{
+    return std::make_unique<DX12MaterialRenderingData>();
 }
 
 std::shared_ptr<Texture> DX12RenderingSubsystem::CreateTexture(uint32 width, uint32 height) const

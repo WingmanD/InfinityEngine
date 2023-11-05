@@ -1,28 +1,15 @@
 #pragma once
 
+#include "Core.h"
+#include "PropertyMap.h"
+#include "ReflectionTags.h"
 #include <string>
 #include <vector>
 #include <memory>
 #include <optional>
 #include <typeinfo>
 
-#include "Core.h"
-#include "PropertyMap.h"
-#include "ReflectionTags.h"
-
 class Object;
-
-#define TYPE(Derived, ...) \
-public: \
-    static Type* StaticType() { \
-        static Type* staticType = TypeRegistry::Get().CreateType<Derived, ##__VA_ARGS__>(); \
-        return staticType; \
-    } \
-    \
-    virtual Type* GetType() const override { \
-        return StaticType(); \
-    } \
-private:
 
 template <typename T>
 concept IsReflectedType = requires
@@ -33,11 +20,9 @@ concept IsReflectedType = requires
 class Type
 {
 public:
-    Type* WithPropertyMap(PropertyMap&& propertyMap)
-    {
-        _propertyMap = std::move(propertyMap);
-        return this;
-    }
+    Type* WithPropertyMap(PropertyMap&& propertyMap);
+
+    Type* WithDataOffset(size_t offset);
 
     template <typename T>
     static std::string GetTypeName()
@@ -69,6 +54,14 @@ public:
         return id;
     }
 
+    std::shared_ptr<Object> NewObject() const;
+
+    /*
+     * Create a new object at the specified memory location.
+     * NOTE: You must allocate memory for the object yourself and keep track of its lifetime.
+     */
+    Object* NewObjectAt(void* ptr) const;
+
     template <typename T>
     std::shared_ptr<T> NewObject() const
     {
@@ -76,7 +69,16 @@ public:
         return std::dynamic_pointer_cast<T>(newObject);
     }
 
-    std::shared_ptr<Object> NewObject() const;
+    /*
+     * Create a new object at the specified memory location.
+     * NOTE: You must allocate memory for the object yourself and keep track of its lifetime.
+     */
+    template <typename T>
+    T* NewObjectAt(void* ptr) const
+    {
+        Object* newObject = NewObjectAt(ptr);
+        return dynamic_cast<T*>(newObject);
+    }
 
     template <typename... CompositionTypes>
     void AddCompositionTypes()
@@ -86,41 +88,9 @@ public:
 
     void AddCompositionType(Type* type);
 
-    bool IsA(Type* type) const
-    {
-        if (_id == type->_id)
-        {
-            return true;
-        }
+    bool IsA(const Type* type) const;
 
-        for (Type* parentType : _parentTypes)
-        {
-            if (parentType->IsA(type))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    bool HasA(Type* type) const
-    {
-        if (_id == type->_id)
-        {
-            return true;
-        }
-
-        for (Type* compositionType : _compositionTypes)
-        {
-            if (compositionType->IsA(type))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    bool HasA(const Type* type) const;
 
     [[nodiscard]] const Object* GetCDO() const;
 
@@ -130,30 +100,16 @@ public:
         return dynamic_cast<const T*>(_cdo.get());
     }
 
-    [[nodiscard]] uint64 GetID() const
-    {
-        return _id;
-    }
+    [[nodiscard]] uint64 GetID() const;
+    [[nodiscard]] uint64 GetFamilyID() const;
+    [[nodiscard]] uint64 GetFullID() const;
+    [[nodiscard]] const std::string& GetName() const;
+    [[nodiscard]] const std::string& GetFullName() const;
 
-    [[nodiscard]] uint64 GetFamilyID() const
-    {
-        return _familyID;
-    }
-
-    [[nodiscard]] uint64 GetFullID() const
-    {
-        return _fullID;
-    }
-
-    [[nodiscard]] const std::string& GetName() const
-    {
-        return _name;
-    }
-
-    [[nodiscard]] const std::string& GetFullName() const
-    {
-        return _fullName;
-    }
+    size_t GetSize() const;
+    size_t GetAlignment() const;
+    size_t GetAlignedSize() const;
+    size_t GetDataOffset() const;
 
     template <typename ValueType, typename ObjectType>
     std::optional<ValueType> GetProperty(const ObjectType* object, const std::string& name) const
@@ -188,19 +144,44 @@ public:
                     return value;
                 }
             }
-            
+
             return std::nullopt;
         }
 
         return property->GetRef(object);
     }
 
-    void ForEachPropertyWithTag(const std::string& tag, const std::function<void(PropertyBase*)>& callback) const;
+    bool ForEachPropertyWithTag(const std::string& tag, const std::function<bool(PropertyBase*)>& callback) const;
+
+    friend auto operator<=>(const Type& lhs, const Type& rhs);
 
 protected:
     Type() = default;
 
     ~Type() = default;
+
+private:
+    std::unique_ptr<const Object> _cdo = nullptr;
+
+    size_t _size = 0;
+    size_t _alignment = 0;
+    size_t _alignedSize = 0;
+    size_t _dataOffset = 0;
+
+    uint64 _id = -1;
+    uint64 _familyID = -1;
+    uint64 _fullID = -1;
+
+    std::string _name;
+    std::string _fullName;
+    std::vector<Type*> _parentTypes;
+    std::vector<Type*> _childTypes;
+
+    std::vector<Type*> _compositionTypes;
+
+    PropertyMap _propertyMap;
+
+    friend class TypeRegistry;
 
 private:
     void AddParentType(Type* type);
@@ -219,21 +200,4 @@ private:
     void UpdateFullName();
 
     void UpdateFullID();
-
-    std::unique_ptr<const Object> _cdo = nullptr;
-
-    uint64 _id = -1;
-    uint64 _familyID = -1;
-    uint64 _fullID = -1;
-
-    std::string _name;
-    std::string _fullName;
-    std::vector<Type*> _parentTypes;
-    std::vector<Type*> _childTypes;
-
-    std::vector<Type*> _compositionTypes;
-
-    PropertyMap _propertyMap;
-
-    friend class TypeRegistry;
 };

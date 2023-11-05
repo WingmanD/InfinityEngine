@@ -1,9 +1,10 @@
 #pragma once
 
-#include <unordered_map>
-#include <cstdint>
 #include "Singleton.h"
 #include "Type.h"
+#include "Util.h"
+#include <cstdint>
+#include <unordered_map>
 
 class TypeRegistry : public Singleton<TypeRegistry>
 {
@@ -15,7 +16,7 @@ public:
         {
             return existingType;
         }
-        
+
         Type* newType = CreateTypeImpl<T>();
         newType->UpdateFullName();
 
@@ -42,11 +43,13 @@ public:
     }
 
     Type* FindTypeForID(uint64_t id);
+    Type* FindTypeByName(const std::string& name);
 
     void PrintRegisteredTypes() const;
 
 private:
     std::unordered_map<uint64_t, Type*> _typeMap;
+    std::unordered_map<std::string, Type*> _typeNameMap;
 
 private:
     void RegisterType(Type* type);
@@ -54,7 +57,7 @@ private:
     template <typename T>
     Type* CreateTypeImpl()
     {
-        uint64_t id = Type::CalculatePrimaryID<T>();
+        const uint64_t id = Type::CalculatePrimaryID<T>();
 
         if (Type* existingType = FindTypeForID(id))
         {
@@ -67,6 +70,9 @@ private:
         newType->_fullID = id;
         newType->_name = Type::GetTypeName<T>();
         newType->_cdo = std::make_unique<T>();
+        newType->_size = sizeof(T);
+        newType->_alignment = alignof(T);
+        newType->_alignedSize = Util::AlignedSize(newType->_size, newType->_alignment);
 
         return newType;
     }

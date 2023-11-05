@@ -15,3 +15,8 @@ std::shared_ptr<Object> Object::Duplicate() const
 {
     return std::make_shared<Object>(*this);
 }
+
+Object* Object::DuplicateAt(void* ptr) const
+{
+    return new(ptr) Object(*this);
+}

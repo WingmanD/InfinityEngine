@@ -68,17 +68,22 @@ public:
         return static_cast<Property<ObjectType, PropertyType>*>(property);
     }
 
-    void ForEachPropertyWithTag(const std::string& tag, const std::function<void(PropertyBase*)>& callback) const
+    bool ForEachPropertyWithTag(const std::string& tag, const std::function<bool(PropertyBase*)>& callback) const
     {
         if (!_attributeToPropertyMap.contains(tag))
         {
-            return;
+            return false;
         }
 
         for (PropertyBase* property : _attributeToPropertyMap.at(tag))
         {
-            callback(property);
+            if (!callback(property))
+            {
+                return false;
+            }
         }
+
+        return true;
     }
 
 protected:

@@ -36,8 +36,8 @@ public:
     void SetIsLoaded(bool value, PassKey<AssetManager>);
     bool IsLoaded() const;
 
-    void Load();
-    void Save() const;
+    bool Load();
+    bool Save() const;
 
     void LoadDescription(MemoryReader& reader, PassKey<AssetManager>);
     void SaveDescription(MemoryWriter& writer, PassKey<AssetManager>) const;

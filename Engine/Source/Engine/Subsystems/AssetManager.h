@@ -67,6 +67,8 @@ public:
 
     void MarkDirtyForAutosave(const std::shared_ptr<const Asset>& asset);
 
+    void RediscoverAssets();
+
     const std::filesystem::path& GetProjectRootPath() const;
 
 public:

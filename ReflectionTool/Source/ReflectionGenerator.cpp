@@ -128,8 +128,27 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
             propertyMapDefinition << " \\\n\t\t";
         }
 
-        // todo methods
+        std::string dataOffsetDefinition;
+        auto dataStartIt = std::ranges::find_if(typeInfo.Attributes,
+                                                [](const Argument& attribute)
+                                                {
+                                                    return attribute.Name == "DataStart";
+                                                });
+        if (dataStartIt != typeInfo.Attributes.end())
+        {
+            const Argument& dataStart = *dataStartIt;
 
+            if (!dataStart.Value.empty())
+            {
+                dataOffsetDefinition = std::format("->WithDataOffset(offsetof({}, {}))", typeInfo.Name, dataStart.Value);
+            }
+            else
+            {
+                std::println(_log, "Warning: DataStart attribute is missing value for class {} in file {}", typeInfo.Name, header.string());
+            }
+        }
+
+        // todo methods
         std::print(reflectionHeader,
                    R"(#pragma once
 
@@ -137,7 +156,7 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
 public: \
     static Type* StaticType() \
     {{ \
-        static Type* staticType = TypeRegistry::Get().{} \
+        static Type* staticType = TypeRegistry::Get().{}{} \
                 ->WithPropertyMap(std::move(PropertyMap(){})); \
         return staticType; \
     }} \
@@ -152,11 +171,18 @@ public: \
         return std::make_shared<{}>(*this); \
     }} \
     \
+    virtual Object* DuplicateAt(void* ptr) const override \
+    {{ \
+        return new(ptr) {}(*this); \
+    }} \
+    \
 private:
 )",
                    macroName,
                    createTypeFunction,
+                   dataOffsetDefinition,
                    propertyMapDefinition.str(),
+                   typeInfo.Name,
                    typeInfo.Name);
 
 

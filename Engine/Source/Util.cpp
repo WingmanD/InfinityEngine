@@ -28,8 +28,13 @@ std::wstring Util::ToWString(const char* str)
     MultiByteToWideChar(CP_UTF8, 0, str, -1, wchars, num);
 
     std::wstring result = wchars;
-    
+
     delete[] wchars;
 
     return result;
+}
+
+size_t Util::AlignedSize(size_t size, size_t alignment)
+{
+    return (size + alignment - 1) & ~(alignment - 1);
 }

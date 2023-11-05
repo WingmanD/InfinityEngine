@@ -19,5 +19,11 @@ public:
 
     virtual std::shared_ptr<Object> Duplicate() const;
 
+    /*
+     * Duplicate the object at the specified memory location.
+     * NOTE: You must allocate memory for the object yourself and keep track of its lifetime.
+     */
+    virtual Object* DuplicateAt(void* ptr) const;
+
     virtual ~Object() = default;
 };

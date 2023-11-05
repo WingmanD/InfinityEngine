@@ -3,6 +3,8 @@
 #include "Asset.h"
 #include "Shader.reflection.h"
 
+class MaterialParameterMap;
+
 REFLECTED()
 class Shader : public Asset
 {
@@ -10,6 +12,12 @@ class Shader : public Asset
     
 public:
     Shader() = default;
-    
     Shader(const std::wstring& name);
+
+    Shader(const Shader& other);
+
+    std::unique_ptr<MaterialParameterMap> CreateMaterialParameterMap() const;
+
+protected:
+    std::unique_ptr<MaterialParameterMap> MaterialParameterMap;
 };
