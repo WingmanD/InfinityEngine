@@ -6,6 +6,8 @@
 #include "MaterialRenderingData.h"
 #include <memory>
 
+#include "Delegate.h"
+
 class Shader;
 
 REFLECTED()
@@ -50,7 +52,11 @@ private:
     PROPERTY(EditableInEditor, Load, DisplayName = "Shader")
     std::shared_ptr<Shader> _shader;
 
+    DelegateHandle _materialParameterMapChangedHandle{};
     std::unique_ptr<MaterialParameterMap> _materialParameterMap;
 
     std::unique_ptr<MaterialRenderingData> _renderingData;
+
+private:
+    void OnShaderChanged();
 };

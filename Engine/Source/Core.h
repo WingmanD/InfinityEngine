@@ -2,7 +2,8 @@
 
 #include "Logger.h"
 #include "ReflectionTags.h"
-#include "Math/Vector3.h"
+#include "Enum.h"
+#include "SimpleMath.h"
 #include <exception>
 #include <wrl/client.h>
 #include <chrono>
@@ -20,6 +21,16 @@ typedef int32_t int32;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 typedef int64_t int64;
+
+typedef DirectX::SimpleMath::Vector2 Vector2;
+typedef DirectX::SimpleMath::Vector3 Vector3;
+typedef DirectX::SimpleMath::Vector4 Vector4;
+typedef DirectX::SimpleMath::Matrix Matrix;
+typedef DirectX::SimpleMath::Quaternion Quaternion;
+typedef DirectX::SimpleMath::Plane Plane;
+typedef DirectX::SimpleMath::Ray Ray;
+typedef DirectX::SimpleMath::Color Color;
+
 
 #ifdef _MSC_VER
 #define DEBUG_BREAK() __debugbreak()

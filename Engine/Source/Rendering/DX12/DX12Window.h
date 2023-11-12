@@ -13,9 +13,7 @@ class DX12RenderingSubsystem;
 class DX12Window : public Window
 {
 public:
-    DX12Window(DX12RenderingSubsystem* renderingSubsystem, uint32 width, uint32 height, const std::wstring& title);
-    
-    virtual ~DX12Window() = default;
+    DX12Window(uint32 width, uint32 height, const std::wstring& title);
 
     virtual bool Initialize() override;
     void Render(PassKey<DX12RenderingSubsystem>);
@@ -29,7 +27,7 @@ protected:
     };
     
 protected:
-    DX12RenderingSubsystem* GetDX12RenderingSubsystem() const;
+    DX12RenderingSubsystem& GetDX12RenderingSubsystem() const;
 
 private:
     bool _needsResize = false;

@@ -2,10 +2,13 @@
 #include <d3dcompiler.h>
 #include "Rendering/StaticMesh.h"
 #include "DX12RenderingSubsystem.h"
+#include "DX12MaterialRenderingData.h"
 #include <vector>
 
 void DX12StaticMeshRenderingData::SetupDrawing(ID3D12GraphicsCommandList* commandList) const
 {
+    GetMesh()->GetMaterial()->GetRenderingData<DX12MaterialRenderingData>()->Apply(commandList);
+
     commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     commandList->IASetVertexBuffers(0, 1, &_vertexBufferView);
     commandList->IASetIndexBuffer(&_indexBufferView);
@@ -57,7 +60,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
     }
 
     std::weak_ptr weakMesh = mesh;
-    commandList.OnCompleted = [weakMesh]()
+    commandList.OnCompletedCallbacks.push_back([weakMesh]()
     {
         const std::shared_ptr<StaticMesh> sharedMesh = weakMesh.lock();
         if (sharedMesh == nullptr)
@@ -66,7 +69,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
         }
 
         sharedMesh->GetRenderingData()->PostUpload();
-    };
+    });
 
     dx12RenderingSubsystem.ReturnCopyCommandList(commandList);
 

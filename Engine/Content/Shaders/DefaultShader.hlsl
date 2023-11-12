@@ -13,8 +13,8 @@ struct VertexIn
 {
     float3 PositionLS : POSITION;
     float3 Normal : NORMAL;
-    float3 VertexColor : COLOR; // todo color should be float4, but we need Vector4 support for that in cpp
-    float3 UV : UV;
+    float4 VertexColor : COLOR;
+    float2 UV : UV;
 };
 
 struct VertexOut
@@ -23,7 +23,7 @@ struct VertexOut
     nointerpolation float4 PositionWS : POSITION;
     nointerpolation float3 Normal : NORMAL;
     float4 VertexColor : COLOR;
-    float3 UV : UV;
+    float2 UV : UV;
 };
 
 VertexOut VS(VertexIn vIn)
@@ -33,7 +33,7 @@ VertexOut VS(VertexIn vIn)
     vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GPerPassConstants.World);
     vOut.PositionCS = mul(float4(vIn.PositionLS, 1.0f), mul(GPerPassConstants.ViewProjection, GPerPassConstants.World));
     vOut.Normal = mul(float4(vIn.Normal, 0.0f), GPerPassConstants.World).xyz;
-    vOut.VertexColor = float4(vIn.VertexColor, 1.0f);
+    vOut.VertexColor = vIn.VertexColor;
     vOut.UV = vIn.UV;
 
     return vOut;

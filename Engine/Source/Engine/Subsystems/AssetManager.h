@@ -3,10 +3,9 @@
 #include "Engine/Subsystems/EngineSubsystem.h"
 #include "Asset.h"
 #include "PackageManifest.h"
+#include "IDGenerator.h"
 #include <fstream>
 #include <set>
-
-#include "IDGenerator.h"
 
 template <typename Base, typename Derived>
 concept IsA = std::is_base_of_v<Base, Derived>;
@@ -38,6 +37,11 @@ public:
         }
 
         auto asset = T::Import(*this, actualPath, std::forward<Args>(args)...);
+        if (asset == nullptr)
+        {
+            return nullptr;
+        }
+        
         asset->SetImportPath(actualPath);
         asset->SetIsLoaded(true, {});
         

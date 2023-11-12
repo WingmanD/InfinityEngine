@@ -28,10 +28,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     {
         return -1;
     }
-
-    std::filesystem::path exePath = std::filesystem::path(executablePath);
-    LOG(L"Executable path: {}", exePath.wstring());
-
+    
     Engine& engine = Engine::Get();
     if (!engine.Initialize(hInstance))
     {

@@ -42,16 +42,14 @@ public:
             DEBUG_BREAK();
             return nullptr;
         }
-        Object* obj = _nameToObject[name];
-        T* obj3 = reinterpret_cast<T*>(_nameToObject[name]);
-        T* obj2 = dynamic_cast<T*>(_nameToObject[name]);
-        // if (obj2 == nullptr)
-        // {
-        //     DEBUG_BREAK();
-        //     return nullptr;
-        // }
+        T* parameter = dynamic_cast<T*>(_nameToObject[name]);
+        if (parameter == nullptr)
+        {
+            DEBUG_BREAK();
+            return nullptr;
+        }
 
-        return obj3;
+        return parameter;
     }
 
     // ISerializeable

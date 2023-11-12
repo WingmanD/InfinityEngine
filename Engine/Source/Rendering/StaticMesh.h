@@ -5,24 +5,14 @@
 #include "StaticMeshRenderingData.h"
 #include "StaticMesh.reflection.h"
 
-// struct Vertex
-// {
-//     Vector3 Position;
-//     Vector3 Normal;
-//     Vector3 Tangent;
-//     Vector3 Bitangent;
-//     Vector3 Color;
-//     Vector3 UV;
-// };
-
 struct aiMesh;
 
 struct Vertex
 {
     Vector3 Position;
     Vector3 Normal;
-    Vector3 Color;
-    Vector3 UV;
+    Vector4 Color;
+    Vector2 UV;
 };
 
 REFLECTED()

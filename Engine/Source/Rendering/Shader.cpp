@@ -9,7 +9,17 @@ Shader::Shader(const Shader& other) : Asset(other)
 {
 }
 
+bool Shader::Recompile(bool immediate)
+{
+    return true;
+}
+
 std::unique_ptr<MaterialParameterMap> Shader::CreateMaterialParameterMap() const
 {
-    return MaterialParameterMap->Duplicate();
+    if (ParameterMap == nullptr)
+    {
+        return nullptr;
+    }
+    
+    return ParameterMap->Duplicate();
 }

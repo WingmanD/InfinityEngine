@@ -2,10 +2,11 @@
 
 #include "Core.h"
 #include "NonCopyable.h"
+#include "Widget.h"
 
 class RenderingSubsystem;
 
-class Window : public NonCopyable<Window>
+class Window : public NonCopyable<Window>, public std::enable_shared_from_this<Window>
 {
 public:
     enum class WindowState
@@ -18,11 +19,14 @@ public:
         FullscreenBorderless
     };
 
-    Window(RenderingSubsystem* renderingSubsystem, uint32 width, uint32 height, std::wstring title);
+    Window(uint32 width, uint32 height, std::wstring title);
+    virtual ~Window() = default;
+
     virtual bool Initialize();
 
     uint32 GetWidth() const;
     uint32 GetHeight() const;
+    float GetAspectRatio() const;
 
     void SetState(WindowState state);
     WindowState GetState() const;
@@ -32,22 +36,22 @@ public:
 
     void RequestResize(uint32 width, uint32 height);
 
+    Widget* GetRootWidget() const;
+
     bool IsFocused() const;
 
     HWND GetHandle() const;
 
     bool IsValid() const;
-    
-    void Destroy();
 
-    RenderingSubsystem* GetRenderingSubsystem() const;
+    void Destroy();
 
 protected:
     struct PendingResize
     {
         bool IsValid = false;
-        uint32 Width;
-        uint32 Height;
+        uint32 Width = 0u;
+        uint32 Height = 0u;
     };
 
     PendingResize& GetPendingResize();
@@ -59,24 +63,26 @@ protected:
     virtual void OnTitleChanged();
     virtual void OnDestroyed();
 
-    void SetWidth(float value);
-    void SetHeight(float value);
+    void OnResized();
     
 private:
-    PendingResize _pendingResize;
+    PendingResize _pendingResize{};
     
+    std::unique_ptr<Widget> _rootWidget = nullptr;
+
     HWND _hwnd = nullptr;
 
     uint32 _width = 1920u;
     uint32 _height = 1080u;
+    float _aspectRatio = 16.0f / 9.0f;
     std::wstring _title = L"SwarmEngine";
 
     bool _isFocused = false;
     WindowState _state = WindowState::Windowed;
 
-    RenderingSubsystem* _renderingSubsystem = nullptr;
-
 private:
     LRESULT ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     static LRESULT CALLBACK ProcessWindowMessagesStatic(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+    void RecalculateAspectRatio();
 };

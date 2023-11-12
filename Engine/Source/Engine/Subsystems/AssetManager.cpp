@@ -432,8 +432,15 @@ bool AssetManager::Load()
         LOG(L"Loading asset description {}...", assetPath.wstring());
         asset->LoadDescription(reader, {});
 
-        _assetMap[asset->GetAssetID()] = asset;
-        _assetNameMap[asset->GetName()] = asset->GetAssetID();
+        if (exists(assetPath))
+        {
+            _assetMap[asset->GetAssetID()] = asset;
+            _assetNameMap[asset->GetName()] = asset->GetAssetID();
+        }
+        else
+        {
+            LOG(L"Asset {} does not exist!", assetPath.wstring());
+        }
     }
 
     RediscoverAssets();

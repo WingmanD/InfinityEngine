@@ -266,6 +266,11 @@ void DX12RenderingSubsystem::AsyncOnGPUCopyFenceEvent(std::function<void()>&& ca
 
 bool DX12RenderingSubsystem::Initialize()
 {
+    if (!RenderingSubsystem::Initialize())
+    {
+        return false;
+    }
+
 #if DEBUG
     {
         ComPtr<ID3D12Debug> debugController;
@@ -389,7 +394,7 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
 
 std::shared_ptr<Window> DX12RenderingSubsystem::ConstructWindow(const std::wstring& title)
 {
-    std::shared_ptr<DX12Window> window = std::make_shared<DX12Window>(this, 1280, 720, title);
+    std::shared_ptr<DX12Window> window = std::make_shared<DX12Window>(1280, 720, title);
     if (window->Initialize())
     {
         _windows.push_back(window);
@@ -554,9 +559,9 @@ void DX12RenderingSubsystem::HandleCopyLists()
 
         for (DX12CopyCommandList commandList : currentCommandLists)
         {
-            if (commandList.OnCompleted.has_value())
+            for (const std::function<void()>& callback : commandList.OnCompletedCallbacks)
             {
-                commandList.OnCompleted.value()();
+                callback();
             }
 
             commandList.Reset();

@@ -5,15 +5,15 @@
 #include "DX12Shader.h"
 #include "DX12StaticMeshRenderingData.h"
 #include "Rendering/StaticMeshRenderingData.h"
-#include "DX12MaterialRenderingData.h"
 #include "MaterialParameterTypes.h"
 #include <DirectXColors.h>
 #include <numbers>
 
+#include "Rendering/UIStatics.h"
 
-DX12Window::DX12Window(DX12RenderingSubsystem* renderingSubsystem, uint32 width, uint32 height,
-                       const std::wstring& title) :
-    Window(renderingSubsystem, width, height, title)
+
+DX12Window::DX12Window(uint32 width, uint32 height, const std::wstring& title) :
+    Window(width, height, title)
 {
 }
 
@@ -26,99 +26,35 @@ bool DX12Window::Initialize()
 
     _swapChain.Reset();
 
-    const DX12RenderingSubsystem* renderingSubsystem = GetDX12RenderingSubsystem();
-    if (!renderingSubsystem)
-    {
-        LOG(L"Failed to initialize DX12Window: Rendering subsystem is not DX12RenderingSubsystem or does not exist!");
-        return false;
-    }
+    const DX12RenderingSubsystem& renderingSubsystem = GetDX12RenderingSubsystem();
 
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
     swapChainDesc.BufferDesc.Width = GetWidth();
     swapChainDesc.BufferDesc.Height = GetHeight();
     swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
     swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
-    swapChainDesc.BufferDesc.Format = renderingSubsystem->GetFrameBufferFormat();
+    swapChainDesc.BufferDesc.Format = renderingSubsystem.GetFrameBufferFormat();
     swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
     swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-    swapChainDesc.SampleDesc.Count = renderingSubsystem->GetMSAASampleCount();
-    swapChainDesc.SampleDesc.Quality = renderingSubsystem->GetMSAAQuality() - 1;
+    swapChainDesc.SampleDesc.Count = renderingSubsystem.GetMSAASampleCount();
+    swapChainDesc.SampleDesc.Quality = renderingSubsystem.GetMSAAQuality() - 1;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDesc.BufferCount = renderingSubsystem->GetBufferCount();
+    swapChainDesc.BufferCount = renderingSubsystem.GetBufferCount();
     swapChainDesc.OutputWindow = GetHandle();
     swapChainDesc.Windowed = true;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-    ThrowIfFailed(renderingSubsystem->GetDXGIFactory()->CreateSwapChain(
-        renderingSubsystem->GetCommandQueue(),
+    ThrowIfFailed(renderingSubsystem.GetDXGIFactory()->CreateSwapChain(
+        renderingSubsystem.GetCommandQueue(),
         &swapChainDesc,
         _swapChain.GetAddressOf()));
 
-    ThrowIfFailed(renderingSubsystem->GetDXGIFactory()->MakeWindowAssociation(GetHandle(), 0));
+    ThrowIfFailed(renderingSubsystem.GetDXGIFactory()->MakeWindowAssociation(GetHandle(), 0));
 
     RequestResize(GetWidth(), GetHeight());
 
-    AssetManager& assetManager = Engine::Get().GetAssetManager();
-    // auto shader = assetManager.Import<DX12Shader>(L"C:/Projects/InfinityEngine/Engine/Content/Shaders/DefaultShader.hlsl");
-    // if (shader == nullptr)
-    // {
-    //     return false;
-    // }
-    // if (!shader->Initialize())
-    // {
-    //     return false;
-    // }
-    // shader->Save();
-    //
-    // auto material = assetManager.NewAsset<Material>(L"DefaultMaterial");
-    // if (material == nullptr)
-    // {
-    //     return false;
-    // }
-    // if (!material->Initialize())
-    // {
-    //     return false;
-    // }
-    // material->SetShader(shader);
-    // material->Save();
-
-    // auto shader = assetManager.FindAssetByName<Shader>(L"DefaultShader");
-    // if (!shader->Load())
-    // {
-    //     return false;
-    // }
-    // auto material = assetManager.FindAssetByName<Material>(L"DefaultMaterial");
-    // if (material != nullptr)
-    // {
-    //     assetManager.DeleteAsset(material);    
-    // }
-    // material = assetManager.NewAsset<Material>(L"DefaultMaterial");
-    // //material->Load();
-    // if (!material->Initialize())
-    // {
-    //     return false;
-    // }
-    // material->SetShader(shader);
-    //
-    // _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(L"SwarmDrone");
-    // if (_staticMeshTest != nullptr)
-    // {
-    //     assetManager.DeleteAsset(_staticMeshTest);
-    //     return false;
-    // }
-    // if (_staticMeshTest != nullptr)
-    // {
-    //     _staticMeshTest->Load();
-    //     _staticMeshTest->SetMaterial(material);
-    // }
-
-    const Type* type = TypeRegistry::Get().FindTypeByName("PerPassConstants");
-    std::byte* _perPassConstantsData = new std::byte[type->GetAlignedSize()];
-    //PerPassConstants* perPassConstants = dynamic_cast<PerPassConstants*>(type->GetCDO()->DuplicateAt(_perPassConstantsData));
-    PerPassConstants* perPassConstants2 = type->NewObjectAt<PerPassConstants>(_perPassConstantsData);
-    size_t offset = offsetof(PerPassConstants, World);
-
+    const AssetManager& assetManager = Engine::Get().GetAssetManager();
     _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(L"SwarmDrone");
     if (_staticMeshTest != nullptr)
     {
@@ -136,8 +72,8 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
         return;
     }
 
-    DX12RenderingSubsystem* renderingSubsystem = GetDX12RenderingSubsystem();
-    DX12CommandList dx12CommandList = renderingSubsystem->RequestCommandList();
+    DX12RenderingSubsystem& renderingSubsystem = GetDX12RenderingSubsystem();
+    DX12CommandList dx12CommandList = renderingSubsystem.RequestCommandList();
     ID3D12GraphicsCommandList* commandList = dx12CommandList.CommandList.Get();
 
     const PendingResize& pendingResize = GetPendingResize();
@@ -176,29 +112,10 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
             Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
             Vector3 up = Vector3(0.0f, 0.0f, 1.0f);
 
-            XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-
-            XMFLOAT4X4 worldMatrix = XMFLOAT4X4(
-                1.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                1.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                1.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                1.0f);
-
-            XMMATRIX world = XMLoadFloat4x4(&worldMatrix);
+            Matrix view = XMMatrixLookAtLH(pos, target, up);
+            Matrix world = Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
             const float aspectRatio = static_cast<float>(GetWidth()) / static_cast<float>(GetHeight());
-            XMMATRIX proj = XMMatrixPerspectiveFovLH(0.25f * std::numbers::pi, aspectRatio, 1.0f, 1000.0f);
+            Matrix proj = XMMatrixPerspectiveFovLH(0.25f * static_cast<float>(std::numbers::pi), aspectRatio, 1.0f, 1000.0f);
 
             Material* material = _staticMeshTest->GetMaterial().get();
 
@@ -207,14 +124,18 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
             XMStoreFloat4x4(&perPassConstants->World, XMMatrixTranspose(world));
             XMStoreFloat4x4(&perPassConstants->ViewProjection, XMMatrixTranspose(view * proj));
             perPassConstants->CameraPosition = pos;
-            perPassConstants->CameraDirection = Vector3::Normalize(target - pos);
-
-            material->GetRenderingData<DX12MaterialRenderingData>()->Apply(commandList);
+            perPassConstants->CameraDirection = target - pos;
+            perPassConstants->CameraDirection.Normalize();
 
             if (_staticMeshTest->GetRenderingData()->IsUploaded())
             {
                 static_cast<DX12StaticMeshRenderingData*>(_staticMeshTest->GetRenderingData())->SetupDrawing(commandList);
             }
+        }
+
+        if (GetRootWidget() != nullptr)
+        {
+            GetRootWidget()->TestDraw(commandList);
         }
     }
 
@@ -232,7 +153,7 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
 
     // todo this must be in a new command list, as it must be the last thing we do
     commandList->ResourceBarrier(1, &transitionTargetToPresent);
-    renderingSubsystem->CloseCommandList(dx12CommandList);
+    renderingSubsystem.CloseCommandList(dx12CommandList);
 }
 
 void DX12Window::Present(PassKey<DX12RenderingSubsystem>)
@@ -242,28 +163,28 @@ void DX12Window::Present(PassKey<DX12RenderingSubsystem>)
     _currentFrameBufferIndex = (_currentFrameBufferIndex + 1) % static_cast<int32>(_frameBuffers.size());
 }
 
-DX12RenderingSubsystem* DX12Window::GetDX12RenderingSubsystem() const
+DX12RenderingSubsystem& DX12Window::GetDX12RenderingSubsystem() const
 {
-    return dynamic_cast<DX12RenderingSubsystem*>(GetRenderingSubsystem());
+    return dynamic_cast<DX12RenderingSubsystem&>(RenderingSubsystem::Get());
 }
 
 void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
 {
-    DX12RenderingSubsystem* renderingSubsystem = GetDX12RenderingSubsystem();
-    ID3D12Device* device = renderingSubsystem->GetDevice();
+    DX12RenderingSubsystem& renderingSubsystem = GetDX12RenderingSubsystem();
+    ID3D12Device* device = renderingSubsystem.GetDevice();
 
     PendingResize& pendingResize = GetPendingResize();
     pendingResize.IsValid = false;
     const uint32 width = pendingResize.Width;
     const uint32 height = pendingResize.Height;
 
-    const uint32 bufferCount = renderingSubsystem->GetBufferCount();
+    const uint32 bufferCount = renderingSubsystem.GetBufferCount();
 
     for (FrameBuffer& frameBuffer : _frameBuffers)
     {
         if (frameBuffer.RTVDescriptorHandle.ptr != 0)
         {
-            renderingSubsystem->GetRTVHeap().FreeHeapResourceHandle(frameBuffer.RTVDescriptorHandle);
+            renderingSubsystem.GetRTVHeap().FreeHeapResourceHandle(frameBuffer.RTVDescriptorHandle);
         }
         frameBuffer.RenderTargetView.Reset();
     }
@@ -272,7 +193,7 @@ void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
         bufferCount,
         width,
         height,
-        renderingSubsystem->GetFrameBufferFormat(),
+        renderingSubsystem.GetFrameBufferFormat(),
         DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
     _currentFrameBufferIndex = 0;
@@ -289,7 +210,7 @@ void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
 
     for (int32 i = 0; i < _frameBuffers.size(); ++i)
     {
-        const D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle = renderingSubsystem->GetRTVHeap().RequestHeapResourceHandle();
+        const D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle = renderingSubsystem.GetRTVHeap().RequestHeapResourceHandle();
 
         ThrowIfFailed(_swapChain->GetBuffer(i, IID_PPV_ARGS(&_frameBuffers[i].RenderTargetView)));
         device->CreateRenderTargetView(_frameBuffers[i].RenderTargetView.Get(), nullptr, rtvHeapHandle);
@@ -317,16 +238,16 @@ void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
     depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
     D3D12_CLEAR_VALUE optClear;
-    optClear.Format = renderingSubsystem->GetDepthStencilFormat();
+    optClear.Format = renderingSubsystem.GetDepthStencilFormat();
     optClear.DepthStencil.Depth = 1.0f;
     optClear.DepthStencil.Stencil = 0;
 
-    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    const CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
     if (_depthStencilBuffer != nullptr)
     {
         _depthStencilBuffer.Reset();
-        renderingSubsystem->GetDSVHeap().FreeHeapResourceHandle(_depthStencilView);
+        renderingSubsystem.GetDSVHeap().FreeHeapResourceHandle(_depthStencilView);
     }
 
     ThrowIfFailed(device->CreateCommittedResource(
@@ -337,15 +258,15 @@ void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
         &optClear,
         IID_PPV_ARGS(_depthStencilBuffer.GetAddressOf())));
 
-    _depthStencilView = renderingSubsystem->GetDSVHeap().RequestHeapResourceHandle();
+    _depthStencilView = renderingSubsystem.GetDSVHeap().RequestHeapResourceHandle();
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
     dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
     dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    dsvDesc.Format = renderingSubsystem->GetDepthStencilFormat();
+    dsvDesc.Format = renderingSubsystem.GetDepthStencilFormat();
     dsvDesc.Texture2D.MipSlice = 0;
     device->CreateDepthStencilView(_depthStencilBuffer.Get(), &dsvDesc, _depthStencilView);
 
-    auto transitionDSV = CD3DX12_RESOURCE_BARRIER::Transition(
+    const auto transitionDSV = CD3DX12_RESOURCE_BARRIER::Transition(
         _depthStencilBuffer.Get(),
         D3D12_RESOURCE_STATE_COMMON,
         D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -359,7 +280,6 @@ void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
     _fullWindowViewport.MaxDepth = 1.0f;
 
     _fullWindowRect = {0, 0, static_cast<LONG>(width), static_cast<LONG>(height)};
-
-    SetWidth(width);
-    SetHeight(height);
+    
+    OnResized();
 }

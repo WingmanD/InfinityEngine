@@ -4,11 +4,11 @@
 #include "Engine/Engine.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 
-Window::Window(RenderingSubsystem* renderingSubsystem, uint32 width, uint32 height, std::wstring title) :
+Window::Window(uint32 width, uint32 height, std::wstring title) :
     _width(width),
     _height(height),
-    _title(std::move(title)),
-    _renderingSubsystem(renderingSubsystem)
+    _aspectRatio(static_cast<float>(width) / static_cast<float>(height)),
+    _title(std::move(title))
 {
 }
 
@@ -60,6 +60,19 @@ bool Window::Initialize()
     ShowWindow(_hwnd, SW_SHOW);
     UpdateWindow(_hwnd);
 
+    _rootWidget = std::make_unique<Widget>();
+    if (!_rootWidget->Initialize())
+    {
+        return false;
+    }
+
+    _rootWidget->SetWindow(shared_from_this());
+
+    // todo temporary
+    _rootWidget->SetAnchor(EWidgetAnchor::TopLeft);
+    _rootWidget->SetPosition({0.045f, -0.035f});
+    _rootWidget->SetSize({0.15f, 0.05f});
+
     return true;
 }
 
@@ -73,6 +86,11 @@ uint32 Window::GetHeight() const
     return _height;
 }
 
+float Window::GetAspectRatio() const
+{
+    return _aspectRatio;
+}
+
 void Window::Destroy()
 {
     SetWindowLongPtr(GetHandle(), GWLP_USERDATA, NULL);
@@ -81,11 +99,6 @@ void Window::Destroy()
         _hwnd = nullptr;
         OnDestroyed();
     }
-}
-
-RenderingSubsystem* Window::GetRenderingSubsystem() const
-{
-    return _renderingSubsystem;
 }
 
 void Window::SetState(WindowState state)
@@ -123,19 +136,26 @@ void Window::RequestResize(uint32 width, uint32 height)
     _pendingResize.IsValid = true;
 }
 
+Widget* Window::GetRootWidget() const
+{
+    return _rootWidget.get();
+}
+
 void Window::OnDestroyed()
 {
-    GetRenderingSubsystem()->OnWindowDestroyed(this);
+    RenderingSubsystem::Get().OnWindowDestroyed(this);
 }
 
-void Window::SetWidth(float value)
+void Window::OnResized()
 {
-    _width = value;
-}
-
-void Window::SetHeight(float value)
-{
-    _height = value;
+    _width = _pendingResize.Width;
+    _height = _pendingResize.Height;
+    _aspectRatio = static_cast<float>(_width) / static_cast<float>(_height);
+    
+    if (_rootWidget != nullptr)
+    {
+        _rootWidget->OnParentResized();
+    }
 }
 
 bool Window::IsFocused() const
@@ -172,11 +192,13 @@ void Window::OnStateChanged()
 
     switch (_state)
     {
-    case WindowState::BeingResized:
+        case WindowState::BeingResized:
         {
             SetIsFocused(false);
             break;
         }
+        default:
+            break;
     }
 }
 
@@ -195,32 +217,32 @@ LRESULT Window::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 {
     switch (msg)
     {
-    case WM_CREATE:
+        case WM_CREATE:
         {
             const auto pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
             SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
             return 0;
         }
-    case WM_ACTIVATE:
+        case WM_ACTIVATE:
         {
             SetIsFocused(LOWORD(wParam) != WA_INACTIVE);
 
             return 0;
         }
 
-    case WM_ENTERSIZEMOVE:
+        case WM_ENTERSIZEMOVE:
         {
             SetState(WindowState::BeingResized);
 
             return 0;
         }
-    case WM_EXITSIZEMOVE:
+        case WM_EXITSIZEMOVE:
         {
             SetState(WindowState::Windowed);
 
             return 0;
         }
-    case WM_SIZE:
+        case WM_SIZE:
         {
             const WindowState previousState = GetState();
 
@@ -251,9 +273,9 @@ LRESULT Window::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
             return 0;
         }
-    case WM_CLOSE:
-        [[fallthrough]];
-    case WM_DESTROY:
+        case WM_CLOSE:
+            [[fallthrough]];
+        case WM_DESTROY:
         {
             Destroy();
             return 0;
@@ -269,6 +291,8 @@ LRESULT Window::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
             return 0;
         }
+        default:
+            break;
     }
 
     return DefWindowProc(hwnd, msg, wParam, lParam);

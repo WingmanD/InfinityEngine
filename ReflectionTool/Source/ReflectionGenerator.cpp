@@ -148,9 +148,10 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
             }
         }
 
-        // todo methods
+        // todo methods, pragma once is written before each class
         std::print(reflectionHeader,
-                   R"(#pragma once
+                   R"(
+#pragma once
 
 #define {}_GENERATED() \
 public: \
@@ -175,6 +176,14 @@ public: \
     {{ \
         return new(ptr) {}(*this); \
     }} \
+    std::shared_ptr<{}> SharedFromThis() \
+    {{ \
+        return std::static_pointer_cast<{}>(shared_from_this()); \
+    }} \
+    std::shared_ptr<const {}> SharedFromThis() const \
+    {{ \
+        return std::static_pointer_cast<const {}>(shared_from_this()); \
+    }} \
     \
 private:
 )",
@@ -182,6 +191,10 @@ private:
                    createTypeFunction,
                    dataOffsetDefinition,
                    propertyMapDefinition.str(),
+                   typeInfo.Name,
+                   typeInfo.Name,
+                   typeInfo.Name,
+                   typeInfo.Name,
                    typeInfo.Name,
                    typeInfo.Name);
 

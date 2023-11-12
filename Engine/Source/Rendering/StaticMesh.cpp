@@ -127,6 +127,16 @@ std::vector<std::shared_ptr<StaticMesh>> StaticMesh::BatchImport(const std::file
             continue;
         }
 
+        std::shared_ptr<Material> defaultMaterial = AssetManager::Get().FindAssetByName<Material>(L"DefaultMaterial");
+        if (defaultMaterial == nullptr)
+        {
+            LOG(L"Failed to find default material!");
+            return {};
+        }
+        defaultMaterial->Load();
+
+        newMesh->SetMaterial(defaultMaterial);
+
         meshes.emplace_back(newMesh);
     }
 
@@ -203,18 +213,18 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
 
         if (assimpMesh->HasVertexColors(0))
         {
-            vertex.Color = Vector3(
+            vertex.Color = Vector4(
                 assimpMesh->mColors[0][i].r,
                 assimpMesh->mColors[0][i].g,
-                assimpMesh->mColors[0][i].b);
+                assimpMesh->mColors[0][i].b,
+                assimpMesh->mColors[0][i].a);
         }
 
         if (assimpMesh->HasTextureCoords(0))
         {
-            vertex.UV = Vector3(
+            vertex.UV = Vector2(
                 assimpMesh->mTextureCoords[0][i].x,
-                assimpMesh->mTextureCoords[0][i].y,
-                0.0f);
+                assimpMesh->mTextureCoords[0][i].y);
         }
     }
 

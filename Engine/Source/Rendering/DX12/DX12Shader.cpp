@@ -13,7 +13,7 @@ std::vector<D3D12_INPUT_ELEMENT_DESC> DX12Shader::_inputLayout = {
     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-    {"UV", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+    {"UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 };
 
 DX12Shader::DX12Shader(const std::wstring& name) : Shader(name)
@@ -37,25 +37,6 @@ DX12Shader& DX12Shader::operator=(const DX12Shader& other)
     return *this;
 }
 
-bool DX12Shader::Initialize()
-{
-    const DX12RenderingSubsystem* renderingSubsystem = dynamic_cast<DX12RenderingSubsystem*>(Engine::Get().GetRenderingSubsystem());
-    if (renderingSubsystem == nullptr)
-    {
-        DEBUG_BREAK();
-        return false;
-    }
-
-    if (!InitializeRootSignature(*renderingSubsystem))
-    {
-        return false;
-    }
-
-    InitializePSO(*renderingSubsystem);
-
-    return true;
-}
-
 void DX12Shader::Apply(ID3D12GraphicsCommandList* commandList) const
 {
     commandList->SetPipelineState(_pso.Get());
@@ -77,7 +58,7 @@ std::shared_ptr<DX12Shader> DX12Shader::Import(AssetManager& assetManager, const
     std::shared_ptr<DX12Shader> shader = assetManager.NewAsset<DX12Shader>(path.stem().wstring());
     shader->SetImportPath(path);
 
-    if (!shader->Compile())
+    if (!shader->Recompile(true))
     {
         assetManager.DeleteAsset(shader);
         return nullptr;
@@ -138,9 +119,9 @@ bool DX12Shader::Serialize(MemoryWriter& writer) const
         writer.Write(static_cast<const std::byte*>(_pixelShader->GetBufferPointer()), _pixelShader->GetBufferSize());
     }
 
-    if (MaterialParameterMap != nullptr)
+    if (ParameterMap != nullptr)
     {
-        MaterialParameterMap->Serialize(writer);
+        ParameterMap->Serialize(writer);
     }
 
     return true;
@@ -168,7 +149,7 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
     if (lastWriteTime < last_write_time(GetImportPath()))
     {
         LOG(L"Shader {} is out of date!", GetName());
-        return Compile();
+        return Recompile(true);
     }
 
     bool success = true;
@@ -214,11 +195,11 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
         }
     }
 
-    MaterialParameterMap = std::make_unique<DX12MaterialParameterMap>();
-    if (!MaterialParameterMap->Deserialize(reader))
+    ParameterMap = std::make_unique<DX12MaterialParameterMap>();
+    if (!ParameterMap->Deserialize(reader))
     {
         success = false;
-        MaterialParameterMap = nullptr;
+        ParameterMap = nullptr;
     }
 
     if (success)
@@ -228,10 +209,18 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
             LOG(L"Failed to deserialize shader {}!", GetName());
             return false;
         }
+
+        const DX12RenderingSubsystem& renderingSubsystem = static_cast<DX12RenderingSubsystem&>(RenderingSubsystem::Get());
+        if (!InitializeRootSignature(renderingSubsystem))
+        {
+            return false;
+        }
+
+        InitializePSO(renderingSubsystem);
     }
     else
     {
-        return Compile();
+        return Recompile();
     }
 
     return true;
@@ -242,12 +231,23 @@ const D3D12_ROOT_SIGNATURE_DESC& DX12Shader::GetRootSignatureDesc(PassKey<DX12Re
     return _rootSignatureDesc;
 }
 
-bool DX12Shader::Compile()
+bool DX12Shader::Recompile(bool immediate)
 {
-    LOG(L"Compiling shader {}...", GetName());
-    const std::filesystem::path importPath = GetImportPath();
+    if (_beingRecompiled)
+    {
+        return false;
+    }
 
-    _lastCompileTime = last_write_time(importPath);
+    _beingRecompiled = true;
+
+    DX12RenderingSubsystem& renderingSubsystem = dynamic_cast<DX12RenderingSubsystem&>(RenderingSubsystem::Get());
+
+    LOG(L"Recompiling shader {}...", GetName());
+    const std::filesystem::path& importPath = GetImportPath();
+
+    std::shared_ptr<RecompiledData> recompiledData = std::make_shared<RecompiledData>();
+
+    recompiledData->LastCompileTime = last_write_time(importPath);
 
     const ComPtr<ID3DBlob> vertexShader = CompileShader(importPath, nullptr, "VS", "vs_5_1");
     if (vertexShader == nullptr)
@@ -277,9 +277,8 @@ bool DX12Shader::Compile()
     //     return false;
     // }
 
-    _vertexShader = vertexShader;
-    _pixelShader = pixelShader;
-
+    recompiledData->VertexShader = vertexShader;
+    recompiledData->PixelShader = pixelShader;
 
     D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
     rootSignatureDesc.NumParameters = static_cast<uint32>(rootParameters.size());
@@ -291,7 +290,7 @@ bool DX12Shader::Compile()
     ComPtr<ID3DBlob> errorBlob = nullptr;
     const HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc,
                                                    D3D_ROOT_SIGNATURE_VERSION_1,
-                                                   _serializedRootSignature.GetAddressOf(),
+                                                   recompiledData->SerializedRootSignature.GetAddressOf(),
                                                    errorBlob.GetAddressOf());
     if (errorBlob != nullptr)
     {
@@ -310,9 +309,89 @@ bool DX12Shader::Compile()
         return false;
     }
 
-    LOG(L"Shader {} compiled successfully!", GetName());
+    HRESULT result = renderingSubsystem.GetDevice()->CreateRootSignature(
+        0,
+        recompiledData->SerializedRootSignature->GetBufferPointer(),
+        recompiledData->SerializedRootSignature->GetBufferSize(),
+        IID_PPV_ARGS(&recompiledData->RootSignature));
 
-    MarkDirtyForAutosave();
+    if (FAILED(result))
+    {
+        LOG(L"Failed to create root signature for shader {}!", GetName());
+
+        return false;
+    }
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+    ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+    psoDesc.InputLayout = {_inputLayout.data(), static_cast<uint32>(_inputLayout.size())};
+    psoDesc.pRootSignature = recompiledData->RootSignature.Get();
+    psoDesc.VS =
+    {
+        static_cast<BYTE*>(recompiledData->VertexShader->GetBufferPointer()),
+        recompiledData->VertexShader->GetBufferSize()
+    };
+    psoDesc.PS =
+    {
+        static_cast<BYTE*>(recompiledData->PixelShader->GetBufferPointer()),
+        recompiledData->PixelShader->GetBufferSize()
+    };
+    psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+    psoDesc.SampleMask = UINT_MAX;
+    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoDesc.NumRenderTargets = 1;
+    psoDesc.RTVFormats[0] = renderingSubsystem.GetFrameBufferFormat();
+    psoDesc.SampleDesc.Count = renderingSubsystem.GetMSAASampleCount();
+    psoDesc.SampleDesc.Quality = renderingSubsystem.GetMSAAQuality() - 1;
+    psoDesc.DSVFormat = renderingSubsystem.GetDepthStencilFormat();
+
+    result = renderingSubsystem.GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&recompiledData->Pso));
+    if (FAILED(result))
+    {
+        LOG(L"Failed to create PSO for shader {}!", GetName());
+        return false;
+    }
+
+    recompiledData->ParameterMap = std::make_unique<DX12MaterialParameterMap>();
+    if (!recompiledData->ParameterMap->Initialize(constantBufferParameterTypes))
+    {
+        return false;
+    }
+
+    std::weak_ptr weakThis = shared_from_this();
+    auto lambda = [weakThis, recompiledData](RenderingSubsystem* renderingSubsystem)
+    {
+        std::shared_ptr<DX12Shader> shader = std::static_pointer_cast<DX12Shader>(weakThis.lock());
+        if (shader == nullptr)
+        {
+            return;
+        }
+
+        shader->_serializedRootSignature = std::move(recompiledData->SerializedRootSignature);
+        shader->_rootSignature = std::move(recompiledData->RootSignature);
+        shader->_rootSignatureDesc = std::move(recompiledData->RootSignatureDesc);
+        shader->_pso = std::move(recompiledData->Pso);
+        shader->_vertexShader = std::move(recompiledData->VertexShader);
+        shader->_pixelShader = std::move(recompiledData->PixelShader);
+        shader->_lastCompileTime = std::move(recompiledData->LastCompileTime);
+        shader->ParameterMap = std::move(recompiledData->ParameterMap);
+        shader->_beingRecompiled = false;
+
+        shader->MarkDirtyForAutosave();
+
+        shader->OnRecompiled.Broadcast(shader.get());
+    };
+
+    if (immediate)
+    {
+        lambda(&renderingSubsystem);
+    }
+    else
+    {
+        renderingSubsystem.GetEventQueue().Enqueue(lambda);
+    }
 
     return true;
 }
@@ -378,11 +457,11 @@ bool DX12Shader::InitializeRootSignature(const DX12RenderingSubsystem& rendering
     return true;
 }
 
-void DX12Shader::InitializePSO(const DX12RenderingSubsystem& renderingSubsystem)
+bool DX12Shader::InitializePSO(const DX12RenderingSubsystem& renderingSubsystem)
 {
     if (_vertexShader == nullptr || _pixelShader == nullptr)
     {
-        return;
+        return false;
     }
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
@@ -409,7 +488,14 @@ void DX12Shader::InitializePSO(const DX12RenderingSubsystem& renderingSubsystem)
     psoDesc.SampleDesc.Count = renderingSubsystem.GetMSAASampleCount();
     psoDesc.SampleDesc.Quality = renderingSubsystem.GetMSAAQuality() - 1;
     psoDesc.DSVFormat = renderingSubsystem.GetDepthStencilFormat();
-    ThrowIfFailed(renderingSubsystem.GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&_pso)));
+    const HRESULT result = renderingSubsystem.GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&_pso));
+    if (FAILED(result))
+    {
+        LOG(L"Failed to create PSO for shader {}!", GetName());
+        return false;
+    }
+
+    return true;
 }
 
 bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameter>& constantBufferParameterTypes)
@@ -460,12 +546,6 @@ bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12
                 break;
             }
         }
-    }
-
-    MaterialParameterMap = std::make_unique<DX12MaterialParameterMap>();
-    if (!MaterialParameterMap->Initialize(constantBufferParameterTypes))
-    {
-        return false;
     }
 
     return true;

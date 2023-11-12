@@ -11,7 +11,7 @@ Material::Material(const std::wstring& name) : Asset(name)
 Material::Material(const Material& other) : Asset(other)
 {
     _shader = other._shader;
-    
+
     if (other._materialParameterMap != nullptr)
     {
         _materialParameterMap = other._materialParameterMap->Duplicate();
@@ -25,6 +25,11 @@ void Material::SetShader(const std::shared_ptr<Shader>& shader)
         return;
     }
 
+    if (_shader != nullptr)
+    {
+        _shader->OnRecompiled.Unsubscribe(_materialParameterMapChangedHandle);
+    }
+
     _shader = shader;
 
     if (_shader == nullptr)
@@ -33,7 +38,7 @@ void Material::SetShader(const std::shared_ptr<Shader>& shader)
         return;
     }
 
-    _materialParameterMap = _shader->CreateMaterialParameterMap();
+    OnShaderChanged();
 
     MarkDirtyForAutosave();
 }
@@ -103,4 +108,22 @@ bool Material::Deserialize(MemoryReader& reader)
     _shader = AssetManager::Get().FindAsset<Shader>(shaderID);
 
     return true;
+}
+
+void Material::OnShaderChanged()
+{
+    std::weak_ptr weakThis = shared_from_this();
+    _materialParameterMapChangedHandle = _shader->OnRecompiled.Subscribe([weakThis](const Shader* shader)
+    {
+        std::shared_ptr<Material> sharedThis = std::static_pointer_cast<Material>(weakThis.lock());
+        if (sharedThis == nullptr)
+        {
+            return;
+        }
+
+        // todo copy over parameters from old map to new map
+        sharedThis->_materialParameterMap = shader->CreateMaterialParameterMap();
+    });
+
+    _materialParameterMap = _shader->CreateMaterialParameterMap();
 }

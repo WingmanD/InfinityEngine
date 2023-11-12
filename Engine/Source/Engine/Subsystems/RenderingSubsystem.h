@@ -3,7 +3,9 @@
 #include "Core.h"
 #include "EventQueue.h"
 #include "Engine/Subsystems/EngineSubsystem.h"
+#include "Filesystem/ShaderChangeListener.h"
 #include <memory>
+
 
 class Window;
 class StaticMeshRenderingData;
@@ -17,7 +19,9 @@ class RenderingSubsystem : public EngineSubsystem
 public:
     RenderingSubsystem();
 
-    static RenderingSubsystem& Get(); 
+    static RenderingSubsystem& Get();
+
+    virtual bool Initialize() override;
     
     virtual std::shared_ptr<Window> ConstructWindow(const std::wstring& title) = 0;
 
@@ -34,4 +38,5 @@ public:
 
 private:
     EventQueue<RenderingSubsystem> _eventQueue;
+    std::unique_ptr<ShaderChangeListener> _shaderChangeListener;
 };

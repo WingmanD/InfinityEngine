@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Core.h"
+#include "Engine/Subsystems/RenderingSubsystem.h"
 #include <dxgi.h>
 #include "d3dx12.h"
 #include "DescriptorHeap.h"
@@ -25,7 +25,7 @@ struct DX12CommandList
 
 struct DX12CopyCommandList : public DX12CommandList
 {
-    std::optional<std::function<void()>> OnCompleted;
+    std::vector<std::function<void()>> OnCompletedCallbacks;
 };
 
 class DX12RenderingSubsystem : public RenderingSubsystem, public std::enable_shared_from_this<DX12RenderingSubsystem>
