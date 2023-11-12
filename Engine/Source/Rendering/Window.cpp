@@ -73,6 +73,10 @@ bool Window::Initialize()
     _rootWidget->SetPosition({0.045f, -0.035f});
     _rootWidget->SetSize({0.15f, 0.05f});
 
+    // todo fix this
+    // _rootWidget->SetRotation(45.0f);
+    // _rootWidget->SetSize({0.15f, 0.05f});
+    
     return true;
 }
 
@@ -151,7 +155,7 @@ void Window::OnResized()
     _width = _pendingResize.Width;
     _height = _pendingResize.Height;
     _aspectRatio = static_cast<float>(_width) / static_cast<float>(_height);
-    
+
     if (_rootWidget != nullptr)
     {
         _rootWidget->OnParentResized();

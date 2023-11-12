@@ -1,13 +1,4 @@
-#define EWidgetFlags uint
-#define Enabled 1
-#define Hovered 2
-
-struct WidgetPerPassConstants
-{
-    float4x4 Transform;
-    EWidgetFlags Flags;
-    float Time;
-};
+#include "WidgetShaderLibrary.hlsl"
 
 ConstantBuffer<WidgetPerPassConstants> GWidgetConstants : register(b0);
 
@@ -39,54 +30,26 @@ VertexOut VS(VertexIn vIn)
     return vOut;
 }
 
-bool HasFlag(EWidgetFlags flag)
-{
-    return GWidgetConstants.Flags & flag;
-}
-
-float2 GetWidgetPositionCS()
-{
-    return float2(GWidgetConstants.Transform[0][3], GWidgetConstants.Transform[1][3]);
-}
-
-float GetWidgetRotation()
-{
-    return atan2(GWidgetConstants.Transform[1][0], GWidgetConstants.Transform[1][1]);
-}
-
-float2 GetWidgetScale()
-{
-    float sx = length(float2(GWidgetConstants.Transform[0][0], GWidgetConstants.Transform[1][0]));
-    float sy = length(float2(GWidgetConstants.Transform[0][1], GWidgetConstants.Transform[1][1]));
-    return float2(sx, sy);
-}
-
-float Box2D(float2 position, float2 size, float radius)
-{
-    position = abs(position) - size + radius;
-    return length(max(position, 0.0)) + min(max(position.x, position.y), 0.0) - radius;
-}
-
 float4 PS(VertexOut pIn) : SV_Target
 {
     float4 color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 
     // todo rotation
-    const float2 position = GetWidgetPositionCS();
-    const float rotation = GetWidgetRotation();
-    const float2 scale = GetWidgetScale();
-    
+    const float2 position = GetWidgetPositionCS(GWidgetConstants);
+    const float rotation = GetWidgetRotation(GWidgetConstants);
+    const float2 scale = GetWidgetScale(GWidgetConstants);
+
     const float radius = 0.01f;
-    const float distance = Box2D(pIn.PositionCS.xy - position, scale / 2.0f, radius);
+    const float distance = Box2D(pIn.PositionCS.xy, position, rotation, scale / 2.0f, radius);
 
     color = color * distance < 0.0f;
 
-    if (!HasFlag(Enabled))
+    if (!HasFlag(GWidgetConstants, Enabled))
     {
         return color * float4(0.5f, 0.5f, 0.5f, 1.0f);
     }
 
-    if (HasFlag(Hovered))
+    if (HasFlag(GWidgetConstants, Hovered))
     {
         return color * float4(1.25f, 1.25f, 1.25f, 1.0f);
     }
