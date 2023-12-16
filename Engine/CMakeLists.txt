@@ -23,11 +23,11 @@ add_compile_definitions(NOMINMAX)
 add_executable(Engine WIN32 ${_files})
 
 target_include_directories(Engine PUBLIC "${_path}/Source" "${_files}")
-target_include_directories(Engine PUBLIC ${directxtk_SOURCE_DIR}/Inc)
+target_include_directories(Engine PUBLIC ${directxtk12_SOURCE_DIR}/Inc)
 
 target_compile_definitions(Engine PRIVATE "UNICODE" "_UNICODE")
 
-target_link_libraries(Engine PRIVATE "d3d12.lib" "dxgi.lib" "d3dcompiler.lib" "dxguid.lib" DirectXTK ${CONAN_LIBS})
+target_link_libraries(Engine PRIVATE "d3d12.lib" "dxgi.lib" "d3dcompiler.lib" "dxguid.lib" DirectXTK12 ${CONAN_LIBS})
 
 # run ReflectionTool pre-build
 add_custom_command(
