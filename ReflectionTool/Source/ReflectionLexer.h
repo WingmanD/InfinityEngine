@@ -43,6 +43,7 @@ struct Token
 {
     TokenType Type;
     std::string Value;
+    uint16_t Line = 0;
 };
 
 class Lexer
@@ -62,7 +63,7 @@ public:
 
     void SkipToken();
 
-    void Back();
+    void Back(int count = 1);
 
     void Reset();
 
@@ -95,5 +96,5 @@ private:
 
     [[nodiscard]] TokenType ResolveTokenType(const std::string& token) const;
 
-    void ProcessCurrentToken(TokenType type = TokenType::Unknown);
+    void ProcessCurrentToken(uint16_t line, TokenType type = TokenType::Unknown);
 };

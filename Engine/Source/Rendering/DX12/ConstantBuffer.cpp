@@ -1,7 +1,5 @@
 ﻿#include "ConstantBuffer.h"
 
-#include "MaterialParameterTypes.h"
-
 ConstantBuffer::~ConstantBuffer()
 {
     if (_isMapped)
@@ -9,6 +7,7 @@ ConstantBuffer::~ConstantBuffer()
         _buffer->Unmap(0, nullptr);
     }
 
+    // todo assets that own constant buffers are destroyed when asset manager is destroyed - after rendering subsystem is destroyed which destroys descriptor heaps, causing DX12 warnings about live objects
     if (const std::shared_ptr<DescriptorHeap> sharedHeap = _heap.lock())
     {
         sharedHeap->FreeHeapResourceHandle(_cpuHandle);
@@ -26,8 +25,7 @@ bool ConstantBuffer::CreateInPlace(ConstantBuffer& buffer, Object* parameter, ID
     {
         return false;
     }
-
-    //const size_t dataOffset = parameter->GetType()->GetDataOffset();
+    
     const size_t dataOffset = parameter->GetType()->GetDataOffset();
     if (dataOffset == 0)
     {
@@ -36,7 +34,7 @@ bool ConstantBuffer::CreateInPlace(ConstantBuffer& buffer, Object* parameter, ID
     }
 
     buffer._heap = heap;
-    buffer._size = parameter->GetType()->GetSize() - dataOffset;
+    buffer._size = parameter->GetType()->GetAlignedSize() - dataOffset;
     buffer._offset = dataOffset;
     buffer.Data = parameter;
 

@@ -14,7 +14,7 @@ void DX12StaticMeshRenderingData::SetupDrawing(ID3D12GraphicsCommandList* comman
     commandList->IASetIndexBuffer(&_indexBufferView);
 
     // todo temporary
-    commandList->DrawIndexedInstanced(GetMeshRaw().GetIndices().size(), 1, 0, 0, 0);
+    commandList->DrawIndexedInstanced(static_cast<uint32>(GetMeshRaw().GetIndices().size()), 1, 0, 0, 0);
 }
 
 bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& renderingSubsystem)
@@ -24,7 +24,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
     std::shared_ptr<StaticMesh> mesh = GetMesh();
 
     const std::vector<Vertex>& vertices = mesh->GetVertices();
-    const uint32 vertexBufferByteSize = vertices.size() * sizeof(Vertex);
+    const size_t vertexBufferByteSize = vertices.size() * sizeof(Vertex);
     HRESULT hr = D3DCreateBlob(vertexBufferByteSize, &_vertexBufferCpu);
     if (FAILED(hr))
     {
@@ -34,7 +34,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
     CopyMemory(_vertexBufferCpu->GetBufferPointer(), vertices.data(), vertexBufferByteSize);
 
     const std::vector<uint32_t>& indices = mesh->GetIndices();
-    const uint32 indexBufferByteSize = indices.size() * sizeof(uint32_t);
+    const size_t indexBufferByteSize = indices.size() * sizeof(uint32_t);
     hr = D3DCreateBlob(indexBufferByteSize, &_indexBufferCpu);
     if (FAILED(hr))
     {
@@ -75,7 +75,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
 
     _vertexBufferView.BufferLocation = _vertexBufferGpu->GetGPUVirtualAddress();
     _vertexBufferView.StrideInBytes = sizeof(Vertex);
-    _vertexBufferView.SizeInBytes = vertexBufferByteSize;
+    _vertexBufferView.SizeInBytes = static_cast<uint32>(vertexBufferByteSize);
 
     _indexBufferView.BufferLocation = _indexBufferGpu->GetGPUVirtualAddress();
 
@@ -87,7 +87,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
     {
         _indexBufferView.Format = DXGI_FORMAT_R32_UINT;
     }
-    _indexBufferView.SizeInBytes = indexBufferByteSize;
+    _indexBufferView.SizeInBytes = static_cast<uint32>(indexBufferByteSize);
 
     return true;
 }

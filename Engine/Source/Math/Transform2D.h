@@ -18,9 +18,9 @@ public:
     void SetScale(const Vector2& scale);
     const Vector2& GetScale() const;
 
-    const Matrix& GetMatrix();
+    const Matrix& GetMatrix() const;
     
-    operator const Matrix&();
+    operator const Matrix&() const;
     
 private:
     Vector2 _position = Vector2::Zero;
@@ -29,4 +29,6 @@ private:
     
     Matrix _matrix = Matrix::Identity;
     bool _matrixDirty = true;
+
+    Matrix _angleAxisMatrix = Matrix::Identity;
 };

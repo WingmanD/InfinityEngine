@@ -52,6 +52,7 @@ bool Window::Initialize()
     if (_hwnd == nullptr)
     {
         MessageBox(nullptr, L"CreateWindow Failed.", nullptr, 0);
+        LOG(L"Failed to create new window!");
         return false;
     }
 
@@ -60,23 +61,31 @@ bool Window::Initialize()
     ShowWindow(_hwnd, SW_SHOW);
     UpdateWindow(_hwnd);
 
-    _rootWidget = std::make_unique<Widget>();
+    _windowGlobals = std::make_unique<WindowGlobals>();
+    if (!_windowGlobals->Initialize())
+    {
+        LOG(L"Failed to initialize global window material parameters!");
+        return false;
+    }
+
+    _rootWidget = std::make_shared<Widget>();
     if (!_rootWidget->Initialize())
     {
         return false;
     }
 
     _rootWidget->SetWindow(shared_from_this());
+    _rootWidget->SetSize({_aspectRatio, 1.0f});
+    _rootWidget->SetScale({2.0f, 2.0f});
+    _rootWidget->SetVisibility(false);
 
-    // todo temporary
-    _rootWidget->SetAnchor(EWidgetAnchor::TopLeft);
-    _rootWidget->SetPosition({0.045f, -0.035f});
-    _rootWidget->SetSize({0.15f, 0.05f});
+    // auto newWidget = std::make_shared<Widget>();
+    // newWidget->Initialize();
+    // _rootWidget->AddChild(newWidget);
+    // newWidget->SetSize({0.2f, 0.1f});
+    // newWidget->SetAnchor(EWidgetAnchor::TopLeft);
+    // newWidget->SetPosition({0.1f, -0.05f});
 
-    // todo fix this
-    // _rootWidget->SetRotation(45.0f);
-    // _rootWidget->SetSize({0.15f, 0.05f});
-    
     return true;
 }
 
@@ -133,6 +142,11 @@ const std::wstring& Window::GetTitle() const
     return _title;
 }
 
+std::shared_ptr<WindowGlobals>& Window::GetWindowGlobals()
+{
+    return _windowGlobals;
+}
+
 void Window::RequestResize(uint32 width, uint32 height)
 {
     _pendingResize.Width = width;
@@ -155,6 +169,11 @@ void Window::OnResized()
     _width = _pendingResize.Width;
     _height = _pendingResize.Height;
     _aspectRatio = static_cast<float>(_width) / static_cast<float>(_height);
+
+    _windowGlobals->ResolutionX = static_cast<uint16>(_width);
+    _windowGlobals->ResolutionY = static_cast<uint16>(_height);
+    _windowGlobals->AspectRatio = _aspectRatio;
+    _windowGlobals->MarkAsDirty();
 
     if (_rootWidget != nullptr)
     {

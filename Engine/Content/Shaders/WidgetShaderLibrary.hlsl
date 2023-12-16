@@ -6,7 +6,13 @@ struct WidgetPerPassConstants
 {
     float4x4 Transform;
     EWidgetFlags Flags;
-    float Time;
+};
+
+struct WindowGlobals
+{
+    uint ResolutionX;
+    uint ResolutionY;
+    float AspectRatio;
 };
 
 bool HasFlag(WidgetPerPassConstants widgetConstants, EWidgetFlags flag)
@@ -35,6 +41,14 @@ float Box2D(float2 position, float2 center, float rotation, float2 size, float r
 {
     position = position - center;
     position = mul(float2x2(cos(rotation), sin(rotation), -sin(rotation), cos(rotation)), position);
-    position = abs(position) - size + radius;
-    return length(max(position, 0.0)) + min(max(position.x, position.y), 0.0) - radius;
+
+    return length(max(abs(position) - (size - radius), 0.0f)) - radius;
+}
+
+bool Box2DWithBorder(float2 position, float2 center, float rotation, float2 size, float radius, float border)
+{
+    const float distance = Box2D(position, center, rotation, size, radius);
+    const float distanceBorder = Box2D(position, center, rotation, size - border, radius);
+
+    return distance < 0.0f && distanceBorder > 0.0f;
 }

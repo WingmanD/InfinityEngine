@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "ConstantBuffer.h"
 #include "PassKey.h"
 #include "Rendering/StaticMesh.h"
 #include "Rendering/Window.h"
@@ -43,6 +44,8 @@ private:
     D3D12_RECT _fullWindowRect{};
 
     std::shared_ptr<StaticMesh> _staticMeshTest = nullptr;
+
+    ConstantBuffer _windowGlobalsConstantBuffer;
 
 private:
     void ResizeImplementation(ID3D12GraphicsCommandList* commandList);

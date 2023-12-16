@@ -81,6 +81,7 @@ public:
     
     virtual std::unique_ptr<StaticMeshRenderingData> CreateStaticMeshRenderingData() override;
     virtual std::unique_ptr<MaterialRenderingData> CreateMaterialRenderingData() override;
+    virtual std::unique_ptr<MaterialParameterRenderingData> CreateMaterialParameterRenderingData() override;
     virtual std::shared_ptr<Texture> CreateTexture(uint32 width, uint32 height) const override;
     virtual std::shared_ptr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) override;
 

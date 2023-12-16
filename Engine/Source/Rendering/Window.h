@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Core.h"
+#include "MaterialParameterTypes.h"
 #include "NonCopyable.h"
 #include "Widget.h"
 
@@ -33,6 +34,8 @@ public:
 
     void SetTitle(const std::wstring& title);
     const std::wstring& GetTitle() const;
+    
+    std::shared_ptr<WindowGlobals>& GetWindowGlobals();
 
     void RequestResize(uint32 width, uint32 height);
 
@@ -68,21 +71,21 @@ protected:
 private:
     PendingResize _pendingResize{};
     
-    std::unique_ptr<Widget> _rootWidget = nullptr;
+    std::shared_ptr<Widget> _rootWidget = nullptr;
 
     HWND _hwnd = nullptr;
 
     uint32 _width = 1920u;
     uint32 _height = 1080u;
     float _aspectRatio = 16.0f / 9.0f;
-    std::wstring _title = L"SwarmEngine";
+    std::wstring _title = L"InfinityEngine";
 
     bool _isFocused = false;
     WindowState _state = WindowState::Windowed;
 
+    std::shared_ptr<WindowGlobals> _windowGlobals = nullptr;
+
 private:
     LRESULT ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     static LRESULT CALLBACK ProcessWindowMessagesStatic(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-    void RecalculateAspectRatio();
 };

@@ -9,7 +9,7 @@ class RenderingSubsystem;
 REFLECTED()
 class Texture : public Asset
 {
-    TEXTURE_GENERATED()
+    GENERATED()
     
 public:
     Texture() = default;

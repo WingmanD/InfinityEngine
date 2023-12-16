@@ -67,11 +67,17 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
         return ReflectionResult::Failure;
     }
 
+    const std::string headerName = header.stem().string();
+    std::print(reflectionHeader,
+               R"(#pragma once
+
+#undef FILENAME
+#define FILENAME {}
+)",
+               headerName);
+
     for (const TypeInfo& typeInfo : _parser.GetTypeInfos())
     {
-        std::string macroName = typeInfo.Name;
-        std::ranges::transform(macroName, macroName.begin(), toupper);
-
         std::string createTypeFunction;
         if (typeInfo.ParentTypeNames.empty())
         {
@@ -151,9 +157,7 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
         // todo methods, pragma once is written before each class
         std::print(reflectionHeader,
                    R"(
-#pragma once
-
-#define {}_GENERATED() \
+#define GENERATED_{}_{}() \
 public: \
     static Type* StaticType() \
     {{ \
@@ -176,10 +180,12 @@ public: \
     {{ \
         return new(ptr) {}(*this); \
     }} \
+    \
     std::shared_ptr<{}> SharedFromThis() \
     {{ \
         return std::static_pointer_cast<{}>(shared_from_this()); \
     }} \
+    \
     std::shared_ptr<const {}> SharedFromThis() const \
     {{ \
         return std::static_pointer_cast<const {}>(shared_from_this()); \
@@ -187,7 +193,8 @@ public: \
     \
 private:
 )",
-                   macroName,
+                   headerName,
+                   typeInfo.GeneratedMacroLine,
                    createTypeFunction,
                    dataOffsetDefinition,
                    propertyMapDefinition.str(),

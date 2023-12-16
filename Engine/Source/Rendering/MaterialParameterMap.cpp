@@ -1,11 +1,12 @@
 ﻿#include "MaterialParameterMap.h"
-#include "Type.h"
-#include "Object.h"
-#include "MemoryWriter.h"
-#include "MemoryReader.h"
 #include <ranges>
+#include "MaterialParameterTypes.h"
+#include "MemoryReader.h"
+#include "MemoryWriter.h"
+#include "Object.h"
+#include "Type.h"
 
-bool operator<(const MaterialParameter& lhs, const MaterialParameter& rhs)
+bool operator<(const MaterialParameterDescriptor& lhs, const MaterialParameterDescriptor& rhs)
 {
     return lhs.Name < rhs.Name;
 }
@@ -16,15 +17,43 @@ MaterialParameterMap::MaterialParameterMap(const MaterialParameterMap& other)
     _data = new std::byte[_dataSize];
     std::memcpy(_data, other._data, _dataSize);
 
-    for (const auto& [name, object] : other._nameToObject)
+    _parameters.reserve(other._parameters.size());
+
+    for (const MaterialParameterBinding& binding : other._parameters)
     {
-        const size_t offset = reinterpret_cast<std::byte*>(object) - other._data;
-        _nameToObject[name] = object->DuplicateAt(_data + offset);
+        _parameters.push_back(binding);
+        MaterialParameterBinding& newBinding = _parameters.back();
+        newBinding.Parameter = nullptr;
+
+        _nameToParameter[binding.Name] = &newBinding;
+
+        if (binding.Parameter != nullptr)
+        {
+            const size_t offset = reinterpret_cast<std::byte*>(binding.Parameter) - other._data;
+
+            MaterialParameter* newParameter = static_cast<MaterialParameter*>(binding.Parameter->DuplicateAt(_data + offset));
+            if (!newParameter->Initialize())
+            {
+                LOG(L"Failed to initialize material parameter {}!", Util::ToWString(binding.Name));
+                DEBUG_BREAK();
+                continue;
+            }
+
+            newBinding.Parameter = newParameter;
+        }
     }
 }
 
 MaterialParameterMap::~MaterialParameterMap()
 {
+    for (const MaterialParameterBinding& binding : _parameters)
+    {
+        if (binding.Parameter != nullptr && !binding.ParameterType->GetCDO<MaterialParameter>()->IsShared())
+        {
+            binding.Parameter->~MaterialParameter();
+        }
+    }
+
     delete[] _data;
 }
 
@@ -33,34 +62,83 @@ std::unique_ptr<MaterialParameterMap> MaterialParameterMap::Duplicate() const
     return std::make_unique<MaterialParameterMap>(*this);
 }
 
-bool MaterialParameterMap::Initialize(const std::set<MaterialParameter>& parameterDescriptors)
+bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor>& parameterDescriptors)
 {
     _dataSize = std::ranges::fold_left(parameterDescriptors,
                                        0,
-                                       [](size_t size, const MaterialParameter& parameterDescriptor)
+                                       [](size_t size, const MaterialParameterDescriptor& parameterDescriptor)
                                        {
+                                           if (parameterDescriptor.ParameterType->GetCDO<MaterialParameter>()->IsShared())
+                                           {
+                                               return size;
+                                           }
+
                                            return size + parameterDescriptor.ParameterType->GetAlignedSize();
                                        });
 
     _data = new std::byte[_dataSize];
     size_t offset = 0;
 
-    for (const MaterialParameter& descriptor : parameterDescriptors)
+    _parameters.reserve(parameterDescriptors.size());
+
+    for (const MaterialParameterDescriptor& descriptor : parameterDescriptors)
     {
-        _nameToObject[descriptor.Name] = descriptor.ParameterType->NewObjectAt(_data + offset);
+        if (descriptor.ParameterType->GetCDO<MaterialParameter>()->IsShared())
+        {
+            _parameters.push_back({nullptr, descriptor.ParameterType, descriptor.Name, descriptor.SlotIndex});
+            _nameToParameter[descriptor.Name] = &_parameters.back();
+            continue;
+        }
+
+        MaterialParameter* newParameter = descriptor.ParameterType->NewObjectAt<MaterialParameter>(_data + offset);
+        if (!newParameter->Initialize())
+        {
+            LOG(L"Failed to initialize material parameter {}!", Util::ToWString(descriptor.Name));
+            return false;
+        }
+
+        _parameters.push_back({newParameter, descriptor.ParameterType, descriptor.Name, descriptor.SlotIndex});
+        _nameToParameter[descriptor.Name] = &_parameters.back();
+
         offset += descriptor.ParameterType->GetAlignedSize();
     }
 
     return true;
 }
 
+void MaterialParameterMap::SetSharedParameter(const std::string& name, const std::shared_ptr<MaterialParameter>& parameter, bool allowMissing /*= false*/)
+{
+    if (!_nameToParameter.contains(name))
+    {
+        if (!allowMissing)
+        {
+            DEBUG_BREAK();
+        }
+
+        return;
+    }
+
+    // todo refactor this - we must store a weak ptr because we don't own shared parameters
+
+    MaterialParameterBinding* binding = _nameToParameter[name];
+    if (parameter != nullptr && binding->ParameterType != parameter->GetType())
+    {
+        DEBUG_BREAK();
+        return;
+    }
+
+    binding->Parameter = parameter.get();
+}
+
 bool MaterialParameterMap::Serialize(MemoryWriter& writer) const
 {
-    writer << _nameToObject.size();
-    for (const auto& [name, object] : _nameToObject)
+    writer << _nameToParameter.size();
+
+    for (const MaterialParameterBinding& materialParameterBinding : _parameters)
     {
-        writer << name;
-        writer << object->GetType()->GetID();
+        writer << materialParameterBinding.ParameterType->GetID();
+        writer << materialParameterBinding.Name;
+        writer << materialParameterBinding.SlotIndex;
     }
 
     return true;
@@ -71,15 +149,18 @@ bool MaterialParameterMap::Deserialize(MemoryReader& reader)
     size_t size;
     reader >> size;
 
-    std::set<MaterialParameter> parameters;
+    std::set<MaterialParameterDescriptor> parameters;
 
     for (auto i = 0; i < size; ++i)
     {
+        uint64 typeID;
+        reader >> typeID;
+
         std::string name;
         reader >> name;
 
-        uint64 typeID;
-        reader >> typeID;
+        uint32 slotIndex = 0;
+        reader >> slotIndex;
 
         const Type* type = TypeRegistry::Get().FindTypeForID(typeID);
         if (type == nullptr)
@@ -88,13 +169,29 @@ bool MaterialParameterMap::Deserialize(MemoryReader& reader)
             return false;
         }
 
-        parameters.insert({name, type, 0});
+        parameters.insert({type, name, slotIndex});
     }
 
     return Initialize(parameters);
 }
 
-const std::unordered_map<std::string, Object*>& MaterialParameterMap::GetNameToObjectMap()
+const std::unordered_map<std::string, MaterialParameterMap::MaterialParameterBinding*>& MaterialParameterMap::GetNameToParameterMap() const
 {
-    return _nameToObject;
+    return _nameToParameter;
+}
+
+const std::vector<MaterialParameterMap::MaterialParameterBinding>& MaterialParameterMap::GetParameters() const
+{
+    return _parameters;
+}
+
+MaterialParameter* MaterialParameterMap::GetParameter(const std::string& name)
+{
+    if (!_nameToParameter.contains(name))
+    {
+        DEBUG_BREAK();
+        return nullptr;
+    }
+
+    return _nameToParameter[name]->Parameter;
 }

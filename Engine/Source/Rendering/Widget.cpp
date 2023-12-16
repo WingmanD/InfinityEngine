@@ -7,23 +7,26 @@
 #include "DX12/DX12Shader.h"
 #include "DX12/DX12StaticMeshRenderingData.h"
 #include "Engine/Subsystems/AssetManager.h"
-#include <array>
 #include <cassert>
 
+#include "SpriteBatch.h"
+
 std::array<const Vector2, 9> Widget::_anchorPositionMap = {
-    Vector2(-0.5f, 0.5f), // TopLeft
-    Vector2(0.0f, 0.5f), // TopCenter
-    Vector2(0.5f, 0.5f), // TopRight
-    Vector2(-0.5f, 0.0f), // CenterLeft
+    Vector2(-1.0f, 1.0f), // TopLeft
+    Vector2(0.0f, 1.0f), // TopCenter
+    Vector2(1.0f, 1.0f), // TopRight
+    Vector2(-1.0f, 0.0f), // CenterLeft
     Vector2(0.0f, 0.0f), // Center
-    Vector2(0.5f, 0.0f), // CenterRight
-    Vector2(-0.5f, -0.5f), // BottomLeft
-    Vector2(0.0f, -0.5f), // BottomCenter
-    Vector2(0.5f, -0.5f)  // BottomRight
+    Vector2(1.0f, 0.0f), // CenterRight
+    Vector2(-1.0f, -1.0f), // BottomLeft
+    Vector2(0.0f, -1.0f), // BottomCenter
+    Vector2(1.0f, -1.0f)  // BottomRight
 };
 
 Widget::Widget()
 {
+    SetVisibility(true);
+    SetCollisionEnabled(true);
 }
 
 bool Widget::Initialize()
@@ -57,18 +60,26 @@ void Widget::TestDraw(ID3D12GraphicsCommandList* commandList)
         return;
     }
 
-    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-    assert(parameter != nullptr);
-
-    parameter->Transform = _transform.GetMatrix();
-    parameter->Flags = WidgetPerPassConstants::EWidgetFlags::Enabled;
-
-    // todo widget rect needs to be in screen space, not CS
-    //commandList->RSSetScissorRects(1, &_widgetRect);
-
-    if (_quadMesh->GetRenderingData()->IsUploaded())
+    if (IsVisible())
     {
-        static_cast<DX12StaticMeshRenderingData*>(_quadMesh->GetRenderingData())->SetupDrawing(commandList);
+        WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+        assert(parameter != nullptr);
+
+        parameter->Transform = _quadTransform.GetMatrix() * _transform.GetMatrix();
+        if (const std::shared_ptr<Widget>& parentWidget = GetParentWidget())
+        {
+            parameter->Transform = parentWidget->GetTransform().GetMatrix() * parameter->Transform;
+        }
+
+        parameter->Flags = WidgetPerPassConstants::EWidgetFlags::Enabled;
+
+        // todo widget rect needs to be in screen space, not CS
+        //commandList->RSSetScissorRects(1, &_widgetRect);
+
+        if (_quadMesh->GetRenderingData()->IsUploaded())
+        {
+            static_cast<DX12StaticMeshRenderingData*>(_quadMesh->GetRenderingData())->SetupDrawing(commandList);
+        }
     }
 
     for (const std::shared_ptr<Widget>& widget : _children)
@@ -76,13 +87,76 @@ void Widget::TestDraw(ID3D12GraphicsCommandList* commandList)
         widget->TestDraw(commandList);
     }
 }
+void Widget::SetVisibility(bool value, bool recursive /*= false*/)
+{
+    if (value == IsVisible())
+    {
+        return;
+    }
+
+    _state = value ? _state | EWidgetState::Visible : _state & ~EWidgetState::Visible;
+
+    if (recursive)
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->SetVisibility(value, recursive);
+        }
+    }
+
+    // todo disable mesh instance
+}
+
+bool Widget::IsVisible() const
+{
+    return (_state & EWidgetState::Visible) != EWidgetState::None && (_state & EWidgetState::Collapsed) == EWidgetState::None;
+}
+
+void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
+{
+    _state = value ? _state | EWidgetState::CollisionEnabled : _state & ~EWidgetState::CollisionEnabled;
+
+    // todo disable collision in hittest grid
+}
+
+bool Widget::IsCollisionEnabled() const
+{
+    return (_state & EWidgetState::CollisionEnabled) != EWidgetState::None;
+}
+
+void Widget::SetCollapsed(bool value)
+{
+    if (value == IsCollapsed())
+    {
+        return;
+    }
+
+    _state = value ? _state | EWidgetState::Collapsed : _state & ~EWidgetState::Collapsed;
+
+    if (value)
+    {
+        _storedCollapsedSize = _size;
+        SetSize({0.0f, 0.0f});
+    }
+    else
+    {
+        SetSize(_storedCollapsedSize);
+    }
+
+    // todo disable mesh instance and collision
+}
+
+bool Widget::IsCollapsed() const
+{
+    return (_state & EWidgetState::Collapsed) != EWidgetState::None;
+}
 
 void Widget::SetPosition(const Vector2& position)
 {
     _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position);
 }
 
-const Vector2& Widget::GetPosition() const
+Vector2 Widget::GetPosition() const
 {
     return _transform.GetPosition() - GetAnchorPosition(GetAnchor());
 }
@@ -97,31 +171,35 @@ float Widget::GetRotation() const
     return _transform.GetRotation();
 }
 
+void Widget::SetScale(const Vector2& scale)
+{
+    _transform.SetScale(scale);
+}
+
+Vector2 Widget::GetScale() const
+{
+    return _transform.GetScale();
+}
+
 void Widget::SetSize(const Vector2& size)
 {
-    const std::shared_ptr<Window> window = GetParentWindow();
-    if (window == nullptr)
-    {
-        return;
-    }
+    _size = size;
 
-    const Vector2 sizeTransformed = Vector2(size.x / window->GetAspectRatio(), size.y);
-    _transform.SetScale(sizeTransformed);
+    if (const std::shared_ptr<Widget> widget = GetParentWidget())
+    {
+        _quadTransform.SetScale(size * widget->GetSize());
+    }
+    else
+    {
+        _quadTransform.SetScale(size);
+    }
 
     OnResized();
 }
 
-const Vector2& Widget::GetSize() const
+Vector2 Widget::GetSize() const
 {
-    const Vector2 size = _transform.GetScale();
-    
-    const std::shared_ptr<Window> window = GetParentWindow();
-    if (window == nullptr)
-    {
-        return size;
-    }
-
-    return Vector2(size.x * window->GetAspectRatio(), size.y);
+    return _size;
 }
 
 void Widget::SetTransform(const Transform2D& transform)
@@ -136,7 +214,14 @@ const Transform2D& Widget::GetTransform() const
 
 void Widget::SetMaterial(const std::shared_ptr<Material>& material)
 {
+    // todo unlink old material and shared param
     _quadMesh->SetMaterial(material);
+    _material = material;
+
+    if (_material != nullptr)
+    {
+        _material->GetParameterMap().SetSharedParameter("GWindowGlobals", GetParentWindow()->GetWindowGlobals(), true);
+    }
 }
 
 std::shared_ptr<Material> Widget::GetMaterial() const
@@ -153,6 +238,10 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget)
 
     _children.push_back(widget);
     widget->_parentWidget = std::static_pointer_cast<Widget>(shared_from_this());
+    widget->SetWindow(GetParentWindow());
+    widget->OnParentResized();
+
+    // todo what about state flags and propagation?
 }
 
 void Widget::RemoveChild(const std::shared_ptr<Widget>& widget)
@@ -173,7 +262,19 @@ RECT Widget::GetRect() const
 
 void Widget::SetWindow(const std::shared_ptr<Window>& window)
 {
+    if (window == nullptr)
+    {
+        Destroy();
+        return;
+    }
+
+    if (_parentWindow.lock() == window)
+    {
+        return;
+    }
+
     _parentWindow = window;
+
     OnWindowChanged(window);
 }
 
@@ -201,8 +302,10 @@ void Widget::SetAnchor(EWidgetAnchor anchor)
 
 void Widget::OnParentResized()
 {
+    // todo desired size
     const Vector2 size = GetSize();
     SetSize(size);
+
     for (std::shared_ptr<Widget>& widget : _children)
     {
         widget->OnParentResized();
@@ -211,9 +314,20 @@ void Widget::OnParentResized()
 
 void Widget::OnResized()
 {
-    const Vector2& position = _transform.GetPosition();
-    const Vector2& size = _transform.GetScale();
+    const std::shared_ptr<Window> window = GetParentWindow();
+    if (window == nullptr)
+    {
+        DEBUG_BREAK();
+        return;
+    }
 
+    // todo calculate vertices in screen space, this is in local space
+    const Vector2 windowSize = Vector2(static_cast<float>(window->GetWidth()), static_cast<float>(window->GetHeight()));
+
+    const Vector2 position = (_transform.GetPosition() - GetAnchorPosition(GetAnchor())) * windowSize;
+    const Vector2& size = _transform.GetScale() * windowSize;
+
+    // calculate AABB for 4 vertices
     _widgetRect = RECT
     {
         static_cast<LONG>(position.x),
@@ -223,11 +337,18 @@ void Widget::OnResized()
     };
 
     assert(_material != nullptr);
+    // todo update material parameters - should be on GPU at all times, updated only when necessary
 }
 
-const Vector2& Widget::GetAnchorPosition(EWidgetAnchor anchor)
+Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
 {
-    return _anchorPositionMap[static_cast<uint32>(anchor)];
+    const Vector2 anchorPosition = _anchorPositionMap[static_cast<uint32>(anchor)];
+    if (const std::shared_ptr<Widget>& parentWidget = GetParentWidget())
+    {
+        return parentWidget->GetSize() * anchorPosition;
+    }
+
+    return anchorPosition;
 }
 
 EWidgetAnchor Widget::GetAnchor() const
@@ -237,16 +358,8 @@ EWidgetAnchor Widget::GetAnchor() const
 
 void Widget::OnWindowChanged(const std::shared_ptr<Window>& window)
 {
-    if (window == nullptr)
+    if (_material != nullptr)
     {
-        Destroy();
-        return;
+        _material->GetParameterMap().SetSharedParameter("GWindowGlobals", window->GetWindowGlobals(), true);
     }
-
-    if (_parentWindow.lock() == window)
-    {
-        return;
-    }
-
-    _parentWindow = window;
 }

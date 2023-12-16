@@ -1,19 +1,18 @@
 ﻿#pragma once
 
 #include "Asset.h"
-#include "Material.reflection.h"
+#include "Delegate.h"
 #include "MaterialParameterMap.h"
 #include "MaterialRenderingData.h"
 #include <memory>
-
-#include "Delegate.h"
+#include "Material.reflection.h"
 
 class Shader;
 
 REFLECTED()
 class Material : public Asset
 {
-    MATERIAL_GENERATED()
+    GENERATED()
 
 public:
     Material() = default;
@@ -25,7 +24,7 @@ public:
     void SetShader(const std::shared_ptr<Shader>& shader);
     [[nodiscard]] std::shared_ptr<Shader> GetShader() const;
 
-    template <typename T>
+    template <typename T> requires std::is_base_of_v<MaterialParameter, T>
     T* GetParameter(const std::string& name)
     {
         return _materialParameterMap->GetParameter<T>(name);

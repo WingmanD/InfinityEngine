@@ -11,8 +11,9 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
     }
 
     file >> std::noskipws;
-
+    
     char c;
+    uint16_t line = 1;
     while (file >> c)
     {
         if (c < 0)
@@ -22,8 +23,13 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
         
         if (file.eof())
         {
-            _tokens.push_back({TokenType::EndOfFile, ""});
+            _tokens.push_back({TokenType::EndOfFile, "", line});
             break;
+        }
+
+        if (c == '\n')
+        {
+            ++line;
         }
 
         switch (GetCurrentState())
@@ -32,7 +38,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
             {
                 if (c == '#')
                 {
-                    ProcessCurrentToken();
+                    ProcessCurrentToken(line);
                     PushState(LexerState::InPreprocessorDirective);
 
                     continue;
@@ -45,7 +51,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
                     {
                         file >> c;
 
-                        ProcessCurrentToken();
+                        ProcessCurrentToken(line);
                         PushState(LexerState::InLineComment);
 
                         continue;
@@ -55,7 +61,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
                     {
                         file >> c;
 
-                        ProcessCurrentToken();
+                        ProcessCurrentToken(line);
                         PushState(LexerState::InBlockComment);
 
                         continue;
@@ -64,39 +70,39 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
 
                 if (c == ',')
                 {
-                    ProcessCurrentToken();
+                    ProcessCurrentToken(line);
 
                     continue;
                 }
 
                 if (c == ';')
                 {
-                    ProcessCurrentToken();
-                    _tokens.push_back({TokenType::Semicolon, ";"});
+                    ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::Semicolon, ";", line});
 
                     continue;
                 }
 
                 if (c == '{')
                 {
-                    ProcessCurrentToken();
-                    _tokens.push_back({TokenType::ScopeStart, "{"});
+                    ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::ScopeStart, "{", line});
 
                     continue;
                 }
 
                 if (c == '}')
                 {
-                    ProcessCurrentToken();
-                    _tokens.push_back({TokenType::ScopeEnd, "}"});
+                    ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::ScopeEnd, "}", line});
 
                     continue;
                 }
 
                 if (c == '(')
                 {
-                    ProcessCurrentToken();
-                    _tokens.push_back({TokenType::ParenthesisOpen, "("});
+                    ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::ParenthesisOpen, "(", line});
 
                     PushState(LexerState::InArgumentList);
 
@@ -105,7 +111,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
 
                 if (c == '"')
                 {
-                    ProcessCurrentToken();
+                    ProcessCurrentToken(line);
 
                     PushState(LexerState::InStringLiteral);
 
@@ -114,7 +120,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
 
                 if (std::isspace(c) || c == '\n')
                 {
-                    ProcessCurrentToken();
+                    ProcessCurrentToken(line);
 
                     continue;
                 }
@@ -165,8 +171,8 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
             {
                 if (c == ')')
                 {
-                    ProcessCurrentToken();
-                    _tokens.push_back({TokenType::ParenthesisClose, ")"});
+                    ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::ParenthesisClose, ")", line});
                     PopState();
 
                     break;
@@ -174,12 +180,12 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
 
                 if (c == '/')
                 {
-                    char nextChar = PeekNextChar(file);
+                    const char nextChar = PeekNextChar(file);
                     if (nextChar == '/')
                     {
                         file >> c;
 
-                        ProcessCurrentToken();
+                        ProcessCurrentToken(line);
                         PushState(LexerState::InLineComment);
 
                         continue;
@@ -189,7 +195,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
                     {
                         file >> c;
 
-                        ProcessCurrentToken();
+                        ProcessCurrentToken(line);
                         PushState(LexerState::InBlockComment);
 
                         continue;
@@ -198,22 +204,22 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
 
                 if (c == ',')
                 {
-                    ProcessCurrentToken();
+                    ProcessCurrentToken(line);
 
                     continue;
                 }
 
                 if (c == '=')
                 {
-                    ProcessCurrentToken();
-                    _tokens.push_back({TokenType::Operator, "="});
+                    ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::Operator, "=", line});
 
                     continue;
                 }
 
                 if (c == '"')
                 {
-                    ProcessCurrentToken();
+                    ProcessCurrentToken(line);
 
                     PushState(LexerState::InStringLiteral);
 
@@ -222,7 +228,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
 
                 if (std::isspace(c) || c == '\n')
                 {
-                    ProcessCurrentToken();
+                    ProcessCurrentToken(line);
 
                     continue;
                 }
@@ -235,7 +241,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
             {
                 if (c == '"')
                 {
-                    ProcessCurrentToken(TokenType::StringLiteral);
+                    ProcessCurrentToken(line, TokenType::StringLiteral);
 
                     PopState();
 
@@ -254,12 +260,12 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
 
 bool Lexer::HasNextToken() const
 {
-    return _currentTokenIndex + 1 < _tokens.size();
+    return static_cast<uint32_t>(_currentTokenIndex) + 1 < _tokens.size();
 }
 
 const Token& Lexer::GetCurrentToken()
 {
-    if (_tokens.size() <= _currentTokenIndex)
+    if (_tokens.size() <= static_cast<uint32_t>(_currentTokenIndex))
     {
         throw std::runtime_error("No tokens to get");
     }
@@ -274,7 +280,7 @@ const Token& Lexer::GetNextToken()
         throw std::runtime_error("No tokens to get");
     }
 
-    if (_currentTokenIndex >= _tokens.size())
+    if (static_cast<uint32_t>(_currentTokenIndex) >= _tokens.size())
     {
         throw std::runtime_error("No more tokens to get");
     }
@@ -294,7 +300,7 @@ const Token& Lexer::PeekNextToken() const
 
 void Lexer::SkipToken()
 {
-    if (_currentTokenIndex >= _tokens.size())
+    if (static_cast<uint32_t>(_currentTokenIndex) >= _tokens.size())
     {
         throw std::runtime_error("No more tokens to skip");
     }
@@ -302,9 +308,9 @@ void Lexer::SkipToken()
     ++_currentTokenIndex;
 }
 
-void Lexer::Back()
+void Lexer::Back(int count /*= 1*/)
 {
-    --_currentTokenIndex;
+    _currentTokenIndex -= count;
     if (_currentTokenIndex < 0)
     {
         _currentTokenIndex = 0;
@@ -349,7 +355,7 @@ TokenType Lexer::ResolveTokenType(const std::string& token) const
         return TokenType::Keyword;
     }
 
-    if (token == "REFLECTED" || token == "PROPERTY" || token == "METHOD")
+    if (token == "REFLECTED" || token == "PROPERTY" || token == "METHOD" || token == "GENERATED")
     {
         return TokenType::Attribute;
     }
@@ -373,7 +379,7 @@ TokenType Lexer::ResolveTokenType(const std::string& token) const
     return TokenType::Identifier;
 }
 
-void Lexer::ProcessCurrentToken(TokenType type /*= TokenType::Unknown*/)
+void Lexer::ProcessCurrentToken(uint16_t line, TokenType type /*= TokenType::Unknown*/)
 {
     if (!_ss.str().empty())
     {
@@ -384,7 +390,7 @@ void Lexer::ProcessCurrentToken(TokenType type /*= TokenType::Unknown*/)
             tokenType = ResolveTokenType(tokenValue);
         }
 
-        _tokens.push_back({tokenType, tokenValue});
+        _tokens.push_back({tokenType, tokenValue, line});
         _ss.clear();
         _ss.str(std::string());
     }

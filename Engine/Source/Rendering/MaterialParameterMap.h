@@ -9,14 +9,16 @@
 #include <string>
 #include <unordered_map>
 
-struct MaterialParameter
+struct MaterialParameter;
+
+struct MaterialParameterDescriptor
 {
-    std::string Name;
     const Type* ParameterType = nullptr;
-    uint32_t SlotIndex = 0;
+    std::string Name;
+    uint32 SlotIndex = 0;
 };
 
-bool operator<(const MaterialParameter& lhs, const MaterialParameter& rhs);
+bool operator<(const MaterialParameterDescriptor& lhs, const MaterialParameterDescriptor& rhs);
 
 class MaterialParameterMap : public ISerializeable
 {
@@ -32,25 +34,24 @@ public:
 
     virtual std::unique_ptr<MaterialParameterMap> Duplicate() const;
 
-    virtual bool Initialize(const std::set<MaterialParameter>& parameterDescriptors);
-
-    template <typename T> requires IsReflectedType<T>
+    bool Initialize(const std::set<MaterialParameterDescriptor>& parameterDescriptors);
+    
+    template <typename T> requires std::is_base_of_v<MaterialParameter, T>
     T* GetParameter(const std::string& name)
     {
-        if (!_nameToObject.contains(name))
-        {
-            DEBUG_BREAK();
-            return nullptr;
-        }
-        T* parameter = dynamic_cast<T*>(_nameToObject[name]);
+        T* parameter = dynamic_cast<T*>(GetParameter(name));
         if (parameter == nullptr)
         {
             DEBUG_BREAK();
             return nullptr;
         }
 
+        parameter->MarkAsDirty();
+        
         return parameter;
     }
+
+    void SetSharedParameter(const std::string& name, const std::shared_ptr<MaterialParameter>& parameter, bool allowMissing = false);
 
     // ISerializeable
 public:
@@ -58,11 +59,25 @@ public:
     virtual bool Deserialize(MemoryReader& reader) override;
 
 protected:
-    const std::unordered_map<std::string, Object*>& GetNameToObjectMap();
+    struct MaterialParameterBinding
+    {
+        MaterialParameter* Parameter = nullptr;
+        const Type* ParameterType = nullptr;
+        std::string Name;
+        uint32 SlotIndex = 0;
+    };
+
+protected:
+    const std::vector<MaterialParameterBinding>& GetParameters() const;
+    const std::unordered_map<std::string, MaterialParameterBinding*>& GetNameToParameterMap() const;
 
 private:
     std::byte* _data = nullptr;
     size_t _dataSize = 0;
 
-    std::unordered_map<std::string, Object*> _nameToObject;
+    std::vector<MaterialParameterBinding> _parameters;
+    std::unordered_map<std::string, MaterialParameterBinding*> _nameToParameter;
+
+private:
+    MaterialParameter* GetParameter(const std::string& name);
 };

@@ -18,7 +18,7 @@ struct Vertex
 REFLECTED()
 class StaticMesh : public Asset
 {
-    STATICMESH_GENERATED()
+    GENERATED()
 
 public:
     StaticMesh() = default;

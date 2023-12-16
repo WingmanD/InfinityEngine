@@ -5,6 +5,7 @@
 #include "DX12Shader.h"
 #include "DX12StaticMeshRenderingData.h"
 #include "DX12MaterialRenderingData.h"
+#include "DX12MaterialParameterRenderingData.h"
 #include "DX12MaterialParameterMap.h"
 #include "DX12Window.h"
 #include "ThreadPool.h"
@@ -413,6 +414,11 @@ std::unique_ptr<StaticMeshRenderingData> DX12RenderingSubsystem::CreateStaticMes
 std::unique_ptr<MaterialRenderingData> DX12RenderingSubsystem::CreateMaterialRenderingData()
 {
     return std::make_unique<DX12MaterialRenderingData>();
+}
+
+std::unique_ptr<MaterialParameterRenderingData> DX12RenderingSubsystem::CreateMaterialParameterRenderingData()
+{
+    return std::make_unique<DX12MaterialParameterRenderingData>();
 }
 
 std::shared_ptr<Texture> DX12RenderingSubsystem::CreateTexture(uint32 width, uint32 height) const

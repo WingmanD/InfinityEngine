@@ -6,7 +6,7 @@
 bool ReflectionParser::Parse(const std::filesystem::path& filePath)
 {
     Reset();
-    
+
     if (!_lexer.Tokenize(filePath))
     {
         return false;
@@ -89,9 +89,17 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
             return false;
         }
 
+        std::optional<const Token> generatedMacroToken = PeekNextToken(TokenType::Attribute, "GENERATED");
+        if (!generatedMacroToken.has_value())
+        {
+            std::println("Error: Could not find GENERATED macro after REFLECTED tag");
+            return false;
+        }
+
         TypeInfo typeInfo;
         typeInfo.Name = typeNameToken.Value;
         typeInfo.Attributes = arguments;
+        typeInfo.GeneratedMacroLine = generatedMacroToken.value().Line;
 
         if (_lexer.PeekNextToken().Type == TokenType::ParentSeparatorColon)
         {
@@ -172,11 +180,6 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
                 {
                     return false;
                 }
-            }
-            else
-            {
-                std::println("Error: Unsupported attribute: {}", attributeToken.Value);
-                return false;
             }
         }
     }
@@ -540,4 +543,25 @@ bool ReflectionParser::SkipUntilNextIs(const std::vector<TokenType>& tokenTypes,
     }
 
     return false;
+}
+
+std::optional<const Token> ReflectionParser::PeekNextToken(TokenType tokenType, const std::string& name, int maxSkips /*= -1*/)
+{
+    int skips = 0;
+    while (_lexer.HasNextToken() && (maxSkips == -1 || skips <= maxSkips))
+    {
+        const Token& token = _lexer.PeekNextToken();
+        if (token.Type == tokenType && token.Value == name)
+        {
+            _lexer.Back(skips);
+            return token;
+        }
+
+        _lexer.SkipToken();
+
+        ++skips;
+    }
+
+    _lexer.Back(skips);
+    return std::nullopt;
 }

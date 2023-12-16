@@ -54,13 +54,19 @@ bool DX12Window::Initialize()
 
     RequestResize(GetWidth(), GetHeight());
 
-    const AssetManager& assetManager = Engine::Get().GetAssetManager();
+    AssetManager& assetManager = Engine::Get().GetAssetManager();
+    // assetManager.Import<DX12Shader>("Engine/Content/Shaders/DefaultShader.hlsl");
+    // assetManager.Import<DX12Shader>("Engine/Content/Shaders/DefaultWidgetShader.hlsl");
+    //
+    // assetManager.NewAsset<Material>(L"DefaultMaterial")->SetShader(assetManager.FindAssetByName<DX12Shader>(L"DefaultShader"));
+    // assetManager.NewAsset<Material>(L"DefaultWidgetMaterial")->SetShader(assetManager.FindAssetByName<DX12Shader>(L"DefaultWidgetShader"));
+    
     _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(L"SwarmDrone");
     if (_staticMeshTest != nullptr)
     {
         _staticMeshTest->Load();
     }
-
+    
     return true;
 }
 

@@ -8,11 +8,11 @@
 REFLECTED()
 class Shader : public Asset
 {
-    SHADER_GENERATED()
+    GENERATED()
 
 public:
     Delegate<const Shader*> OnRecompiled;
-    
+
 public:
     Shader() = default;
     Shader(const std::wstring& name);
@@ -20,7 +20,7 @@ public:
     Shader(const Shader& other);
 
     virtual bool Recompile(bool immediate = false);
-    
+
     std::unique_ptr<MaterialParameterMap> CreateMaterialParameterMap() const;
 
 protected:

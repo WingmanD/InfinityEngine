@@ -43,6 +43,7 @@ struct TypeInfo
     std::string Name;
     std::vector<std::string> ParentTypeNames;
     std::vector<PropertyInfo> Properties;
+    uint16_t GeneratedMacroLine = 0;
 
     // todo methods
     std::vector<MethodInfo> Methods;
@@ -84,4 +85,6 @@ private:
 
     bool SkipUntilNextIs(TokenType tokenType, int maxSkips = -1);
     bool SkipUntilNextIs(const std::vector<TokenType>& tokenTypes, int maxSkips = -1);
+    
+    std::optional<const Token> PeekNextToken(TokenType tokenType, const std::string& name, int maxSkips = -1);
 };

@@ -8,7 +8,7 @@
 #include "Rendering/Shader.h"
 #include "DX12Shader.reflection.h"
 
-struct MaterialParameter;
+struct MaterialParameterDescriptor;
 using Microsoft::WRL::ComPtr;
 
 class RenderingSubsystem;
@@ -17,7 +17,7 @@ class DX12RenderingSubsystem;
 REFLECTED()
 class DX12Shader : public Shader
 {
-    DX12SHADER_GENERATED()
+    GENERATED()
 
 public:
     DX12Shader() = default;
@@ -79,6 +79,6 @@ private:
     bool InitializeRootSignature(const DX12RenderingSubsystem& renderingSubsystem);
     bool InitializePSO(const DX12RenderingSubsystem& renderingSubsystem);
 
-    bool ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameter>& constantBufferParameterTypes);
-    bool ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameter>& constantBufferParameterTypes) const;
+    bool ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes);
+    bool ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const;
 };

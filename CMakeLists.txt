@@ -4,13 +4,13 @@ project(InfinityEngine)
 include(FetchContent)
 
 FetchContent_Declare(
-  DirectXTK
-  GIT_REPOSITORY https://github.com/microsoft/DirectXTK.git
+  DirectXTK12
+  GIT_REPOSITORY https://github.com/microsoft/DirectXTK12.git
   GIT_TAG        main
-  SOURCE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/DirectXTK"
+  SOURCE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/DirectXTK12"
 )
 
-FetchContent_MakeAvailable(DirectXTK)
+FetchContent_MakeAvailable(DirectXTK12)
 
 add_subdirectory(ReflectionTool)
 add_subdirectory(Engine)

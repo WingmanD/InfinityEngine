@@ -7,7 +7,6 @@
 #include "Object.h"
 using Microsoft::WRL::ComPtr;
 
-// todo we need another constant buffer that is not placed on the heap
 class ConstantBuffer
 {
 public:

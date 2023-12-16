@@ -34,21 +34,23 @@ const Vector2& Transform2D::GetScale() const
     return _scale;
 }
 
-const Matrix& Transform2D::GetMatrix()
+const Matrix& Transform2D::GetMatrix() const
 {
+    Transform2D* mutableThis = const_cast<Transform2D*>(this);
     if (_matrixDirty)
     {
-        _matrixDirty = false;
+        mutableThis->_matrixDirty = false;
 
-        _matrix = Matrix::CreateRotationZ(Math::ToRadians(_rotation)) *
-            Matrix::CreateScale(_scale.x * 2.0f, _scale.y * 2.0f, 1.0f) *
-            Matrix::CreateTranslation(_position.x * 2.0f, _position.y * 2.0f, 0.0f);
+        mutableThis->_matrix =
+            Matrix::CreateScale(_scale.x, _scale.y, 1.0f) *
+            Matrix::CreateRotationZ(Math::ToRadians(_rotation)) *
+            Matrix::CreateTranslation(_position.x, _position.y, 0.0f);
     }
 
     return _matrix;
 }
 
-Transform2D::operator const Matrix&()
+Transform2D::operator const Matrix&() const
 {
     return GetMatrix();
 }

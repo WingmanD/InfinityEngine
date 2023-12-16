@@ -220,7 +220,7 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
     }
     else
     {
-        return Recompile();
+        return Recompile(true);
     }
 
     return true;
@@ -242,7 +242,7 @@ bool DX12Shader::Recompile(bool immediate)
 
     DX12RenderingSubsystem& renderingSubsystem = dynamic_cast<DX12RenderingSubsystem&>(RenderingSubsystem::Get());
 
-    LOG(L"Recompiling shader {}...", GetName());
+    LOG(L"Compiling shader {}...", GetName());
     const std::filesystem::path& importPath = GetImportPath();
 
     std::shared_ptr<RecompiledData> recompiledData = std::make_shared<RecompiledData>();
@@ -252,30 +252,32 @@ bool DX12Shader::Recompile(bool immediate)
     const ComPtr<ID3DBlob> vertexShader = CompileShader(importPath, nullptr, "VS", "vs_5_1");
     if (vertexShader == nullptr)
     {
+        _beingRecompiled = false;
         return false;
     }
 
     const ComPtr<ID3DBlob> pixelShader = CompileShader(importPath, nullptr, "PS", "ps_5_1");
     if (pixelShader == nullptr)
     {
+        _beingRecompiled = false;
         return false;
     }
 
     std::vector<D3D12_ROOT_PARAMETER> rootParameters;
-    std::set<MaterialParameter> constantBufferParameterTypes;
+    std::set<MaterialParameterDescriptor> constantBufferParameterTypes;
 
     if (!ReflectShaderParameters(vertexShader.Get(), rootParameters, constantBufferParameterTypes))
     {
         LOG(L"Failed to compile shader {} - failed to reflect vertex shader", GetName());
+        _beingRecompiled = false;
         return false;
     }
 
-    // currently unnecessary
-    // if (!ReflectShaderParameters(pixelShader.Get()))
-    // {
-    //     LOG(L"Failed to compile shader {} - failed to reflect pixel shader", GetName());
-    //     return false;
-    // }
+    if (!ReflectShaderParameters(pixelShader.Get(), rootParameters, constantBufferParameterTypes))
+    {
+        LOG(L"Failed to compile shader {} - failed to reflect pixel shader", GetName());
+        return false;
+    }
 
     recompiledData->VertexShader = vertexShader;
     recompiledData->PixelShader = pixelShader;
@@ -300,12 +302,14 @@ bool DX12Shader::Recompile(bool immediate)
     if (FAILED(hr))
     {
         LOG(L"Failed to serialize root signature for shader {}!", GetName());
+        _beingRecompiled = false;
         return false;
     }
 
     if (!Initialize())
     {
         LOG(L"Failed to initialize shader {}!", GetName());
+        _beingRecompiled = false;
         return false;
     }
 
@@ -319,6 +323,7 @@ bool DX12Shader::Recompile(bool immediate)
     {
         LOG(L"Failed to create root signature for shader {}!", GetName());
 
+        _beingRecompiled = false;
         return false;
     }
 
@@ -351,12 +356,14 @@ bool DX12Shader::Recompile(bool immediate)
     if (FAILED(result))
     {
         LOG(L"Failed to create PSO for shader {}!", GetName());
+        _beingRecompiled = false;
         return false;
     }
 
     recompiledData->ParameterMap = std::make_unique<DX12MaterialParameterMap>();
     if (!recompiledData->ParameterMap->Initialize(constantBufferParameterTypes))
     {
+        _beingRecompiled = false;
         return false;
     }
 
@@ -392,6 +399,8 @@ bool DX12Shader::Recompile(bool immediate)
     {
         renderingSubsystem.GetEventQueue().Enqueue(lambda);
     }
+
+    LOG(L"Shader {} compiled successfully!", GetName());
 
     return true;
 }
@@ -498,7 +507,7 @@ bool DX12Shader::InitializePSO(const DX12RenderingSubsystem& renderingSubsystem)
     return true;
 }
 
-bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameter>& constantBufferParameterTypes)
+bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes)
 {
     ID3D12ShaderReflection* shaderReflection = nullptr;
     D3DReflect(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), IID_ID3D12ShaderReflection, reinterpret_cast<void**>(&shaderReflection));
@@ -551,7 +560,7 @@ bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12
     return true;
 }
 
-bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameter>& constantBufferParameterTypes) const
+bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const
 {
     ID3D12ShaderReflectionConstantBuffer* cbReflection = shaderReflection->GetConstantBufferByIndex(bindDesc.BindPoint);
     if (cbReflection == nullptr)
@@ -583,19 +592,21 @@ bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
             return false;
         }
 
-        MaterialParameter parameterType;
+        MaterialParameterDescriptor parameterType;
         parameterType.Name = bufferDesc.Name;
         parameterType.ParameterType = TypeRegistry::Get().FindTypeByName(typeDesc.Name);
         parameterType.SlotIndex = bindDesc.BindPoint;
 
-        constantBufferParameterTypes.insert(parameterType);
-
-        D3D12_ROOT_PARAMETER parameter = {};
-        parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
-        parameter.Descriptor.RegisterSpace = bindDesc.Space;
-        parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        rootParameters.push_back(parameter);
+        const auto result = constantBufferParameterTypes.insert(parameterType);
+        if (result.second)
+        {
+            D3D12_ROOT_PARAMETER parameter = {};
+            parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+            parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
+            parameter.Descriptor.RegisterSpace = bindDesc.Space;
+            parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+            rootParameters.push_back(parameter);
+        }
     }
 
     return true;

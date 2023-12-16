@@ -1,27 +1,28 @@
 ﻿#pragma once
 
-#include <d3d12.h>
-
 #include "Core.h"
 #include "Asset.h"
+#include "Math/Transform2D.h"
 #include <memory>
 #include <vector>
+#include <array>
+#include <d3d12.h>
 #include "Widget.reflection.h"
-#include "Math/Transform2D.h"
 
 class Window;
 class Material;
 class StaticMesh;
 
-enum class EWidgetState
+enum class EWidgetState : uint8
 {
-    Invisible,
-    Visible,
-    CollisionEnabled,
-    Collapsed
+    None             = 0,
+    Visible          = 1 << 1,
+    CollisionEnabled = 1 << 2,
+    Collapsed        = 1 << 3,
 };
+ENABLE_ENUM_OPS(EWidgetState)
 
-enum class EWidgetAnchor
+enum class EWidgetAnchor : uint8
 {
     TopLeft,
     TopCenter,
@@ -37,7 +38,7 @@ enum class EWidgetAnchor
 REFLECTED()
 class Widget : public Asset
 {
-    WIDGET_GENERATED()
+    GENERATED()
 
 public:
     explicit Widget();
@@ -46,14 +47,26 @@ public:
 
     void TestDraw(ID3D12GraphicsCommandList* commandList);
 
+    void SetVisibility(bool value, bool recursive = false);
+    bool IsVisible() const;
+    
+    void SetCollisionEnabled(bool value, bool recursive = false);
+    bool IsCollisionEnabled() const;
+
+    void SetCollapsed(bool value);
+    bool IsCollapsed() const;
+
     void SetPosition(const Vector2& position);
-    const Vector2& GetPosition() const;
+    Vector2 GetPosition() const;
 
     void SetRotation(float degrees);
     float GetRotation() const;
 
+    void SetScale(const Vector2& scale);
+    Vector2 GetScale() const;
+
     void SetSize(const Vector2& size);
-    const Vector2& GetSize() const;
+    Vector2 GetSize() const;
 
     void SetTransform(const Transform2D& transform);
     const Transform2D& GetTransform() const;
@@ -80,14 +93,17 @@ public:
 protected:
     virtual void OnResized();
 
-    static const Vector2& GetAnchorPosition(EWidgetAnchor anchor);
+    Vector2 GetAnchorPosition(EWidgetAnchor anchor) const;
     EWidgetAnchor GetAnchor() const;
 
     virtual void OnWindowChanged(const std::shared_ptr<Window>& window);
 
 private:
     static std::array<const Vector2, 9> _anchorPositionMap;
-    
+
+    EWidgetState _state = EWidgetState::Visible;
+
+    PROPERTY(EditableInEditor, DisplayName = "Size")
     EWidgetAnchor _anchor = EWidgetAnchor::Center;
 
     std::shared_ptr<StaticMesh> _quadMesh;
@@ -95,13 +111,20 @@ private:
     std::weak_ptr<Widget> _parentWidget;
     std::weak_ptr<Window> _parentWindow;
 
-    PROPERTY(EditableInEditor, Load, DisplayName = "Material")
+    PROPERTY(EditableInEditor, Load, EditInPlace, DisplayName = "Material")
     std::shared_ptr<Material> _material;
 
     std::vector<std::shared_ptr<Widget>> _children;
 
     PROPERTY(EditableInEditor, DisplayName = "Transform")
     Transform2D _transform;
+
+    PROPERTY(EditableInEditor, DisplayName = "Size")
+    Vector2 _size = Vector2::One;
+
+    Vector2 _storedCollapsedSize;
+
+    Transform2D _quadTransform;
 
     RECT _widgetRect = {0, 0, 0, 0};
 };

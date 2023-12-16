@@ -13,7 +13,7 @@ class AssetManager;
 REFLECTED()
 class Asset : public Object, public ISerializeable
 {
-    ASSET_GENERATED()
+    GENERATED()
 
 public:
     Asset() = default;

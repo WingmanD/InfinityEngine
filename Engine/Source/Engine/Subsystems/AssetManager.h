@@ -19,7 +19,7 @@ public:
 
     std::shared_ptr<Asset> NewAsset(const Type* type, const std::wstring& name);
 
-    template <typename T>
+    template <typename T> requires IsA<Asset, T>
     std::shared_ptr<T> NewAsset(const std::wstring& name) requires IsA<Asset, T>
     {
         return std::dynamic_pointer_cast<T>(NewAsset(T::StaticType(), name));

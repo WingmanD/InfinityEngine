@@ -11,5 +11,5 @@ void DX12MaterialRenderingData::Apply(ID3D12GraphicsCommandList* commandList) co
     shader->Apply(commandList);
 
     const DX12MaterialParameterMap& parameterMap = static_cast<DX12MaterialParameterMap&>(material.GetParameterMap());
-    parameterMap.Apply(commandList);
+    parameterMap.Bind(commandList);
 }
