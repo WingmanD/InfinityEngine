@@ -14,11 +14,16 @@ class DX12RenderingSubsystem;
 class DX12Window : public Window
 {
 public:
+    Delegate<const D3D12_VIEWPORT&> OnViewportChanged;
+    
+public:
     DX12Window(uint32 width, uint32 height, const std::wstring& title);
 
     virtual bool Initialize() override;
     void Render(PassKey<DX12RenderingSubsystem>);
     void Present(PassKey<DX12RenderingSubsystem>);
+
+    const D3D12_VIEWPORT& GetViewport() const;
 
 protected:
     struct FrameBuffer
@@ -44,8 +49,6 @@ private:
     D3D12_RECT _fullWindowRect{};
 
     std::shared_ptr<StaticMesh> _staticMeshTest = nullptr;
-
-    ConstantBuffer _windowGlobalsConstantBuffer;
 
 private:
     void ResizeImplementation(ID3D12GraphicsCommandList* commandList);

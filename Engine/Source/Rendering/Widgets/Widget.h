@@ -3,12 +3,16 @@
 #include "Core.h"
 #include "Asset.h"
 #include "Math/Transform2D.h"
+#include "WidgetRenderingProxy.h"
 #include <memory>
 #include <vector>
 #include <array>
 #include <d3d12.h>
+
+#include "BoundingBox2D.h"
 #include "Widget.reflection.h"
 
+class StaticMeshInstance;
 class Window;
 class Material;
 class StaticMesh;
@@ -43,13 +47,14 @@ class Widget : public Asset
 public:
     explicit Widget();
 
-    virtual bool Initialize() override;
+    Widget(const Widget& other);
+    Widget& operator=(const Widget& other);
 
-    void TestDraw(ID3D12GraphicsCommandList* commandList);
+    virtual bool Initialize() override;
 
     void SetVisibility(bool value, bool recursive = false);
     bool IsVisible() const;
-    
+
     void SetCollisionEnabled(bool value, bool recursive = false);
     bool IsCollisionEnabled() const;
 
@@ -58,30 +63,38 @@ public:
 
     void SetPosition(const Vector2& position);
     Vector2 GetPosition() const;
+    Vector2 GetPositionWS() const;
 
     void SetRotation(float degrees);
     float GetRotation() const;
+    float GetRotationWS() const;
 
     void SetScale(const Vector2& scale);
     Vector2 GetScale() const;
+    Vector2 GetScaleWS() const;
 
     void SetSize(const Vector2& size);
     Vector2 GetSize() const;
+    Vector2 GetSizeWS() const;
 
     void SetTransform(const Transform2D& transform);
     const Transform2D& GetTransform() const;
+    Transform2D GetTransformWS() const;
 
     void SetMaterial(const std::shared_ptr<Material>& material);
     std::shared_ptr<Material> GetMaterial() const;
 
     void AddChild(const std::shared_ptr<Widget>& widget);
     void RemoveChild(const std::shared_ptr<Widget>& widget);
+    const std::vector<std::shared_ptr<Widget>>& GetChildren() const;
 
     [[nodiscard]] std::shared_ptr<Widget> GetParentWidget() const;
-    RECT GetRect() const;
+    const RECT& GetRect() const;
 
     void SetWindow(const std::shared_ptr<Window>& window);
     std::shared_ptr<Window> GetParentWindow() const;
+
+    StaticMeshInstance& GetQuadMesh() const;
 
     void Destroy();
 
@@ -90,13 +103,22 @@ public:
 
     void OnParentResized();
 
+    WidgetRenderingProxy& GetRenderingProxy() const;
+
+    const BoundingBox2D& GetBoundingBox() const;
+
 protected:
-    virtual void OnResized();
+    std::unique_ptr<WidgetRenderingProxy> RenderingProxy = nullptr;
+
+protected:
+    virtual bool InitializeRenderingProxy();
+
+    virtual void OnTransformChanged();
 
     Vector2 GetAnchorPosition(EWidgetAnchor anchor) const;
     EWidgetAnchor GetAnchor() const;
 
-    virtual void OnWindowChanged(const std::shared_ptr<Window>& window);
+    virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow);
 
 private:
     static std::array<const Vector2, 9> _anchorPositionMap;
@@ -106,7 +128,7 @@ private:
     PROPERTY(EditableInEditor, DisplayName = "Size")
     EWidgetAnchor _anchor = EWidgetAnchor::Center;
 
-    std::shared_ptr<StaticMesh> _quadMesh;
+    std::shared_ptr<StaticMeshInstance> _quadMeshInstance;
 
     std::weak_ptr<Widget> _parentWidget;
     std::weak_ptr<Window> _parentWindow;
@@ -126,5 +148,10 @@ private:
 
     Transform2D _quadTransform;
 
+    BoundingBox2D _boundingBox;
+
     RECT _widgetRect = {0, 0, 0, 0};
+
+private:
+    void UpdateMaterialParameters() const;
 };

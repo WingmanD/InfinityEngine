@@ -6,7 +6,14 @@
 
 struct DelegateHandle
 {
-    uint64 Index;
+public:
+    uint64 Index = 0;
+
+public:
+    bool IsValid() const
+    {
+        return Index != 0;
+    }
 };
 
 template <typename... Args>

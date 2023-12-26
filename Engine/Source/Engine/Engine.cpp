@@ -1,4 +1,6 @@
 ﻿#include "Engine.h"
+
+#include "Rendering/Window.h"
 #include "Rendering/DX12/DX12RenderingSubsystem.h"
 
 Engine Engine::_mainInstance;
@@ -16,7 +18,13 @@ Engine& Engine::Get()
 bool Engine::Initialize(HINSTANCE hInstance)
 {
     _hInstance = hInstance;
-    
+
+    if (!_inputSubsystem.Initialize())
+    {
+        LOG(L"Failed to initialize Input Subsystem!");
+        return false;
+    }
+
     if (!_assetManagerSubsystem.Initialize())
     {
         LOG(L"Failed to initialize Asset Manager Subsystem!");
@@ -28,6 +36,8 @@ bool Engine::Initialize(HINSTANCE hInstance)
         LOG(L"Failed to initialize Rendering Subsystem!");
         return false;
     }
+
+    _assetManagerSubsystem.LoadAlwaysLoadedAssets();
 
     if (_renderingSubsystem->ConstructWindow(L"Infinity Engine") == nullptr)
     {
@@ -45,16 +55,22 @@ void Engine::Run()
     static double lastTime = GetTimeInSeconds();
     while (!_exitRequested)
     {
-        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        _renderingSubsystem->ForEachWindow([&msg](const Window* window)
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
+            while (PeekMessage(&msg, window->GetHandle(), 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+            
+            return true;
+        });
 
         const double currentTime = GetTimeInSeconds();
         const double deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
+        _inputSubsystem.Tick(deltaTime);
         // todo gameplay subsystem tick
         _renderingSubsystem->Tick(deltaTime);
     }
@@ -81,6 +97,11 @@ HINSTANCE Engine::GetHandle() const
 ThreadPool& Engine::GetThreadPool()
 {
     return _threadPool;
+}
+
+InputSubsystem& Engine::GetInputSubsystem()
+{
+    return _inputSubsystem;
 }
 
 AssetManager& Engine::GetAssetManager()

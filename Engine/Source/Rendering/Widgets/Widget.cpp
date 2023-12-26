@@ -1,15 +1,17 @@
 ﻿#include "Widget.h"
-#include "Material.h"
-#include "StaticMesh.h"
+#include "../Material.h"
 #include "UIStatics.h"
 #include "MaterialParameterTypes.h"
-#include "Window.h"
-#include "DX12/DX12Shader.h"
-#include "DX12/DX12StaticMeshRenderingData.h"
+#include "../Window.h"
+#include "../DX12/DX12Shader.h"
+#include "../DX12/DX12StaticMeshRenderingData.h"
 #include "Engine/Subsystems/AssetManager.h"
 #include <cassert>
 
 #include "SpriteBatch.h"
+#include "Engine/Subsystems/RenderingSubsystem.h"
+#include "Rendering/StaticMeshInstance.h"
+#include "Rendering/DX12/DX12WidgetRenderingProxy.h"
 
 std::array<const Vector2, 9> Widget::_anchorPositionMap = {
     Vector2(-1.0f, 1.0f), // TopLeft
@@ -29,64 +31,53 @@ Widget::Widget()
     SetCollisionEnabled(true);
 }
 
+Widget::Widget(const Widget& other)
+{
+    // todo deep copy
+}
+
+Widget& Widget::operator=(const Widget& other)
+{
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    return *this;
+}
+
 bool Widget::Initialize()
 {
-    _quadMesh = UIStatics::GetUIQuadMesh();
-    assert(_quadMesh != nullptr);
-    // todo asset manager should have a function for finding and loading asset
-    _quadMesh->Load();
+    _quadMeshInstance = std::make_shared<StaticMeshInstance>(UIStatics::GetUIQuadMesh());
 
-    if (_material == nullptr)
+    if (_material != nullptr)
     {
-        _material = _quadMesh->GetMaterial();
+        _material->Load();
+        _quadMeshInstance->SetMaterial(_material->DuplicateStatic<Material>());
     }
     else
     {
-        _material->Load();
-        _quadMesh->SetMaterial(_material);
+        if (const std::shared_ptr<Material> material = _quadMeshInstance->GetMaterial())
+        {
+            const std::shared_ptr<Material> newMaterial = material->DuplicateStatic<Material>();
+            newMaterial->Initialize();
+            _quadMeshInstance->SetMaterial(newMaterial);
+        }
     }
 
-    // todo instance mesh
+    _material = _quadMeshInstance->GetMaterial();
 
     // todo add to grid
+    _boundingBox = BoundingBox2D(GetPositionWS(), GetSizeWS());
+
+    if (!InitializeRenderingProxy())
+    {
+        return false;
+    }
 
     return true;
 }
 
-void Widget::TestDraw(ID3D12GraphicsCommandList* commandList)
-{
-    if (_material == nullptr)
-    {
-        return;
-    }
-
-    if (IsVisible())
-    {
-        WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-        assert(parameter != nullptr);
-
-        parameter->Transform = _quadTransform.GetMatrix() * _transform.GetMatrix();
-        if (const std::shared_ptr<Widget>& parentWidget = GetParentWidget())
-        {
-            parameter->Transform = parentWidget->GetTransform().GetMatrix() * parameter->Transform;
-        }
-
-        parameter->Flags = WidgetPerPassConstants::EWidgetFlags::Enabled;
-
-        // todo widget rect needs to be in screen space, not CS
-        //commandList->RSSetScissorRects(1, &_widgetRect);
-
-        if (_quadMesh->GetRenderingData()->IsUploaded())
-        {
-            static_cast<DX12StaticMeshRenderingData*>(_quadMesh->GetRenderingData())->SetupDrawing(commandList);
-        }
-    }
-
-    for (const std::shared_ptr<Widget>& widget : _children)
-    {
-        widget->TestDraw(commandList);
-    }
-}
 void Widget::SetVisibility(bool value, bool recursive /*= false*/)
 {
     if (value == IsVisible())
@@ -154,6 +145,8 @@ bool Widget::IsCollapsed() const
 void Widget::SetPosition(const Vector2& position)
 {
     _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position);
+
+    OnTransformChanged();
 }
 
 Vector2 Widget::GetPosition() const
@@ -161,9 +154,16 @@ Vector2 Widget::GetPosition() const
     return _transform.GetPosition() - GetAnchorPosition(GetAnchor());
 }
 
+Vector2 Widget::GetPositionWS() const
+{
+    return GetTransformWS().GetPosition();
+}
+
 void Widget::SetRotation(float degrees)
 {
     _transform.SetRotation(degrees);
+
+    OnTransformChanged();
 }
 
 float Widget::GetRotation() const
@@ -171,9 +171,21 @@ float Widget::GetRotation() const
     return _transform.GetRotation();
 }
 
+float Widget::GetRotationWS() const
+{
+    return GetTransformWS().GetRotation();
+}
+
 void Widget::SetScale(const Vector2& scale)
 {
     _transform.SetScale(scale);
+
+    OnTransformChanged();
+}
+
+Vector2 Widget::GetScaleWS() const
+{
+    return GetTransformWS().GetScale();
 }
 
 Vector2 Widget::GetScale() const
@@ -187,14 +199,14 @@ void Widget::SetSize(const Vector2& size)
 
     if (const std::shared_ptr<Widget> widget = GetParentWidget())
     {
-        _quadTransform.SetScale(size * widget->GetSize());
+        _quadTransform.SetScale(size * widget->GetSizeWS() * 1.5f);
     }
     else
     {
-        _quadTransform.SetScale(size);
+        _quadTransform.SetScale(size * 1.5f);
     }
 
-    OnResized();
+    OnTransformChanged();
 }
 
 Vector2 Widget::GetSize() const
@@ -202,9 +214,18 @@ Vector2 Widget::GetSize() const
     return _size;
 }
 
+Vector2 Widget::GetSizeWS() const
+{
+    const Transform2D quadTransformWS = _quadTransform * GetTransformWS();
+    
+    return quadTransformWS.GetScale();
+}
+
 void Widget::SetTransform(const Transform2D& transform)
 {
     _transform = transform;
+
+    OnTransformChanged();
 }
 
 const Transform2D& Widget::GetTransform() const
@@ -212,15 +233,27 @@ const Transform2D& Widget::GetTransform() const
     return _transform;
 }
 
+Transform2D Widget::GetTransformWS() const
+{
+    if (const std::shared_ptr<Widget> widget = GetParentWidget())
+    {
+        return widget->GetTransformWS() * _transform;
+    }
+
+    return _transform;
+}
+
 void Widget::SetMaterial(const std::shared_ptr<Material>& material)
 {
     // todo unlink old material and shared param
-    _quadMesh->SetMaterial(material);
+    _quadMeshInstance->SetMaterial(material);
     _material = material;
 
     if (_material != nullptr)
     {
         _material->GetParameterMap().SetSharedParameter("GWindowGlobals", GetParentWindow()->GetWindowGlobals(), true);
+
+        UpdateMaterialParameters();
     }
 }
 
@@ -250,12 +283,17 @@ void Widget::RemoveChild(const std::shared_ptr<Widget>& widget)
     std::erase(_children, widget);
 }
 
+const std::vector<std::shared_ptr<Widget>>& Widget::GetChildren() const
+{
+    return _children;
+}
+
 std::shared_ptr<Widget> Widget::GetParentWidget() const
 {
     return _parentWidget.lock();
 }
 
-RECT Widget::GetRect() const
+const RECT& Widget::GetRect() const
 {
     return _widgetRect;
 }
@@ -268,19 +306,25 @@ void Widget::SetWindow(const std::shared_ptr<Window>& window)
         return;
     }
 
-    if (_parentWindow.lock() == window)
+    const std::shared_ptr<Window> oldWindow = _parentWindow.lock();
+    if (oldWindow == window)
     {
         return;
     }
 
     _parentWindow = window;
 
-    OnWindowChanged(window);
+    OnWindowChanged(oldWindow, window);
 }
 
 std::shared_ptr<Window> Widget::GetParentWindow() const
 {
     return _parentWindow.lock();
+}
+
+StaticMeshInstance& Widget::GetQuadMesh() const
+{
+    return *_quadMeshInstance.get();
 }
 
 void Widget::Destroy()
@@ -312,32 +356,47 @@ void Widget::OnParentResized()
     }
 }
 
-void Widget::OnResized()
+WidgetRenderingProxy& Widget::GetRenderingProxy() const
 {
-    const std::shared_ptr<Window> window = GetParentWindow();
-    if (window == nullptr)
+    return *RenderingProxy.get();
+}
+
+const BoundingBox2D& Widget::GetBoundingBox() const
+{
+    return _boundingBox;
+}
+
+bool Widget::InitializeRenderingProxy()
+{
+    RenderingProxy = RenderingSubsystem::Get().CreateDefaultWidgetRenderingProxy();
+    if (RenderingProxy == nullptr)
     {
-        DEBUG_BREAK();
-        return;
+        return false;
     }
 
-    // todo calculate vertices in screen space, this is in local space
-    const Vector2 windowSize = Vector2(static_cast<float>(window->GetWidth()), static_cast<float>(window->GetHeight()));
+    RenderingProxy->SetWidget(this);
 
-    const Vector2 position = (_transform.GetPosition() - GetAnchorPosition(GetAnchor())) * windowSize;
-    const Vector2& size = _transform.GetScale() * windowSize;
+    return RenderingProxy->Initialize();
+}
 
-    // calculate AABB for 4 vertices
-    _widgetRect = RECT
+void Widget::OnTransformChanged()
+{
+    UpdateMaterialParameters();
+    
+    _boundingBox = BoundingBox2D(GetPositionWS(), GetSizeWS());
+
+    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
     {
-        static_cast<LONG>(position.x),
-        static_cast<LONG>(position.y),
-        static_cast<LONG>(position.x + size.x),
-        static_cast<LONG>(position.y + size.y)
-    };
+        const Vector2 minSS = UIStatics::ToScreenSpace(_boundingBox.GetMin(), parentWindow);
+        const Vector2 maxSS = UIStatics::ToScreenSpace(_boundingBox.GetMax(), parentWindow);
 
-    assert(_material != nullptr);
-    // todo update material parameters - should be on GPU at all times, updated only when necessary
+        _widgetRect.left = static_cast<LONG>(minSS.x);
+        _widgetRect.top = static_cast<LONG>(maxSS.y);
+        _widgetRect.right = static_cast<LONG>(maxSS.x);
+        _widgetRect.bottom = static_cast<LONG>(minSS.y);
+    }
+    
+    GetRenderingProxy().OnTransformChanged();
 }
 
 Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
@@ -356,10 +415,24 @@ EWidgetAnchor Widget::GetAnchor() const
     return _anchor;
 }
 
-void Widget::OnWindowChanged(const std::shared_ptr<Window>& window)
+void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow)
 {
     if (_material != nullptr)
     {
-        _material->GetParameterMap().SetSharedParameter("GWindowGlobals", window->GetWindowGlobals(), true);
+        _material->GetParameterMap().SetSharedParameter("GWindowGlobals", newWindow->GetWindowGlobals(), true);
+    }
+
+    RenderingProxy->OnWindowChanged(oldWindow, newWindow);
+}
+
+void Widget::UpdateMaterialParameters() const
+{
+    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    assert(parameter != nullptr);
+
+    parameter->Transform = _quadTransform * GetTransformWS();
+    if (const std::shared_ptr<Widget>& parentWidget = GetParentWidget())
+    {
+        parameter->Transform = parentWidget->GetTransform().GetMatrix() * parameter->Transform;
     }
 }

@@ -1,8 +1,13 @@
 ﻿#include "Window.h"
 
+#include <memory>
+
+#include "Font.h"
 #include "StaticMesh.h"
 #include "Engine/Engine.h"
+#include "Engine/Subsystems/InputSubsystem.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
+#include "Widgets/TextWidget.h"
 
 Window::Window(uint32 width, uint32 height, std::wstring title) :
     _width(width),
@@ -76,15 +81,45 @@ bool Window::Initialize()
 
     _rootWidget->SetWindow(shared_from_this());
     _rootWidget->SetSize({_aspectRatio, 1.0f});
-    _rootWidget->SetScale({2.0f, 2.0f});
     _rootWidget->SetVisibility(false);
+    
+    {
+        auto newWidget = std::make_shared<Widget>();
+        newWidget->Initialize();
+        _rootWidget->AddChild(newWidget);
+        newWidget->SetSize({0.2f, 0.1f});
+        newWidget->SetAnchor(EWidgetAnchor::TopLeft);
+        newWidget->SetPosition({0.2f, -0.1f});
+    
+        std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
+        textWidget->Initialize();
+        textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
+        textWidget->SetText(L"Hello World!");
+        textWidget->SetTextColor({1.0f, 0.0f, 0.0f, 1.0f});
+        newWidget->AddChild(textWidget);
+    }
 
-    // auto newWidget = std::make_shared<Widget>();
-    // newWidget->Initialize();
-    // _rootWidget->AddChild(newWidget);
-    // newWidget->SetSize({0.2f, 0.1f});
-    // newWidget->SetAnchor(EWidgetAnchor::TopLeft);
-    // newWidget->SetPosition({0.1f, -0.05f});
+    {
+        auto newWidget = std::make_shared<Widget>();
+        newWidget->Initialize();
+        _rootWidget->AddChild(newWidget);
+        newWidget->SetSize({0.2f, 0.1f});
+        newWidget->SetAnchor(EWidgetAnchor::TopRight);
+        newWidget->SetPosition({-0.2f, -0.1f});
+    }
+
+    InputSubsystem& inputSubsystem = InputSubsystem::Get();
+    inputSubsystem.SetFocusedWindow(shared_from_this(), {});
+
+    inputSubsystem.OnMouseLeftButtonDown.Subscribe([]()
+    {
+        TRACE_LOG("Mouse left button down!");
+    });
+
+    inputSubsystem.OnMouseLeftButtonUp.Subscribe([]()
+    {
+        TRACE_LOG("Mouse left button up!");
+    });
 
     return true;
 }
@@ -204,6 +239,11 @@ Window::PendingResize& Window::GetPendingResize()
 void Window::SetIsFocused(bool value)
 {
     _isFocused = value;
+
+    if (_isFocused)
+    {
+        InputSubsystem::Get().SetFocusedWindow(shared_from_this(), {});
+    }
 }
 
 void Window::OnStateChanged()
@@ -303,22 +343,11 @@ LRESULT Window::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
             Destroy();
             return 0;
         }
-
-        case WM_KEYUP:
-        {
-            if (wParam == VK_F1)
-            {
-                AssetManager& assetManager = Engine::Get().GetAssetManager();
-                assetManager.ImportFromDialog(StaticMesh::StaticType());
-            }
-
-            return 0;
-        }
         default:
-            break;
+        {
+            return InputSubsystem::Get().ProcessWindowMessages(hwnd, msg, wParam, lParam, shared_from_this(), {});
+        }
     }
-
-    return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
 LRESULT Window::ProcessWindowMessagesStatic(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

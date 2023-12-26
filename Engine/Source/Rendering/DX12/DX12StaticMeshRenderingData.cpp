@@ -5,9 +5,9 @@
 #include "DX12MaterialRenderingData.h"
 #include <vector>
 
-void DX12StaticMeshRenderingData::SetupDrawing(ID3D12GraphicsCommandList* commandList) const
+void DX12StaticMeshRenderingData::SetupDrawing(ID3D12GraphicsCommandList* commandList, const std::shared_ptr<Material>& material) const
 {
-    GetMesh()->GetMaterial()->GetRenderingData<DX12MaterialRenderingData>()->Apply(commandList);
+    material->GetRenderingData<DX12MaterialRenderingData>()->Apply(commandList);
 
     commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     commandList->IASetVertexBuffers(0, 1, &_vertexBufferView);

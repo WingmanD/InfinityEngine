@@ -4,6 +4,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
+class Material;
 class StaticMesh;
 using Microsoft::WRL::ComPtr;
 
@@ -12,7 +13,7 @@ class DX12StaticMeshRenderingData : public StaticMeshRenderingData
 public:
     DX12StaticMeshRenderingData() = default;
 
-    void SetupDrawing(ID3D12GraphicsCommandList* commandList) const;
+    void SetupDrawing(ID3D12GraphicsCommandList* commandList, const std::shared_ptr<Material>& material) const;
 
 protected:
     virtual bool UploadToGPUInternal(RenderingSubsystem& renderingSubsystem) override;

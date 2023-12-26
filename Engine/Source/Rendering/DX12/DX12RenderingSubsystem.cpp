@@ -1,12 +1,13 @@
 ﻿#include "DX12RenderingSubsystem.h"
 #include "Core.h"
 #include "d3dx12.h"
+#include "DX12MaterialParameterRenderingData.h"
+#include "DX12MaterialRenderingData.h"
 #include "DX12RenderTarget.h"
 #include "DX12Shader.h"
 #include "DX12StaticMeshRenderingData.h"
-#include "DX12MaterialRenderingData.h"
-#include "DX12MaterialParameterRenderingData.h"
-#include "DX12MaterialParameterMap.h"
+#include "DX12TextWidgetRenderingProxy.h"
+#include "DX12WidgetRenderingProxy.h"
 #include "DX12Window.h"
 #include "ThreadPool.h"
 #include "Engine/Engine.h"
@@ -229,6 +230,16 @@ const std::shared_ptr<DescriptorHeap>& DX12RenderingSubsystem::GetCBVHeap()
     return _cbvHeap;
 }
 
+const std::shared_ptr<DescriptorHeap>& DX12RenderingSubsystem::GetSRVHeap()
+{
+    return _srvHeap;
+}
+
+DirectX::GraphicsMemory& DX12RenderingSubsystem::GetGraphicsMemory() const
+{
+    return *_graphicsMemory;
+}
+
 void DX12RenderingSubsystem::AsyncOnGPUFenceEvent(std::function<void()>&& callback)
 {
     const HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
@@ -325,6 +336,13 @@ bool DX12RenderingSubsystem::Initialize()
     cbvHeapDesc.NodeMask = 0;
     _cbvHeap = std::make_shared<DescriptorHeap>(_device.Get(), cbvHeapDesc);
 
+    D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc;
+    srvHeapDesc.NumDescriptors = 100;
+    srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    srvHeapDesc.NodeMask = 0;
+    _srvHeap = std::make_shared<DescriptorHeap>(_device.Get(), srvHeapDesc);
+
     DX12CommandList commandList;
 
     ThrowIfFailed(_device->CreateCommandAllocator(
@@ -339,11 +357,14 @@ bool DX12RenderingSubsystem::Initialize()
         IID_PPV_ARGS(commandList.CommandList.GetAddressOf())));
     _availableCommandLists.push_back(commandList);
 
+    _graphicsMemory = new DirectX::DX12::GraphicsMemory(_device.Get());
+
     return true;
 }
 
 void DX12RenderingSubsystem::Shutdown()
 {
+    RenderingSubsystem::Shutdown();
 }
 
 void DX12RenderingSubsystem::Tick(double deltaTime)
@@ -391,6 +412,9 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
             _closedCommandLists.pop_back();
         }
     }
+
+    _graphicsMemory->Commit(GetCommandQueue());
+    _graphicsMemory->Commit(GetCopyCommandQueue());
 }
 
 std::shared_ptr<Window> DX12RenderingSubsystem::ConstructWindow(const std::wstring& title)
@@ -404,6 +428,17 @@ std::shared_ptr<Window> DX12RenderingSubsystem::ConstructWindow(const std::wstri
     }
 
     return nullptr;
+}
+
+void DX12RenderingSubsystem::ForEachWindow(std::function<bool(Window*)> callback)
+{
+    for (const std::shared_ptr<DX12Window>& dx12Window : _windows)
+    {
+        if (!callback(dx12Window.get()))
+        {
+            break;
+        }
+    } 
 }
 
 std::unique_ptr<StaticMeshRenderingData> DX12RenderingSubsystem::CreateStaticMeshRenderingData()
@@ -429,6 +464,16 @@ std::shared_ptr<Texture> DX12RenderingSubsystem::CreateTexture(uint32 width, uin
 std::shared_ptr<RenderTarget> DX12RenderingSubsystem::CreateRenderTarget(uint32 width, uint32 height)
 {
     return std::make_shared<DX12RenderTarget>(shared_from_this(), width, height);
+}
+
+std::unique_ptr<WidgetRenderingProxy> DX12RenderingSubsystem::CreateDefaultWidgetRenderingProxy()
+{
+    return std::make_unique<DX12WidgetRenderingProxy>();
+}
+
+std::unique_ptr<WidgetRenderingProxy> DX12RenderingSubsystem::CreateTextWidgetRenderingProxy()
+{
+    return std::make_unique<DX12TextWidgetRenderingProxy>();
 }
 
 void DX12RenderingSubsystem::OnWindowDestroyed(Window* window)

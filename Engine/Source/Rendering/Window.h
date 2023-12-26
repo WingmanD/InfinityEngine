@@ -3,8 +3,9 @@
 #include "Core.h"
 #include "MaterialParameterTypes.h"
 #include "NonCopyable.h"
-#include "Widget.h"
+#include "Widgets/Widget.h"
 
+struct CD3DX12_VIEWPORT;
 class RenderingSubsystem;
 
 class Window : public NonCopyable<Window>, public std::enable_shared_from_this<Window>

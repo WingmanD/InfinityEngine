@@ -17,6 +17,18 @@ public:
 
     virtual Type* GetType() const;
 
+    template <typename T> requires std::is_base_of_v<Object, T>
+    std::shared_ptr<T> DuplicateStatic() const
+    {
+        return std::static_pointer_cast<T>(Duplicate());
+    }
+
+    template <typename T> requires std::is_base_of_v<Object, T>
+    std::shared_ptr<T> Duplicate() const
+    {
+        return std::dynamic_pointer_cast<T>(Duplicate());
+    }
+
     virtual std::shared_ptr<Object> Duplicate() const;
 
     /*

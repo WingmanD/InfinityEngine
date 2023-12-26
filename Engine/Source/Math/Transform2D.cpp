@@ -1,6 +1,19 @@
 ﻿#include "Transform2D.h"
 #include "Math.h"
 
+Transform2D Transform2D::FromMatrix(const Matrix& matrix)
+{
+    Transform2D transform;
+    transform._matrix = matrix;
+    transform._matrixDirty = false;
+    
+    transform._position = Vector2(matrix._41, matrix._42);
+    transform._rotation = Math::ToDegrees(atan2f(matrix._21, matrix._11));
+    transform._scale = Vector2(Vector2(matrix._11, matrix._12).Length(), Vector2(matrix._21, matrix._22).Length());
+
+    return transform;
+}
+
 void Transform2D::SetPosition(const Vector2& position)
 {
     _position = position;
@@ -53,4 +66,10 @@ const Matrix& Transform2D::GetMatrix() const
 Transform2D::operator const Matrix&() const
 {
     return GetMatrix();
+}
+
+Transform2D Transform2D::operator*(const Transform2D& other) const
+{
+    const Matrix matrix = GetMatrix() * other.GetMatrix();
+    return FromMatrix(matrix);
 }

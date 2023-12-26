@@ -75,6 +75,8 @@ public:
 
     const std::filesystem::path& GetProjectRootPath() const;
 
+    void LoadAlwaysLoadedAssets();
+
 public:
     virtual bool Initialize() override;
     virtual void Shutdown() override;

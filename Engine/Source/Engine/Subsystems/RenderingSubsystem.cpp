@@ -9,6 +9,7 @@ RenderingSubsystem& RenderingSubsystem::Get()
 {
     return *Engine::Get().GetRenderingSubsystem();
 }
+
 bool RenderingSubsystem::Initialize()
 {
     EngineSubsystem::Initialize();

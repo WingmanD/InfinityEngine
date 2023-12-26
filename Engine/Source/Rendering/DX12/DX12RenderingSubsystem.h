@@ -2,10 +2,11 @@
 
 #include "Core.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
-#include <dxgi.h>
 #include "d3dx12.h"
 #include "DescriptorHeap.h"
+#include "GraphicsMemory.h"
 #include "ThreadPool.h"
+#include <dxgi.h>
 
 using Microsoft::WRL::ComPtr;
 
@@ -32,9 +33,9 @@ class DX12RenderingSubsystem : public RenderingSubsystem, public std::enable_sha
 {
 public:
     static DX12RenderingSubsystem& Get();
-    
+
     explicit DX12RenderingSubsystem() = default;
-    
+
     DX12RenderingSubsystem(const DX12RenderingSubsystem&) = delete;
     DX12RenderingSubsystem(DX12RenderingSubsystem&&) = delete;
     DX12RenderingSubsystem& operator=(const DX12RenderingSubsystem&) = delete;
@@ -66,6 +67,9 @@ public:
     DescriptorHeap& GetRTVHeap();
     DescriptorHeap& GetDSVHeap();
     const std::shared_ptr<DescriptorHeap>& GetCBVHeap();
+    const std::shared_ptr<DescriptorHeap>& GetSRVHeap();
+
+    DirectX::GraphicsMemory& GetGraphicsMemory() const;
 
     void AsyncOnGPUFenceEvent(std::function<void()>&& callback);
     void AsyncOnGPUCopyFenceEvent(std::function<void()>&& callback);
@@ -78,12 +82,15 @@ public:
     virtual void Tick(double deltaTime) override;
 
     virtual std::shared_ptr<Window> ConstructWindow(const std::wstring& title) override;
-    
+    virtual void ForEachWindow(std::function<bool(Window*)> callback) override;
+
     virtual std::unique_ptr<StaticMeshRenderingData> CreateStaticMeshRenderingData() override;
     virtual std::unique_ptr<MaterialRenderingData> CreateMaterialRenderingData() override;
     virtual std::unique_ptr<MaterialParameterRenderingData> CreateMaterialParameterRenderingData() override;
     virtual std::shared_ptr<Texture> CreateTexture(uint32 width, uint32 height) const override;
     virtual std::shared_ptr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) override;
+    virtual std::unique_ptr<WidgetRenderingProxy> CreateDefaultWidgetRenderingProxy() override;
+    virtual std::unique_ptr<WidgetRenderingProxy> CreateTextWidgetRenderingProxy() override;
 
     virtual void OnWindowDestroyed(Window* window) override;
 
@@ -119,8 +126,11 @@ private:
     DescriptorHeap _rtvHeap;
     DescriptorHeap _dsvHeap;
     std::shared_ptr<DescriptorHeap> _cbvHeap;
+    std::shared_ptr<DescriptorHeap> _srvHeap;
 
     uint32 _cbvSrvUavDescriptorSize = 0;
+
+    DirectX::GraphicsMemory* _graphicsMemory;
 
 private:
     void LogAdapters();

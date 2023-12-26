@@ -2,6 +2,7 @@
 #include "Engine/Engine.h"
 #include "Util.h"
 #include "Rendering/StaticMesh.h"
+#include "Rendering/Widgets/UIStatics.h"
 #include <shobjidl.h>
 #include <Windows.h>
 
@@ -290,6 +291,12 @@ std::shared_ptr<Asset> AssetManager::FindAsset(uint64 id) const
 const std::filesystem::path& AssetManager::GetProjectRootPath() const
 {
     return _projectRootPath;
+}
+
+void AssetManager::LoadAlwaysLoadedAssets()
+{
+    // todo make a list of always loaded assets and load them here instead of this
+    UIStatics::GetUIQuadMesh()->Load();
 }
 
 bool AssetManager::Initialize()

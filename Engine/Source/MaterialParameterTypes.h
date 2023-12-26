@@ -62,7 +62,7 @@ public:
     };
 
     Matrix Transform;
-    EWidgetFlags Flags;
+    EWidgetFlags Flags = EWidgetFlags::Enabled;
 };
 ENABLE_ENUM_OPS(WidgetPerPassConstants::EWidgetFlags)
 

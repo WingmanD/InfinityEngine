@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "ThreadPool.h"
 #include "Subsystems/AssetManager.h"
+#include "Subsystems/InputSubsystem.h"
 #include "Subsystems/RenderingSubsystem.h"
 
 class Engine
@@ -22,6 +23,7 @@ public:
 
     ThreadPool& GetThreadPool();
 
+    InputSubsystem& GetInputSubsystem();
     AssetManager& GetAssetManager();
     RenderingSubsystem* GetRenderingSubsystem() const;
 
@@ -34,6 +36,7 @@ private:
 
     ThreadPool _threadPool;
 
+    InputSubsystem _inputSubsystem;
     AssetManager _assetManagerSubsystem;
     std::unique_ptr<RenderingSubsystem> _renderingSubsystem;
 

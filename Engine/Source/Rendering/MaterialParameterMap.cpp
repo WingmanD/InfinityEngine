@@ -15,7 +15,7 @@ MaterialParameterMap::MaterialParameterMap(const MaterialParameterMap& other)
 {
     _dataSize = other._dataSize;
     _data = new std::byte[_dataSize];
-    std::memcpy(_data, other._data, _dataSize);
+    std::memset(_data, 0, _dataSize);
 
     _parameters.reserve(other._parameters.size());
 
@@ -77,6 +77,7 @@ bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor
                                        });
 
     _data = new std::byte[_dataSize];
+    std::memset(_data, 0, _dataSize);
     size_t offset = 0;
 
     _parameters.reserve(parameterDescriptors.size());
