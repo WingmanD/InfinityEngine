@@ -57,8 +57,9 @@ struct WidgetPerPassConstants : public MaterialParameter
 public:
     enum class EWidgetFlags : uint32
     {
-        Enabled = 1,
-        Hovered = 2,
+        Enabled = 1 << 0,
+        Hovered = 1 << 1,
+        Pressed = 1 << 2
     };
 
     Matrix Transform;

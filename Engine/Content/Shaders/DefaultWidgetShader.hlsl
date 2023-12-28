@@ -36,27 +36,30 @@ float4 PS(VertexOut pIn) : SV_Target
 {
     float4 color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 
-    // const float2 position = GetWidgetPositionCS(GWidgetConstants);
-    // const float rotation = GetWidgetRotation(GWidgetConstants);
-    // const float2 scale = GetWidgetScale(GWidgetConstants);
-    //
-    // const float radius = 0.25f;
-    // const float border = 0.01f;
-    //
-    // const float2 boxSize = float2(scale.x * 16.0f / 9.0f, scale.y) / 2.0f;
-    //
-    // color = color * Box2DWithBorder(pIn.PositionCS.xy, position, rotation, boxSize * 0.75f, radius, border);
-    // color *= GWindowGlobals.AspectRatio;
-    //
-    // if (!HasFlag(GWidgetConstants, Enabled))
-    // {
-    //     return color * float4(0.5f, 0.5f, 0.5f, 1.0f);
-    // }
-    //
-    // if (HasFlag(GWidgetConstants, Hovered))
-    // {
-    //     return color * float4(1.25f, 1.25f, 1.25f, 1.0f);
-    // }
+    if (!HasFlag(GWidgetConstants, Enabled))
+    {
+        color = float4(0.5f, 0.5f, 0.5f, 1.0f);
+    }
+    else if (HasFlag(GWidgetConstants, Hovered))
+    {
+        color = float4(1.0f, 0.0f, 0.0f, 1.0f);
+    }
+    else if (HasFlag(GWidgetConstants, Pressed))
+    {
+        color = float4(1.0f, 0.0f, 0.0f, 1.0f);
+    }
+
+    const float2 position = GetWidgetPositionCS(GWidgetConstants, GWindowGlobals);
+    const float rotation = GetWidgetRotation(GWidgetConstants);
+    const float2 scale = GetWidgetScale(GWidgetConstants, GWindowGlobals);
+    
+    const float radius = 0.015f;
+    const float border = 0.01f;
+    
+    const float2 boxSize = float2(scale.x * GWindowGlobals.AspectRatio, scale.y) / 2.0f;
+    
+    //color = color * Box2DWithBorder(pIn.PositionCS.xy, position, rotation, boxSize, radius, border);
+    //color = color * Box2D(pIn.PositionCS.xy, position, rotation, boxSize, radius) < 0.0f; 
 
     return color;
 }

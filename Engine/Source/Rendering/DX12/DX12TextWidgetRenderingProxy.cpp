@@ -89,7 +89,7 @@ void DX12TextWidgetRenderingProxy::OnTransformChanged()
     const Transform2D transformWS = widget.GetTransformWS();
 
     const Vector2 position = UIStatics::ToScreenSpace(transformWS.GetPosition(), parentWindow) + offset;
-    const Vector2 scale = Vector2(widget.GetSizeWS().x, 1.0f);
+    const Vector2 scale = Vector2(widget.GetSizeWS().x);    // todo fix this
     const float rotation = transformWS.GetRotation();
 
     _transform.SetPosition(position);
@@ -99,6 +99,8 @@ void DX12TextWidgetRenderingProxy::OnTransformChanged()
 
 void DX12TextWidgetRenderingProxy::SetupDrawingInternal(ID3D12GraphicsCommandList* commandList) const
 {
+    DX12WidgetRenderingProxy::SetupDrawingInternal(commandList);
+    
     commandList->RSSetScissorRects(1, &GetOwningWidget().GetRect());
 
     const TextWidget& widget = static_cast<TextWidget&>(GetOwningWidget());

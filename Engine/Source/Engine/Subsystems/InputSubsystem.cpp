@@ -33,13 +33,24 @@ DirectX::Mouse& InputSubsystem::GetMouse() const
     return *_mouse.get();
 }
 
+Vector2 InputSubsystem::GetMousePosition() const
+{
+    const DirectX::Mouse::State& mousePosition = GetMouseState();
+    return {static_cast<float>(mousePosition.x), static_cast<float>(mousePosition.y)};
+}
+
+const DirectX::Mouse::State& InputSubsystem::GetMouseState() const
+{
+    return _mouseState;
+}
+
 LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, const std::shared_ptr<Window>& window, PassKey<Window>)
 {
     {
         using ButtonState = DirectX::Mouse::ButtonStateTracker::ButtonState;
         _mouse->ProcessMessage(msg, wParam, lParam);
         _mouseButtonStateTracker.Update(_mouse->GetState());
-    
+
         if (_mouseButtonStateTracker.leftButton == ButtonState::PRESSED)
         {
             _pendingDelegates.push_back(&OnMouseLeftButtonDown);
@@ -48,7 +59,7 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
         {
             _pendingDelegates.push_back(&OnMouseLeftButtonUp);
         }
-    
+
         if (_mouseButtonStateTracker.rightButton == ButtonState::PRESSED)
         {
             _pendingDelegates.push_back(&OnMouseRightButtonDown);
@@ -57,7 +68,7 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
         {
             _pendingDelegates.push_back(&OnMouseRightButtonUp);
         }
-    
+
         if (_mouseButtonStateTracker.middleButton == ButtonState::PRESSED)
         {
             _pendingDelegates.push_back(&OnMouseMiddleButtonDown);
@@ -66,7 +77,7 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
         {
             _pendingDelegates.push_back(&OnMouseMiddleButtonUp);
         }
-    
+
         if (_mouseButtonStateTracker.xButton1 == ButtonState::PRESSED)
         {
             _pendingDelegates.push_back(&OnMouseXButton1Down);
@@ -75,7 +86,7 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
         {
             _pendingDelegates.push_back(&OnMouseXButton1Up);
         }
-    
+
         if (_mouseButtonStateTracker.xButton2 == ButtonState::PRESSED)
         {
             _pendingDelegates.push_back(&OnMouseXButton2Down);
@@ -84,7 +95,7 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
         {
             _pendingDelegates.push_back(&OnMouseXButton2Up);
         }
-    
+
         if (_mouse->GetState().scrollWheelValue != 0)
         {
             _pendingDelegates.push_back(&OnMouseWheelScroll);
@@ -99,7 +110,7 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
             KeyState& keyState = _keyStates[key];
             keyState.IsDown = true;
             _pendingDelegates.push_back(&keyState.OnKeyDown);
-            
+
             return 0;
         }
         case WM_KEYUP:
@@ -113,7 +124,7 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
         default:
             break;
     }
-    
+
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
@@ -267,11 +278,15 @@ bool InputSubsystem::Initialize()
     _keyStates[EKey::Minus].IsDown = false;
     _keyStates[EKey::Equals].IsDown = false;
 
+    _mouseState = _mouse->GetState();
+
     return true;
 }
 
 void InputSubsystem::Tick(double deltaTime)
 {
+    _mouseState = _mouse->GetState();
+
     for (Delegate<>*& delegate : _pendingDelegates)
     {
         delegate->Broadcast();

@@ -56,3 +56,9 @@ inline void ThrowIfFailed(HRESULT hr)
         throw std::exception();
     }
 }
+
+template <typename T>
+auto SharedFromThis(T* object)
+{
+    return std::static_pointer_cast<T>(object->shared_from_this());
+}

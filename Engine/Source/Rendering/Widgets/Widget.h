@@ -2,14 +2,13 @@
 
 #include "Core.h"
 #include "Asset.h"
+#include "BoundingBox2D.h"
 #include "Math/Transform2D.h"
 #include "WidgetRenderingProxy.h"
 #include <memory>
 #include <vector>
 #include <array>
 #include <d3d12.h>
-
-#include "BoundingBox2D.h"
 #include "Widget.reflection.h"
 
 class StaticMeshInstance;
@@ -50,6 +49,8 @@ public:
     Widget(const Widget& other);
     Widget& operator=(const Widget& other);
 
+    bool operator==(const Widget& other) const;
+
     virtual bool Initialize() override;
 
     void SetVisibility(bool value, bool recursive = false);
@@ -63,6 +64,7 @@ public:
 
     void SetPosition(const Vector2& position);
     Vector2 GetPosition() const;
+    Vector2 GetRelativePosition() const;
     Vector2 GetPositionWS() const;
 
     void SetRotation(float degrees);
@@ -94,18 +96,23 @@ public:
     void SetWindow(const std::shared_ptr<Window>& window);
     std::shared_ptr<Window> GetParentWindow() const;
 
+    uint16 GetZOrder() const;
+
     StaticMeshInstance& GetQuadMesh() const;
 
     void Destroy();
 
-    // todo temporary
     void SetAnchor(EWidgetAnchor anchor);
 
     void OnParentResized();
-
+    
     WidgetRenderingProxy& GetRenderingProxy() const;
 
     const BoundingBox2D& GetBoundingBox() const;
+
+public:
+    virtual void OnPressed(PassKey<Window>);
+    virtual void OnReleased(PassKey<Window>);
 
 protected:
     std::unique_ptr<WidgetRenderingProxy> RenderingProxy = nullptr;
@@ -133,6 +140,8 @@ private:
     std::weak_ptr<Widget> _parentWidget;
     std::weak_ptr<Window> _parentWindow;
 
+    uint16 _zOrder = 0;
+
     PROPERTY(EditableInEditor, Load, EditInPlace, DisplayName = "Material")
     std::shared_ptr<Material> _material;
 
@@ -140,6 +149,8 @@ private:
 
     PROPERTY(EditableInEditor, DisplayName = "Transform")
     Transform2D _transform;
+
+    Vector2 _relativePosition = Vector2::Zero;
 
     PROPERTY(EditableInEditor, DisplayName = "Size")
     Vector2 _size = Vector2::One;

@@ -31,5 +31,5 @@ private:
 private:
     CD3DX12_CPU_DESCRIPTOR_HANDLE& GetHeapTop();
 
-    int32 CalculateOffset(const D3D12_CPU_DESCRIPTOR_HANDLE& handle) const;
+    size_t CalculateOffset(const D3D12_CPU_DESCRIPTOR_HANDLE& handle) const;
 };

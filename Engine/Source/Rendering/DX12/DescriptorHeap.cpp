@@ -19,7 +19,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::RequestHeapResourceHandle()
     else
     {
         CD3DX12_CPU_DESCRIPTOR_HANDLE& heapTop = GetHeapTop();
-        offset = CalculateOffset(heapTop) / static_cast<int32>(_descriptorSize);
+        offset = static_cast<int32>(CalculateOffset(heapTop) / static_cast<size_t>(_descriptorSize));
         heapTop.Offset(1, _descriptorSize);
     }
 
@@ -46,7 +46,7 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE& DescriptorHeap::GetHeapTop()
     return _heapTop;
 }
 
-int32 DescriptorHeap::CalculateOffset(const D3D12_CPU_DESCRIPTOR_HANDLE& handle) const
+size_t DescriptorHeap::CalculateOffset(const D3D12_CPU_DESCRIPTOR_HANDLE& handle) const
 {
     return handle.ptr - _heap->GetCPUDescriptorHandleForHeapStart().ptr;
 }

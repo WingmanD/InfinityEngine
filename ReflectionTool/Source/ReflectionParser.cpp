@@ -124,8 +124,15 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
 
         ++_currentScopeDepth;
 
-        while (SkipUntilNextIs({TokenType::Attribute, TokenType::ScopeEnd}))
+        while (SkipUntilNextIs({TokenType::Attribute, TokenType::ScopeStart, TokenType::ScopeEnd}))
         {
+            if (_lexer.PeekNextToken().Type == TokenType::ScopeStart)
+            {
+                _lexer.SkipToken();
+                ++_currentScopeDepth;
+                continue;
+            }
+            
             if (_lexer.PeekNextToken().Type == TokenType::ScopeEnd)
             {
                 _lexer.SkipToken();
@@ -135,22 +142,20 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
                     _lexer.SkipToken();
 
                     --_currentScopeDepth;
-
-                    if (nestParent != nullptr)
-                    {
-                        nestParent->NestedTypes.push_back(typeInfo);
-                    }
-                    else
-                    {
-                        _typeInfos.push_back(typeInfo);
-                    }
-
+                    
                     if (_currentScopeDepth == scopeDepthAtStart)
                     {
+                        if (nestParent != nullptr)
+                        {
+                            nestParent->NestedTypes.push_back(typeInfo);
+                        }
+                        else
+                        {
+                            _typeInfos.push_back(typeInfo);
+                        }
+                        
                         return true;
                     }
-
-                    break;
                 }
             }
 

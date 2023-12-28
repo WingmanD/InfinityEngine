@@ -8,6 +8,7 @@
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Widgets/TextWidget.h"
+#include "Widgets/UIStatics.h"
 
 Window::Window(uint32 width, uint32 height, std::wstring title) :
     _width(width),
@@ -30,7 +31,7 @@ bool Window::Initialize()
     windowClass.cbWndExtra = 0;
     windowClass.hInstance = hInstance;
     windowClass.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
-    windowClass.hCursor = LoadCursor(hInstance, IDC_ARROW);
+    windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     windowClass.lpszClassName = L"InfinityEngineWindow";
 
     RegisterClassEx(&windowClass);
@@ -79,20 +80,22 @@ bool Window::Initialize()
         return false;
     }
 
-    _rootWidget->SetWindow(shared_from_this());
-    _rootWidget->SetSize({_aspectRatio, 1.0f});
+    _rootWidget->SetCollisionEnabled(false);
     _rootWidget->SetVisibility(false);
-    
+    _rootWidget->SetWindow(shared_from_this());
+    _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
+
     {
-        auto newWidget = std::make_shared<Widget>();
+        const std::shared_ptr<Widget> newWidget = std::make_shared<Widget>();
         newWidget->Initialize();
         _rootWidget->AddChild(newWidget);
         newWidget->SetSize({0.2f, 0.1f});
         newWidget->SetAnchor(EWidgetAnchor::TopLeft);
         newWidget->SetPosition({0.2f, -0.1f});
     
-        std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
+        const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
         textWidget->Initialize();
+        textWidget->SetCollisionEnabled(false);
         textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
         textWidget->SetText(L"Hello World!");
         textWidget->SetTextColor({1.0f, 0.0f, 0.0f, 1.0f});
@@ -100,7 +103,7 @@ bool Window::Initialize()
     }
 
     {
-        auto newWidget = std::make_shared<Widget>();
+        const std::shared_ptr<Widget> newWidget = std::make_shared<Widget>();
         newWidget->Initialize();
         _rootWidget->AddChild(newWidget);
         newWidget->SetSize({0.2f, 0.1f});
@@ -111,14 +114,51 @@ bool Window::Initialize()
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});
 
-    inputSubsystem.OnMouseLeftButtonDown.Subscribe([]()
+    _onLMBDownHandle = inputSubsystem.OnMouseLeftButtonDown.Subscribe([this]()
     {
-        TRACE_LOG("Mouse left button down!");
+        const Vector2 mousePositionWS = UIStatics::ToWidgetSpace(InputSubsystem::Get().GetMousePosition(), shared_from_this());
+
+        Widget** hitWidgetPtr = _hitTestGrid.FindAtByPredicate(mousePositionWS,
+        [](const Vector2& positionWS, const Widget* widget)
+        {
+           return widget->GetBoundingBox().Contains(positionWS);
+        });
+
+        if (hitWidgetPtr != nullptr)
+        {
+            if (Widget* hitWidget = *hitWidgetPtr)
+            {
+                _interactedWidget = SharedFromThis(hitWidget);
+                hitWidget->OnPressed({});
+            }
+        }
     });
 
-    inputSubsystem.OnMouseLeftButtonUp.Subscribe([]()
+    _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Subscribe([this]()
     {
-        TRACE_LOG("Mouse left button up!");
+        if (const std::shared_ptr<Widget> interactedWidget = _interactedWidget.lock())
+        {
+            interactedWidget->OnReleased({});
+            _interactedWidget.reset();
+
+            return;
+        }
+        
+        const Vector2 mousePositionWS = UIStatics::ToWidgetSpace(InputSubsystem::Get().GetMousePosition(), shared_from_this());
+
+        Widget** hitWidgetPtr = _hitTestGrid.FindAtByPredicate(mousePositionWS,
+        [](const Vector2& positionWS, const Widget* widget)
+        {
+           return widget->GetBoundingBox().Contains(positionWS);
+        });
+
+        if (hitWidgetPtr != nullptr)
+        {
+            if (Widget* hitWidget = *hitWidgetPtr)
+            {
+                hitWidget->OnReleased({});
+            }
+        }
     });
 
     return true;
@@ -182,6 +222,11 @@ std::shared_ptr<WindowGlobals>& Window::GetWindowGlobals()
     return _windowGlobals;
 }
 
+HitTestGrid<Widget*>& Window::GetHitTestGrid()
+{
+    return _hitTestGrid;
+}
+
 void Window::RequestResize(uint32 width, uint32 height)
 {
     _pendingResize.Width = width;
@@ -197,6 +242,8 @@ Widget* Window::GetRootWidget() const
 void Window::OnDestroyed()
 {
     RenderingSubsystem::Get().OnWindowDestroyed(this);
+    InputSubsystem::Get().OnMouseLeftButtonDown.Unsubscribe(_onLMBDownHandle);
+    InputSubsystem::Get().OnMouseLeftButtonUp.Unsubscribe(_onLMBUpHandle);
 }
 
 void Window::OnResized()
@@ -210,9 +257,11 @@ void Window::OnResized()
     _windowGlobals->AspectRatio = _aspectRatio;
     _windowGlobals->MarkAsDirty();
 
+    _hitTestGrid = HitTestGrid<Widget*>(0.1f * _height / 1080.0f, _aspectRatio * 2.0f, 2.0f, Vector2(_aspectRatio, 1.0f));
+
     if (_rootWidget != nullptr)
     {
-        _rootWidget->OnParentResized();
+        _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
     }
 }
 

@@ -131,7 +131,7 @@ enum class EKey : uint8
 struct KeyState
 {
     bool IsDown = false;
-    
+
     Delegate<> OnKeyDown;
     Delegate<> OnKeyUp;
 };
@@ -153,20 +153,23 @@ public:
 
     Delegate<EKey> OnAnyKeyDown;
     Delegate<EKey> OnAnyKeyUp;
-    
+
 public:
     InputSubsystem() = default;
 
     static InputSubsystem& Get();
 
     bool IsKeyDown(EKey key) const;
-    
+
     KeyState& GetKey(EKey key);
 
     DirectX::Mouse& GetMouse() const;
 
+    Vector2 GetMousePosition() const;
+    const DirectX::Mouse::State& GetMouseState() const;
+
     LRESULT ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, const std::shared_ptr<Window>& window, PassKey<Window>);
-    
+
     void SetFocusedWindow(const std::shared_ptr<Window>& window, PassKey<Window>);
     std::shared_ptr<Window> GetFocusedWindow() const;
 
@@ -178,12 +181,13 @@ public:
 
 private:
     std::unique_ptr<DirectX::Mouse> _mouse;
+    DirectX::Mouse::State _mouseState;
     DirectX::Mouse::ButtonStateTracker _mouseButtonStateTracker;
 
     std::unordered_map<EKey, KeyState> _keyStates;
 
     std::weak_ptr<Window> _focusedWindow;
-    
+
     std::vector<Delegate<>*> _pendingDelegates;
 
 private:

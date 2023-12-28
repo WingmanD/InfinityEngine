@@ -1,17 +1,18 @@
 ﻿#include "Widget.h"
-#include "../Material.h"
+#include "Rendering/Material.h"
 #include "UIStatics.h"
 #include "MaterialParameterTypes.h"
-#include "../Window.h"
-#include "../DX12/DX12Shader.h"
-#include "../DX12/DX12StaticMeshRenderingData.h"
+#include "Rendering/Window.h"
 #include "Engine/Subsystems/AssetManager.h"
-#include <cassert>
-
 #include "SpriteBatch.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Rendering/StaticMeshInstance.h"
-#include "Rendering/DX12/DX12WidgetRenderingProxy.h"
+#include <cassert>
+
+static constexpr auto GWidgetComparator = [](const Widget* a, const Widget* b)
+{
+    return a->GetZOrder() > b->GetZOrder();
+};
 
 std::array<const Vector2, 9> Widget::_anchorPositionMap = {
     Vector2(-1.0f, 1.0f), // TopLeft
@@ -31,9 +32,14 @@ Widget::Widget()
     SetCollisionEnabled(true);
 }
 
-Widget::Widget(const Widget& other)
+Widget::Widget(const Widget& other) : Asset(other)
 {
-    // todo deep copy
+    if (this == &other)
+    {
+        return;
+    }
+
+    *this = other;
 }
 
 Widget& Widget::operator=(const Widget& other)
@@ -44,6 +50,11 @@ Widget& Widget::operator=(const Widget& other)
     }
 
     return *this;
+}
+
+bool Widget::operator==(const Widget& other) const
+{
+    return &other == this;
 }
 
 bool Widget::Initialize()
@@ -67,7 +78,6 @@ bool Widget::Initialize()
 
     _material = _quadMeshInstance->GetMaterial();
 
-    // todo add to grid
     _boundingBox = BoundingBox2D(GetPositionWS(), GetSizeWS());
 
     if (!InitializeRenderingProxy())
@@ -107,7 +117,26 @@ void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
 {
     _state = value ? _state | EWidgetState::CollisionEnabled : _state & ~EWidgetState::CollisionEnabled;
 
-    // todo disable collision in hittest grid
+    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
+    {
+        auto hitTestGrid = parentWindow->GetHitTestGrid();
+        if (value)
+        {
+            hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+        }
+        else
+        {
+            hitTestGrid.RemoveElement(this, _boundingBox, GWidgetComparator);
+        }
+    }
+
+    if (recursive)
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->SetCollisionEnabled(value, recursive);
+        }
+    }
 }
 
 bool Widget::IsCollisionEnabled() const
@@ -134,7 +163,18 @@ void Widget::SetCollapsed(bool value)
         SetSize(_storedCollapsedSize);
     }
 
-    // todo disable mesh instance and collision
+    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
+    {
+        auto hitTestGrid = parentWindow->GetHitTestGrid();
+        if (value)
+        {
+            hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+        }
+        else
+        {
+            hitTestGrid.RemoveElement(this, _boundingBox, GWidgetComparator);
+        }
+    }
 }
 
 bool Widget::IsCollapsed() const
@@ -145,6 +185,7 @@ bool Widget::IsCollapsed() const
 void Widget::SetPosition(const Vector2& position)
 {
     _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position);
+    _relativePosition = position;
 
     OnTransformChanged();
 }
@@ -152,6 +193,11 @@ void Widget::SetPosition(const Vector2& position)
 Vector2 Widget::GetPosition() const
 {
     return _transform.GetPosition() - GetAnchorPosition(GetAnchor());
+}
+
+Vector2 Widget::GetRelativePosition() const
+{
+    return _relativePosition;
 }
 
 Vector2 Widget::GetPositionWS() const
@@ -199,14 +245,19 @@ void Widget::SetSize(const Vector2& size)
 
     if (const std::shared_ptr<Widget> widget = GetParentWidget())
     {
-        _quadTransform.SetScale(size * widget->GetSizeWS() * 1.5f);
+        _quadTransform.SetScale(size * widget->GetSizeWS());
     }
     else
     {
-        _quadTransform.SetScale(size * 1.5f);
+        _quadTransform.SetScale(size);
     }
 
     OnTransformChanged();
+
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->OnParentResized();
+    }
 }
 
 Vector2 Widget::GetSize() const
@@ -217,7 +268,7 @@ Vector2 Widget::GetSize() const
 Vector2 Widget::GetSizeWS() const
 {
     const Transform2D quadTransformWS = _quadTransform * GetTransformWS();
-    
+
     return quadTransformWS.GetScale();
 }
 
@@ -271,6 +322,7 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget)
 
     _children.push_back(widget);
     widget->_parentWidget = std::static_pointer_cast<Widget>(shared_from_this());
+    widget->_zOrder = _zOrder + 1;
     widget->SetWindow(GetParentWindow());
     widget->OnParentResized();
 
@@ -280,6 +332,7 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget)
 void Widget::RemoveChild(const std::shared_ptr<Widget>& widget)
 {
     widget->_parentWidget.reset();
+    widget->SetWindow(nullptr);
     std::erase(_children, widget);
 }
 
@@ -322,6 +375,11 @@ std::shared_ptr<Window> Widget::GetParentWindow() const
     return _parentWindow.lock();
 }
 
+uint16 Widget::GetZOrder() const
+{
+    return _zOrder;
+}
+
 StaticMeshInstance& Widget::GetQuadMesh() const
 {
     return *_quadMeshInstance.get();
@@ -329,6 +387,19 @@ StaticMeshInstance& Widget::GetQuadMesh() const
 
 void Widget::Destroy()
 {
+    if (IsCollisionEnabled())
+    {
+        if (const std::shared_ptr<Window> window = GetParentWindow())
+        {
+            window->GetHitTestGrid().RemoveElement(this, GetBoundingBox(), GWidgetComparator);
+        }
+    }
+
+    for (const std::shared_ptr<Widget>& child : _children)
+    {
+        child->Destroy();
+    }
+
     if (const std::shared_ptr<Widget> parent = GetParentWidget())
     {
         parent->RemoveChild(std::static_pointer_cast<Widget>(shared_from_this()));
@@ -348,9 +419,12 @@ void Widget::OnParentResized()
 {
     // todo desired size
     const Vector2 size = GetSize();
-    SetSize(size);
+    const Vector2 position = GetRelativePosition();
 
-    for (std::shared_ptr<Widget>& widget : _children)
+    SetSize(size);
+    SetPosition(position);
+    
+    for (const std::shared_ptr<Widget>& widget : _children)
     {
         widget->OnParentResized();
     }
@@ -364,6 +438,22 @@ WidgetRenderingProxy& Widget::GetRenderingProxy() const
 const BoundingBox2D& Widget::GetBoundingBox() const
 {
     return _boundingBox;
+}
+
+void Widget::OnPressed(PassKey<Window>)
+{
+    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    assert(parameter != nullptr);
+
+    parameter->Flags |= WidgetPerPassConstants::EWidgetFlags::Pressed;
+}
+
+void Widget::OnReleased(PassKey<Window>)
+{
+    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    assert(parameter != nullptr);
+
+    parameter->Flags &= ~WidgetPerPassConstants::EWidgetFlags::Pressed;
 }
 
 bool Widget::InitializeRenderingProxy()
@@ -382,7 +472,9 @@ bool Widget::InitializeRenderingProxy()
 void Widget::OnTransformChanged()
 {
     UpdateMaterialParameters();
-    
+
+    const BoundingBox2D oldBoundingBox = _boundingBox;
+
     _boundingBox = BoundingBox2D(GetPositionWS(), GetSizeWS());
 
     if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
@@ -394,8 +486,15 @@ void Widget::OnTransformChanged()
         _widgetRect.top = static_cast<LONG>(maxSS.y);
         _widgetRect.right = static_cast<LONG>(maxSS.x);
         _widgetRect.bottom = static_cast<LONG>(minSS.y);
+
+        if (IsCollisionEnabled())
+        {
+            HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGrid();
+            hitTestGrid.RemoveElement(this, oldBoundingBox, GWidgetComparator);
+            hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+        }
     }
-    
+
     GetRenderingProxy().OnTransformChanged();
 }
 
@@ -404,7 +503,7 @@ Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
     const Vector2 anchorPosition = _anchorPositionMap[static_cast<uint32>(anchor)];
     if (const std::shared_ptr<Widget>& parentWidget = GetParentWidget())
     {
-        return parentWidget->GetSize() * anchorPosition;
+        return parentWidget->GetSize() * anchorPosition * 0.5f;
     }
 
     return anchorPosition;
@@ -417,12 +516,28 @@ EWidgetAnchor Widget::GetAnchor() const
 
 void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow)
 {
-    if (_material != nullptr)
+    if (_material != nullptr && newWindow != nullptr)
     {
         _material->GetParameterMap().SetSharedParameter("GWindowGlobals", newWindow->GetWindowGlobals(), true);
     }
 
     RenderingProxy->OnWindowChanged(oldWindow, newWindow);
+
+    if (oldWindow != nullptr)
+    {
+        if (IsCollisionEnabled())
+        {
+            oldWindow->GetHitTestGrid().RemoveElement(this, GetBoundingBox(), GWidgetComparator);
+        }
+    }
+
+    if (newWindow != nullptr)
+    {
+        if (IsCollisionEnabled())
+        {
+            newWindow->GetHitTestGrid().InsertElement(this, GetBoundingBox(), GWidgetComparator);
+        }
+    }
 }
 
 void Widget::UpdateMaterialParameters() const
@@ -431,8 +546,6 @@ void Widget::UpdateMaterialParameters() const
     assert(parameter != nullptr);
 
     parameter->Transform = _quadTransform * GetTransformWS();
-    if (const std::shared_ptr<Widget>& parentWidget = GetParentWidget())
-    {
-        parameter->Transform = parentWidget->GetTransform().GetMatrix() * parameter->Transform;
-    }
+
+    const Vector2 size = GetSizeWS();
 }

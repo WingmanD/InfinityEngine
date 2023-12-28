@@ -16,3 +16,10 @@ Vector2 UIStatics::ToScreenSpace(const Vector2& positionWS, const std::shared_pt
 
     return normalizedPosition * Vector2(static_cast<float>(parentWindow->GetWidth()), static_cast<float>(parentWindow->GetHeight()));
 }
+
+Vector2 UIStatics::ToWidgetSpace(const Vector2& positionSS, const std::shared_ptr<Window>& parentWindow)
+{
+    const Vector2 normalizedPosition = positionSS / Vector2(static_cast<float>(parentWindow->GetWidth()), static_cast<float>(parentWindow->GetHeight())) - Vector2(0.5f, 0.5f);
+
+    return normalizedPosition * Vector2(parentWindow->GetAspectRatio() * 2.0f, -2.0f); 
+}

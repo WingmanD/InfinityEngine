@@ -1,8 +1,10 @@
 ﻿#pragma once
 
 #include "Core.h"
+#include "Delegate.h"
 #include "MaterialParameterTypes.h"
 #include "NonCopyable.h"
+#include "Spatialization/HitTestGrid.h"
 #include "Widgets/Widget.h"
 
 struct CD3DX12_VIEWPORT;
@@ -35,8 +37,10 @@ public:
 
     void SetTitle(const std::wstring& title);
     const std::wstring& GetTitle() const;
-    
+
     std::shared_ptr<WindowGlobals>& GetWindowGlobals();
+
+    HitTestGrid<Widget*>& GetHitTestGrid();
 
     void RequestResize(uint32 width, uint32 height);
 
@@ -68,11 +72,16 @@ protected:
     virtual void OnDestroyed();
 
     void OnResized();
-    
+
 private:
     PendingResize _pendingResize{};
-    
+
     std::shared_ptr<Widget> _rootWidget = nullptr;
+    HitTestGrid<Widget*> _hitTestGrid{0.1f * 1080.0f, 1920.0f / 1080.0f * 2.0f, 2.0f, Vector2(1920.0f / 1080.0f, 1.0f)};
+    std::weak_ptr<Widget> _interactedWidget;
+
+    DelegateHandle _onLMBDownHandle{};
+    DelegateHandle _onLMBUpHandle{};
 
     HWND _hwnd = nullptr;
 
