@@ -110,6 +110,9 @@ public:
     size_t GetAlignment() const;
     size_t GetAlignedSize() const;
     size_t GetDataOffset() const;
+    
+    const std::vector<Type*>& GetParentTypes() const;
+    const std::vector<Type*>& GetSubtypes() const;
 
     template <typename ValueType, typename ObjectType>
     std::optional<ValueType> GetProperty(const ObjectType* object, const std::string& name) const
@@ -175,7 +178,7 @@ private:
     std::string _name;
     std::string _fullName;
     std::vector<Type*> _parentTypes;
-    std::vector<Type*> _childTypes;
+    std::vector<Type*> _subtypes;
 
     std::vector<Type*> _compositionTypes;
 

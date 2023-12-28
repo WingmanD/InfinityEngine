@@ -83,23 +83,32 @@ bool Window::Initialize()
     _rootWidget->SetCollisionEnabled(false);
     _rootWidget->SetVisibility(false);
     _rootWidget->SetWindow(shared_from_this());
+    _rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
     _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
 
     {
+        const std::shared_ptr<Widget> menuWidget = std::make_shared<Widget>();
+        menuWidget->Initialize();
+        _rootWidget->AddChild(menuWidget);
+        menuWidget->SetDesiredSize({0.33f, 0.66f});
+        menuWidget->SetCollisionEnabled(false);
+        {
+            WidgetPerPassConstants* param = menuWidget->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+            param->BaseColor = Color(0.4f, 0.4f, 0.4f, 1.0f);
+        }
+
         const std::shared_ptr<Widget> newWidget = std::make_shared<Widget>();
         newWidget->Initialize();
-        _rootWidget->AddChild(newWidget);
-        newWidget->SetSize({0.2f, 0.1f});
-        newWidget->SetAnchor(EWidgetAnchor::TopLeft);
-        newWidget->SetPosition({0.2f, -0.1f});
-    
+        menuWidget->AddChild(newWidget);
+        newWidget->SetAnchor(EWidgetAnchor::Center);
+        
         const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
         textWidget->Initialize();
+        newWidget->AddChild(textWidget);
         textWidget->SetCollisionEnabled(false);
         textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
         textWidget->SetText(L"Hello World!");
-        textWidget->SetTextColor({1.0f, 0.0f, 0.0f, 1.0f});
-        newWidget->AddChild(textWidget);
+        textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
     }
 
     {
@@ -107,8 +116,30 @@ bool Window::Initialize()
         newWidget->Initialize();
         _rootWidget->AddChild(newWidget);
         newWidget->SetSize({0.2f, 0.1f});
+        newWidget->SetAnchor(EWidgetAnchor::TopLeft);
+        newWidget->SetPosition({0.1f, -0.05f});
+    
+        const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
+        textWidget->Initialize();
+        textWidget->SetCollisionEnabled(false);
+        textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
+        textWidget->SetText(L"Hello World!");
+        textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
+        textWidget->SetBackgroundVisibility(true);
+        {
+            WidgetPerPassConstants* param = textWidget->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+            param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
+        }
+        newWidget->AddChild(textWidget);
+    }
+    
+    {
+        const std::shared_ptr<Widget> newWidget = std::make_shared<Widget>();
+        newWidget->Initialize();
+        _rootWidget->AddChild(newWidget);
+        newWidget->SetSize({0.2f, 0.1f});
         newWidget->SetAnchor(EWidgetAnchor::TopRight);
-        newWidget->SetPosition({-0.2f, -0.1f});
+        newWidget->SetPosition({-0.1f, -0.05f});
     }
 
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
@@ -128,7 +159,7 @@ bool Window::Initialize()
         {
             if (Widget* hitWidget = *hitWidgetPtr)
             {
-                _interactedWidget = SharedFromThis(hitWidget);
+                _interactedWidget = hitWidget->SharedFromThis();
                 hitWidget->OnPressed({});
             }
         }
@@ -143,7 +174,7 @@ bool Window::Initialize()
 
             return;
         }
-        
+
         const Vector2 mousePositionWS = UIStatics::ToWidgetSpace(InputSubsystem::Get().GetMousePosition(), shared_from_this());
 
         Widget** hitWidgetPtr = _hitTestGrid.FindAtByPredicate(mousePositionWS,

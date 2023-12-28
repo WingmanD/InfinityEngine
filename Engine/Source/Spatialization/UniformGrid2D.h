@@ -29,7 +29,7 @@ public:
     T& GetCell(Index2D index)
     {
         const int64 index1D = static_cast<int64>(index.X + index.Y * _cellSize);
-        assert(index1D > 0 && index1D < static_cast<int64>(_grid.size()));
+        assert(index1D >= 0 && index1D < static_cast<int64>(_grid.size()));
         return _grid[index1D];
     }
 
@@ -53,10 +53,7 @@ public:
     Index2D GetCellIndex(const Vector2& positionWS)
     {
         const Vector2 position = positionWS + _offset;
-
-        // const int16 x = static_cast<int16>(position.x / _cellSize + _width * _cellSize / 2.0f);
-        // const int16 y = static_cast<int16>(position.y / _cellSize + _height * _cellSize / 2.0f);
-
+        
         const int16 x = static_cast<int16>(position.x / _cellSize);
         const int16 y = static_cast<int16>(position.y / _cellSize);
 

@@ -38,6 +38,13 @@ enum class EWidgetAnchor : uint8
     BottomRight
 };
 
+enum class EWidgetFillMode : uint8
+{
+    FillX = 0,
+    FillY = 1 << 1,
+};
+ENABLE_ENUM_OPS(EWidgetFillMode)
+
 REFLECTED()
 class Widget : public Asset
 {
@@ -62,6 +69,8 @@ public:
     void SetCollapsed(bool value);
     bool IsCollapsed() const;
 
+    bool IsRootWidget() const;
+
     void SetPosition(const Vector2& position);
     Vector2 GetPosition() const;
     Vector2 GetRelativePosition() const;
@@ -78,6 +87,10 @@ public:
     void SetSize(const Vector2& size);
     Vector2 GetSize() const;
     Vector2 GetSizeWS() const;
+    Vector2 GetScreenRelativeSize() const;
+
+    void SetDesiredSize(const Vector2& size);
+    const Vector2& GetDesiredSize() const;
 
     void SetTransform(const Transform2D& transform);
     const Transform2D& GetTransform() const;
@@ -105,7 +118,7 @@ public:
     void SetAnchor(EWidgetAnchor anchor);
 
     void OnParentResized();
-    
+
     WidgetRenderingProxy& GetRenderingProxy() const;
 
     const BoundingBox2D& GetBoundingBox() const;
@@ -126,6 +139,10 @@ protected:
     EWidgetAnchor GetAnchor() const;
 
     virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow);
+
+    virtual void OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child);
+
+    void SetZOrder(uint16 zOrder);
 
 private:
     static std::array<const Vector2, 9> _anchorPositionMap;
@@ -152,8 +169,10 @@ private:
 
     Vector2 _relativePosition = Vector2::Zero;
 
-    PROPERTY(EditableInEditor, DisplayName = "Size")
     Vector2 _size = Vector2::One;
+
+    PROPERTY(EditableInEditor, DisplayName = "Desired Size")
+    Vector2 _desiredSize = Vector2::One;
 
     Vector2 _storedCollapsedSize;
 

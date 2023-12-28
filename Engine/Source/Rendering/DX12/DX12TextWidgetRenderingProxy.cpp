@@ -60,14 +60,12 @@ void DX12TextWidgetRenderingProxy::OnTransformChanged()
         return;
     }
 
-    Vector2 offset = Vector2::Zero;
     switch (widget.GetFormatting())
     {
         case ETextFormatting::Center:
         {
-            offset = spriteFont->MeasureString(widget.GetText().c_str());
-            offset /= 2.0f;
-            offset *= -1.0f;
+            _origin = spriteFont->MeasureString(widget.GetText().c_str());
+            _origin /= 2.0f;
             break;
         }
         case ETextFormatting::Left:
@@ -78,32 +76,36 @@ void DX12TextWidgetRenderingProxy::OnTransformChanged()
         case ETextFormatting::Right:
         {
             // todo
-            offset = spriteFont->MeasureString(widget.GetText().c_str());
-            offset.x *= -1.0f;
+            _origin = spriteFont->MeasureString(widget.GetText().c_str());
+            _origin.x *= -1.0f;
             break;
         }
     }
 
-    const std::shared_ptr<Window> parentWindow = widget.GetParentWindow();
+    if (const std::shared_ptr<Window> parentWindow = widget.GetParentWindow())
+    {
+        const Transform2D transformWS = widget.GetTransformWS();
 
-    const Transform2D transformWS = widget.GetTransformWS();
+        const Vector2 position = UIStatics::ToScreenSpace(transformWS.GetPosition(), parentWindow);
+        const Vector2 scale = Vector2(widget.GetSizeWS().x);    // todo fix this
+        const float rotation = transformWS.GetRotation();
 
-    const Vector2 position = UIStatics::ToScreenSpace(transformWS.GetPosition(), parentWindow) + offset;
-    const Vector2 scale = Vector2(widget.GetSizeWS().x);    // todo fix this
-    const float rotation = transformWS.GetRotation();
-
-    _transform.SetPosition(position);
-    _transform.SetScale(scale);
-    _transform.SetRotation(rotation);
+        _transform.SetPosition(position);
+        _transform.SetScale(scale);
+        _transform.SetRotation(rotation);
+    }
 }
 
 void DX12TextWidgetRenderingProxy::SetupDrawingInternal(ID3D12GraphicsCommandList* commandList) const
 {
-    DX12WidgetRenderingProxy::SetupDrawingInternal(commandList);
-    
-    commandList->RSSetScissorRects(1, &GetOwningWidget().GetRect());
-
     const TextWidget& widget = static_cast<TextWidget&>(GetOwningWidget());
+
+    if (widget.IsBackgroundVisible())
+    {
+        DX12WidgetRenderingProxy::SetupDrawingInternal(commandList);
+    }
+
+    commandList->RSSetScissorRects(1, &GetOwningWidget().GetRect());
 
     const std::shared_ptr<Font> font = widget.GetFont();
     if (font == nullptr)
@@ -119,7 +121,7 @@ void DX12TextWidgetRenderingProxy::SetupDrawingInternal(ID3D12GraphicsCommandLis
 
     _spriteBatch->Begin(commandList);
 
-    spriteFont->DrawString(_spriteBatch.get(), widget.GetText().c_str(), _transform.GetPosition(), widget.GetTextColor(), _transform.GetRotation(), Vector2::Zero, _transform.GetScale());
+    spriteFont->DrawString(_spriteBatch.get(), widget.GetText().c_str(), _transform.GetPosition(), widget.GetTextColor(), _transform.GetRotation(), _origin, _transform.GetScale());
 
     _spriteBatch->End();
 }

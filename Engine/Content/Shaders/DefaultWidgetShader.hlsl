@@ -34,19 +34,19 @@ VertexOut VS(VertexIn vIn)
 
 float4 PS(VertexOut pIn) : SV_Target
 {
-    float4 color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    float4 color = GWidgetConstants.BaseColor;
 
     if (!HasFlag(GWidgetConstants, Enabled))
     {
-        color = float4(0.5f, 0.5f, 0.5f, 1.0f);
+        color = GWidgetConstants.DisabledColor;
     }
     else if (HasFlag(GWidgetConstants, Hovered))
     {
-        color = float4(1.0f, 0.0f, 0.0f, 1.0f);
+        color = GWidgetConstants.HoveredColor;
     }
     else if (HasFlag(GWidgetConstants, Pressed))
     {
-        color = float4(1.0f, 0.0f, 0.0f, 1.0f);
+        color = GWidgetConstants.PressedColor;
     }
 
     const float2 position = GetWidgetPositionCS(GWidgetConstants, GWindowGlobals);

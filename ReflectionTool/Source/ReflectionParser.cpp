@@ -44,6 +44,7 @@ const std::vector<TypeInfo>& ReflectionParser::GetTypeInfos() const
 {
     return _typeInfos;
 }
+
 void ReflectionParser::Reset()
 {
     _lexer.Reset();
@@ -140,22 +141,22 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
                 if (_lexer.PeekNextToken().Type == TokenType::Semicolon)
                 {
                     _lexer.SkipToken();
+                }
 
-                    --_currentScopeDepth;
+                --_currentScopeDepth;
                     
-                    if (_currentScopeDepth == scopeDepthAtStart)
+                if (_currentScopeDepth == scopeDepthAtStart)
+                {
+                    if (nestParent != nullptr)
                     {
-                        if (nestParent != nullptr)
-                        {
-                            nestParent->NestedTypes.push_back(typeInfo);
-                        }
-                        else
-                        {
-                            _typeInfos.push_back(typeInfo);
-                        }
-                        
-                        return true;
+                        nestParent->NestedTypes.push_back(typeInfo);
                     }
+                    else
+                    {
+                        _typeInfos.push_back(typeInfo);
+                    }
+                        
+                    return true;
                 }
             }
 

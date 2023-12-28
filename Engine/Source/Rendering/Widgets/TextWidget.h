@@ -34,9 +34,12 @@ public:
 
     void SetTextColor(const Color& color);
     const Color& GetTextColor() const;
-    
+
     void SetFormatting(ETextFormatting formatting);
     ETextFormatting GetFormatting() const;
+
+    void SetBackgroundVisibility(bool value);
+    bool IsBackgroundVisible() const;
 
 protected:
     virtual bool InitializeRenderingProxy() override;
@@ -51,9 +54,18 @@ private:
     PROPERTY(EditInEditor, DisplayName = "Font Type")
     Font::EType _fontType = Font::EType::Regular;
 
+    PROPERTY(EditInEditor, DisplayName = "Font Size")
+    float _fontSize = 1.0f;
+
     PROPERTY(EditInEditor, DisplayName = "Text Color")
     Color _textColor = {0.0f, 0.0f, 0.0f, 1.0f};
 
     PROPERTY(EditInEditor, DisplayName = "Formatting")
     ETextFormatting _formatting = ETextFormatting::Center;
+
+    PROPERTY(EditInEditor, DisplayName = "Background")
+    bool _isBackgroundVisible = false;
+
+private:
+    void OnTextChanged();
 };

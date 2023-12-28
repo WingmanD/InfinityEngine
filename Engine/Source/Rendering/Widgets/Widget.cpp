@@ -182,9 +182,22 @@ bool Widget::IsCollapsed() const
     return (_state & EWidgetState::Collapsed) != EWidgetState::None;
 }
 
+bool Widget::IsRootWidget() const
+{
+    return GetParentWidget() == nullptr;
+}
+
 void Widget::SetPosition(const Vector2& position)
 {
-    _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position);
+    if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position * parentWidget->GetSize());
+    }
+    else
+    {
+        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position);
+    }
+
     _relativePosition = position;
 
     OnTransformChanged();
@@ -245,11 +258,11 @@ void Widget::SetSize(const Vector2& size)
 
     if (const std::shared_ptr<Widget> widget = GetParentWidget())
     {
-        _quadTransform.SetScale(size * widget->GetSizeWS());
+        _quadTransform.SetScale(_size * widget->GetSizeWS());
     }
     else
     {
-        _quadTransform.SetScale(size);
+        _quadTransform.SetScale(_size);
     }
 
     OnTransformChanged();
@@ -267,9 +280,55 @@ Vector2 Widget::GetSize() const
 
 Vector2 Widget::GetSizeWS() const
 {
-    const Transform2D quadTransformWS = _quadTransform * GetTransformWS();
+    if (const std::shared_ptr<Widget> widget = GetParentWidget())
+    {
+        return _size * widget->GetSizeWS();
+    }
 
-    return quadTransformWS.GetScale();
+    return _size;
+}
+
+Vector2 Widget::GetScreenRelativeSize() const
+{
+    if (const std::shared_ptr<Widget> widget = GetParentWidget())
+    {
+        return _size * widget->GetScreenRelativeSize();
+    }
+
+    return Vector2::One;
+}
+
+void Widget::SetDesiredSize(const Vector2& size)
+{
+    _desiredSize = size;
+
+    Vector2 parentScreenSize = Vector2::One;
+    if (const std::shared_ptr<Widget> parent = GetParentWidget())
+    {
+        parent->OnChildDesiredSizeChanged(SharedFromThis());
+
+        parentScreenSize = parent->GetScreenRelativeSize();
+    }
+
+    if (parentScreenSize.LengthSquared() <= 0.0f)
+    {
+        return;
+    }
+
+    const Vector2 newSize = _desiredSize / parentScreenSize;
+    if (newSize.x > 1.0f || newSize.y > 1.0f)
+    {
+        SetSize(Vector2::One);
+    }
+    else
+    {
+        SetSize(newSize);
+    }
+}
+
+const Vector2& Widget::GetDesiredSize() const
+{
+    return _desiredSize;
 }
 
 void Widget::SetTransform(const Transform2D& transform)
@@ -322,7 +381,7 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget)
 
     _children.push_back(widget);
     widget->_parentWidget = std::static_pointer_cast<Widget>(shared_from_this());
-    widget->_zOrder = _zOrder + 1;
+    widget->SetZOrder(_zOrder + 1);
     widget->SetWindow(GetParentWindow());
     widget->OnParentResized();
 
@@ -417,13 +476,12 @@ void Widget::SetAnchor(EWidgetAnchor anchor)
 
 void Widget::OnParentResized()
 {
-    // todo desired size
     const Vector2 size = GetSize();
     const Vector2 position = GetRelativePosition();
 
     SetSize(size);
     SetPosition(position);
-    
+
     for (const std::shared_ptr<Widget>& widget : _children)
     {
         widget->OnParentResized();
@@ -540,12 +598,33 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
     }
 }
 
+void Widget::OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child)
+{
+    if (IsRootWidget())
+    {
+        return;
+    }
+
+    Vector2 maxChildDesiredSize = Vector2::Zero;
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        maxChildDesiredSize = Vector2::Max(widget->GetDesiredSize(), maxChildDesiredSize);
+    }
+
+    SetDesiredSize(maxChildDesiredSize);
+}
+
+void Widget::SetZOrder(uint16 zOrder)
+{
+    _zOrder = zOrder;
+
+    _quadTransform.SetZOffset(1 - static_cast<float>(zOrder) / 100.0f);
+}
+
 void Widget::UpdateMaterialParameters() const
 {
     WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
     assert(parameter != nullptr);
 
     parameter->Transform = _quadTransform * GetTransformWS();
-
-    const Vector2 size = GetSizeWS();
 }

@@ -138,6 +138,16 @@ size_t Type::GetDataOffset() const
     return _dataOffset;
 }
 
+const std::vector<Type*>& Type::GetParentTypes() const
+{
+    return _parentTypes;
+}
+
+const std::vector<Type*>& Type::GetSubtypes() const
+{
+    return _subtypes;
+}
+
 bool Type::ForEachPropertyWithTag(const std::string& tag, const std::function<bool(PropertyBase*)>& callback) const
 {
     if (!_propertyMap.ForEachPropertyWithTag(tag, callback))
@@ -165,7 +175,7 @@ void Type::AddParentType(Type* type)
     }
 
     _parentTypes.push_back(type);
-    type->_childTypes.push_back(this);
+    type->_subtypes.push_back(this);
 }
 
 void Type::UpdateFullID()

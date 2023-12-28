@@ -25,4 +25,5 @@ private:
     DelegateHandle _viewportChangedHandle{};
 
     Transform2D _transform{};
+    Vector2 _origin = Vector2::Zero;
 };

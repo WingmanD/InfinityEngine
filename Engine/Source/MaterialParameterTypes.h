@@ -63,6 +63,12 @@ public:
     };
 
     Matrix Transform;
+    
+    Color BaseColor = {0.5f, 0.5f, 0.5f, 1.0f};
+    Color DisabledColor = {0.27f, 0.27f, 0.27f, 1.0f};
+    Color PressedColor = {0.4f, 0.4f, 0.4f, 1.0f};
+    Color HoveredColor = {0.47f, 0.47f, 0.47f, 1.0f};
+    
     EWidgetFlags Flags = EWidgetFlags::Enabled;
 };
 ENABLE_ENUM_OPS(WidgetPerPassConstants::EWidgetFlags)

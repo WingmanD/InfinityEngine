@@ -25,6 +25,17 @@ const Vector2& Transform2D::GetPosition() const
     return _position;
 }
 
+void Transform2D::SetZOffset(float zOffset)
+{
+    _zOffset = zOffset;
+    _matrixDirty = true;
+}
+
+float Transform2D::GetZOffset() const
+{
+    return _zOffset;
+}
+
 void Transform2D::SetRotation(float degrees)
 {
     _rotation = degrees;
@@ -57,7 +68,7 @@ const Matrix& Transform2D::GetMatrix() const
         mutableThis->_matrix =
             Matrix::CreateScale(_scale.x, _scale.y, 1.0f) *
             Matrix::CreateRotationZ(Math::ToRadians(_rotation)) *
-            Matrix::CreateTranslation(_position.x, _position.y, 0.0f);
+            Matrix::CreateTranslation(_position.x, _position.y, _zOffset);
     }
 
     return _matrix;

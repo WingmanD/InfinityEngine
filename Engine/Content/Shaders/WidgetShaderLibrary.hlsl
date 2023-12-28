@@ -6,6 +6,12 @@
 struct WidgetPerPassConstants
 {
     float4x4 Transform;
+    
+    float4 BaseColor;
+    float4 DisabledColor;
+    float4 PressedColor;
+    float4 HoveredColor;
+    
     EWidgetFlags Flags;
 };
 

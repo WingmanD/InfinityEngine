@@ -139,6 +139,12 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
     // command lists
     if (GetRootWidget() != nullptr)
     {
+        commandList->ClearDepthStencilView(_depthStencilView,
+                                   D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                                   1.0f,
+                                   0,
+                                   0,
+                                   nullptr);
         dynamic_cast<DX12WidgetRenderingProxy&>(GetRootWidget()->GetRenderingProxy()).SetupDrawing(commandList);
     }
 

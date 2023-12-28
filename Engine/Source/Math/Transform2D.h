@@ -14,6 +14,9 @@ public:
     void SetPosition(const Vector2& position);
     const Vector2& GetPosition() const;
 
+    void SetZOffset(float zOffset);
+    float GetZOffset() const;
+
     void SetRotation(float degrees);
     float GetRotation() const;
 
@@ -27,6 +30,7 @@ public:
     
 private:
     Vector2 _position = Vector2::Zero;
+    float _zOffset = 0.0f;
     float _rotation = 0.0f;
     Vector2 _scale = Vector2::One;
     

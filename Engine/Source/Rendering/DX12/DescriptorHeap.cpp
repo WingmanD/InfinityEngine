@@ -10,7 +10,7 @@ DescriptorHeap::DescriptorHeap(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP
 
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::RequestHeapResourceHandle()
 {
-    int32 offset = 0;
+    int32 offset;
     if (_availableHeapResourceOffsets.size() > 0)
     {
         offset = _availableHeapResourceOffsets.back();
@@ -28,12 +28,12 @@ D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::RequestHeapResourceHandle()
 
 void DescriptorHeap::FreeHeapResourceHandle(const D3D12_CPU_DESCRIPTOR_HANDLE& handle)
 {
-    _availableHeapResourceOffsets.push_back(CalculateOffset(handle) / _descriptorSize);
+    _availableHeapResourceOffsets.push_back(static_cast<int32>(CalculateOffset(handle)) / static_cast<int32>(_descriptorSize));
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GetGPUHeapResourceHandle(const D3D12_CPU_DESCRIPTOR_HANDLE& handle) const
 {
-    return CD3DX12_GPU_DESCRIPTOR_HANDLE(_heap->GetGPUDescriptorHandleForHeapStart(), CalculateOffset(handle));
+    return CD3DX12_GPU_DESCRIPTOR_HANDLE(_heap->GetGPUDescriptorHandleForHeapStart(), static_cast<int32>(CalculateOffset(handle)));
 }
 
 ComPtr<ID3D12DescriptorHeap>& DescriptorHeap::GetHeap()
