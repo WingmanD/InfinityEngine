@@ -191,7 +191,7 @@ void Widget::SetPosition(const Vector2& position)
 {
     if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
     {
-        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position * parentWidget->GetSize());
+        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position * parentWidget->GetSizeWS());
     }
     else
     {
@@ -315,20 +315,34 @@ void Widget::SetDesiredSize(const Vector2& size)
         return;
     }
 
-    const Vector2 newSize = _desiredSize / parentScreenSize;
-    if (newSize.x > 1.0f || newSize.y > 1.0f)
-    {
-        SetSize(Vector2::One);
-    }
-    else
-    {
-        SetSize(newSize);
-    }
+    Vector2 newSize = _desiredSize / parentScreenSize;
+    newSize.Clamp(Vector2::Zero, Vector2::One);
+
+    SetSize(newSize);
 }
 
 const Vector2& Widget::GetDesiredSize() const
 {
     return _desiredSize;
+}
+
+Vector2 Widget::GetPaddedDesiredSize() const
+{
+    return _desiredSize + Vector2(_padding.x + _padding.y, _padding.z + _padding.w);
+}
+
+void Widget::SetPadding(const Vector4& padding)
+{
+    _padding = padding;
+
+    SetDesiredSize(GetDesiredSize());
+
+    // todo update position, position getter also needs to take in account padding offset
+}
+
+const Vector4& Widget::GetPadding() const
+{
+    return _padding;
 }
 
 void Widget::SetTransform(const Transform2D& transform)
@@ -379,19 +393,19 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget)
         return;
     }
 
+    assert(widget.get() != this);
+
     _children.push_back(widget);
-    widget->_parentWidget = std::static_pointer_cast<Widget>(shared_from_this());
-    widget->SetZOrder(_zOrder + 1);
-    widget->SetWindow(GetParentWindow());
-    widget->OnParentResized();
+
+    OnChildAdded(widget);
 
     // todo what about state flags and propagation?
 }
 
 void Widget::RemoveChild(const std::shared_ptr<Widget>& widget)
 {
-    widget->_parentWidget.reset();
-    widget->SetWindow(nullptr);
+    OnChildRemoved(widget);
+
     std::erase(_children, widget);
 }
 
@@ -472,6 +486,21 @@ void Widget::SetAnchor(EWidgetAnchor anchor)
     _anchor = anchor;
 
     SetPosition(oldPosition);
+}
+
+EWidgetAnchor Widget::GetAnchor() const
+{
+    return _anchor;
+}
+
+void Widget::SetIgnoreChildDesiredSize(bool value)
+{
+    _ignoreChildDesiredSize = value;
+}
+
+bool Widget::ShouldIgnoreChildDesiredSize() const
+{
+    return _ignoreChildDesiredSize;
 }
 
 void Widget::OnParentResized()
@@ -567,11 +596,6 @@ Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
     return anchorPosition;
 }
 
-EWidgetAnchor Widget::GetAnchor() const
-{
-    return _anchor;
-}
-
 void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow)
 {
     if (_material != nullptr && newWindow != nullptr)
@@ -598,20 +622,44 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
     }
 }
 
+void Widget::OnChildAdded(const std::shared_ptr<Widget>& child)
+{
+    child->_parentWidget = std::static_pointer_cast<Widget>(shared_from_this());
+    child->SetZOrder(GetZOrder() + 1);
+    child->SetWindow(GetParentWindow());
+
+    OnChildDesiredSizeChanged(child);
+
+    child->OnParentResized();
+}
+
+void Widget::OnChildRemoved(const std::shared_ptr<Widget>& child)
+{
+    child->_parentWidget.reset();
+    child->SetWindow(nullptr);
+
+    OnChildDesiredSizeChanged(nullptr);
+}
+
 void Widget::OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child)
 {
-    if (IsRootWidget())
+    if (ShouldIgnoreChildDesiredSize())
     {
         return;
     }
 
-    Vector2 maxChildDesiredSize = Vector2::Zero;
+    OnChildDesiredSizeChangedInternal(child);
+}
+
+void Widget::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child)
+{
+    Vector2 maxChildPaddedDesiredSize = Vector2::Zero;
     for (const std::shared_ptr<Widget>& widget : _children)
     {
-        maxChildDesiredSize = Vector2::Max(widget->GetDesiredSize(), maxChildDesiredSize);
+        maxChildPaddedDesiredSize = Vector2::Max(widget->GetPaddedDesiredSize(), maxChildPaddedDesiredSize);
     }
 
-    SetDesiredSize(maxChildDesiredSize);
+    SetDesiredSize(maxChildPaddedDesiredSize);
 }
 
 void Widget::SetZOrder(uint16 zOrder)

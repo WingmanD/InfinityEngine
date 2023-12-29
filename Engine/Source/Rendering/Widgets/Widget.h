@@ -91,6 +91,10 @@ public:
 
     void SetDesiredSize(const Vector2& size);
     const Vector2& GetDesiredSize() const;
+    Vector2 GetPaddedDesiredSize() const;
+
+    void SetPadding(const Vector4& padding);
+    const Vector4& GetPadding() const;
 
     void SetTransform(const Transform2D& transform);
     const Transform2D& GetTransform() const;
@@ -116,6 +120,10 @@ public:
     void Destroy();
 
     void SetAnchor(EWidgetAnchor anchor);
+    EWidgetAnchor GetAnchor() const;
+
+    void SetIgnoreChildDesiredSize(bool value);
+    bool ShouldIgnoreChildDesiredSize() const;
 
     void OnParentResized();
 
@@ -136,11 +144,14 @@ protected:
     virtual void OnTransformChanged();
 
     Vector2 GetAnchorPosition(EWidgetAnchor anchor) const;
-    EWidgetAnchor GetAnchor() const;
 
     virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow);
 
-    virtual void OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child);
+    virtual void OnChildAdded(const std::shared_ptr<Widget>& child);
+    virtual void OnChildRemoved(const std::shared_ptr<Widget>& child);
+    
+    void OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child);
+    virtual void OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child);
 
     void SetZOrder(uint16 zOrder);
 
@@ -151,6 +162,9 @@ private:
 
     PROPERTY(EditableInEditor, DisplayName = "Size")
     EWidgetAnchor _anchor = EWidgetAnchor::Center;
+
+    PROPERTY(EditableInEditor, DisplayName = "Should Ignore Child Desired Size")
+    bool _ignoreChildDesiredSize = false;
 
     std::shared_ptr<StaticMeshInstance> _quadMeshInstance;
 
@@ -173,6 +187,9 @@ private:
 
     PROPERTY(EditableInEditor, DisplayName = "Desired Size")
     Vector2 _desiredSize = Vector2::One;
+
+    PROPERTY(EditableInEditor, DisplayName = "Padding")
+    Vector4 _padding = Vector4::Zero;
 
     Vector2 _storedCollapsedSize;
 
