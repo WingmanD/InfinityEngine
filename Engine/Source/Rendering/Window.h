@@ -45,6 +45,8 @@ public:
     void RequestResize(uint32 width, uint32 height);
 
     Widget* GetRootWidget() const;
+    Widget** GetWidgetAt(const Vector2& positionWS);
+    Widget** GetWidgetUnderCursor();
 
     bool IsFocused() const;
 
@@ -78,10 +80,12 @@ private:
 
     std::shared_ptr<Widget> _rootWidget = nullptr;
     HitTestGrid<Widget*> _hitTestGrid{0.1f * 1080.0f, 1920.0f / 1080.0f * 2.0f, 2.0f, Vector2(1920.0f / 1080.0f, 1.0f)};
-    std::weak_ptr<Widget> _interactedWidget;
+    std::weak_ptr<Widget> _pressedWidget;
+    std::weak_ptr<Widget> _hoveredWidget;
 
     DelegateHandle _onLMBDownHandle{};
     DelegateHandle _onLMBUpHandle{};
+    DelegateHandle _onMouseMovedHandle{};
 
     HWND _hwnd = nullptr;
 

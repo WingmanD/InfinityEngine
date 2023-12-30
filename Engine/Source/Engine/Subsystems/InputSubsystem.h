@@ -139,6 +139,7 @@ struct KeyState
 class InputSubsystem : public EngineSubsystem
 {
 public:
+    Delegate<const Vector2> OnMouseMoved;
     Delegate<> OnMouseLeftButtonDown;
     Delegate<> OnMouseLeftButtonUp;
     Delegate<> OnMouseRightButtonDown;

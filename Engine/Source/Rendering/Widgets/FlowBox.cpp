@@ -1,4 +1,5 @@
 ﻿#include "FlowBox.h"
+#include "Rendering/Window.h"
 
 void FlowBox::SetDirection(EFlowBoxDirection direction)
 {
@@ -63,18 +64,26 @@ void FlowBox::UpdateLayout()
     Vector2 offset;
     for (const std::shared_ptr<Widget>& widget : GetChildren())
     {
-        const Vector2 childDesiredSize = widget->GetPaddedDesiredSize();
+        const Vector2 childDesiredSize = widget->GetDesiredSize();
 
         Vector2 newChildSize;
         if (_direction == EFlowBoxDirection::Horizontal)
         {
-            newChildSize = Vector2(childDesiredSize.x / desiredSize.x, widget->GetSize().y);
+            newChildSize = Vector2(childDesiredSize.x / desiredSize.x, childDesiredSize.y / desiredSize.y);
         }
         else
         {
             newChildSize = Vector2(widget->GetSize().x, childDesiredSize.y / desiredSize.y);
         }
 
+        const Vector2 newChildPaddedSize = newChildSize * widget->GetPaddedDesiredSize() / childDesiredSize;
+
+        // todo implement relative size so we can remove this hack
+        if (const std::shared_ptr<Window>& window = GetParentWindow())
+        {
+            newChildSize.x /= window->GetAspectRatio();
+        }
+        
         widget->SetSize(newChildSize);
 
         if (GetChildren().size() > 1)
@@ -82,13 +91,13 @@ void FlowBox::UpdateLayout()
             Vector2 childPosition;
             if (_direction == EFlowBoxDirection::Horizontal)
             {
-                childPosition.x = -0.5f + offset.x + newChildSize.x * 0.5f;
-                offset.x += newChildSize.x;
+                childPosition.x = -0.5f + offset.x + newChildPaddedSize.x * 0.5f;
+                offset.x += newChildPaddedSize.x;
             }
             else
             {
-                childPosition.y = 0.5f - offset.y - newChildSize.y * 0.5f;
-                offset.y += newChildSize.y;
+                childPosition.y = 0.5f - offset.y - newChildPaddedSize.y * 0.5f;
+                offset.y += newChildPaddedSize.y;
             }
 
             widget->SetPosition(childPosition);

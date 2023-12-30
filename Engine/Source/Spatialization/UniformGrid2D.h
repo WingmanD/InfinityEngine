@@ -38,9 +38,9 @@ public:
         const Index2D minIndex = GetCellIndex(aabb.GetMin());
         const Index2D maxIndex = GetCellIndex(aabb.GetMax());
 
-        for (int16 x = std::max<int16>(0, minIndex.X); x < std::min(maxIndex.X, _width); ++x)
+        for (int16 x = std::max<int16>(0, minIndex.X); x < std::min(maxIndex.X, _width) + 1; ++x)
         {
-            for (int16 y = std::max<int16>(0, minIndex.Y); y < std::min(maxIndex.Y, _height); ++y)
+            for (int16 y = std::max<int16>(0, minIndex.Y); y < std::min(maxIndex.Y, _height) + 1; ++y)
             {
                 if (!callback(GetCell({x, y})))
                 {

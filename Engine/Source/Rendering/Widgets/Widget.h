@@ -132,8 +132,20 @@ public:
     const BoundingBox2D& GetBoundingBox() const;
 
 public:
-    virtual void OnPressed(PassKey<Window>);
-    virtual void OnReleased(PassKey<Window>);
+    void OnPressed(PassKey<Window>);
+    void OnReleased(PassKey<Window>);
+
+    void OnHoverStarted(PassKey<Window>);
+    void OnHoverEnded(PassKey<Window>);
+
+    void OnDragStarted(PassKey<Window>);
+    void OnDragEnded(PassKey<Window>);
+
+    void OnRightClickPressed(PassKey<Window>);
+    void OnRightClickReleased(PassKey<Window>);
+
+    void OnMiddleClickPressed(PassKey<Window>);
+    void OnMiddleClickReleased(PassKey<Window>);
 
 protected:
     std::unique_ptr<WidgetRenderingProxy> RenderingProxy = nullptr;
@@ -154,6 +166,21 @@ protected:
     virtual void OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child);
 
     void SetZOrder(uint16 zOrder);
+
+    virtual void OnPressedInternal();
+    virtual void OnReleasedInternal();
+
+    virtual void OnHoverStartedInternal();
+    virtual void OnHoverEndedInternal();
+
+    virtual void OnDragStartedInternal();
+    virtual void OnDragEndedInternal();
+
+    virtual void OnRightClickPressedInternal();
+    virtual void OnRightClickReleasedInternal();
+
+    virtual void OnMiddleClickPressedInternal();
+    virtual void OnMiddleClickReleasedInternal();
 
 private:
     static std::array<const Vector2, 9> _anchorPositionMap;

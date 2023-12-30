@@ -285,7 +285,13 @@ bool InputSubsystem::Initialize()
 
 void InputSubsystem::Tick(double deltaTime)
 {
+    const Vector2 oldMousePosition = GetMousePosition();
     _mouseState = _mouse->GetState();
+    const Vector2 newMousePosition = GetMousePosition();
+    if (oldMousePosition != newMousePosition)
+    {
+        OnMouseMoved.Broadcast(Vector2(newMousePosition));
+    }
 
     for (Delegate<>*& delegate : _pendingDelegates)
     {

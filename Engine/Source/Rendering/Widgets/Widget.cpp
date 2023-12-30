@@ -529,18 +529,52 @@ const BoundingBox2D& Widget::GetBoundingBox() const
 
 void Widget::OnPressed(PassKey<Window>)
 {
-    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-    assert(parameter != nullptr);
-
-    parameter->Flags |= WidgetPerPassConstants::EWidgetFlags::Pressed;
+    OnPressedInternal();
 }
 
 void Widget::OnReleased(PassKey<Window>)
 {
-    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-    assert(parameter != nullptr);
+    OnReleasedInternal();
+}
 
-    parameter->Flags &= ~WidgetPerPassConstants::EWidgetFlags::Pressed;
+void Widget::OnHoverStarted(PassKey<Window>)
+{
+    OnHoverStartedInternal();
+}
+
+void Widget::OnHoverEnded(PassKey<Window>)
+{
+    OnHoverEndedInternal();
+}
+
+void Widget::OnDragStarted(PassKey<Window>)
+{
+    OnDragStartedInternal();
+}
+
+void Widget::OnDragEnded(PassKey<Window>)
+{
+    OnDragEndedInternal();
+}
+
+void Widget::OnRightClickPressed(PassKey<Window>)
+{
+    OnRightClickPressedInternal();
+}
+
+void Widget::OnRightClickReleased(PassKey<Window>)
+{
+    OnRightClickReleasedInternal();
+}
+
+void Widget::OnMiddleClickPressed(PassKey<Window>)
+{
+    OnMiddleClickPressedInternal();
+}
+
+void Widget::OnMiddleClickReleased(PassKey<Window>)
+{
+    OnMiddleClickReleasedInternal();
 }
 
 bool Widget::InitializeRenderingProxy()
@@ -643,16 +677,16 @@ void Widget::OnChildRemoved(const std::shared_ptr<Widget>& child)
 
 void Widget::OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child)
 {
-    if (ShouldIgnoreChildDesiredSize())
-    {
-        return;
-    }
-
     OnChildDesiredSizeChangedInternal(child);
 }
 
 void Widget::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child)
 {
+    if (ShouldIgnoreChildDesiredSize())
+    {
+        return;
+    }
+
     Vector2 maxChildPaddedDesiredSize = Vector2::Zero;
     for (const std::shared_ptr<Widget>& widget : _children)
     {
@@ -667,6 +701,62 @@ void Widget::SetZOrder(uint16 zOrder)
     _zOrder = zOrder;
 
     _quadTransform.SetZOffset(1 - static_cast<float>(zOrder) / 100.0f);
+}
+
+void Widget::OnPressedInternal()
+{
+    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    assert(parameter != nullptr);
+
+    parameter->Flags |= WidgetPerPassConstants::EWidgetFlags::Pressed;
+}
+
+void Widget::OnReleasedInternal()
+{
+    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    assert(parameter != nullptr);
+
+    parameter->Flags &= ~WidgetPerPassConstants::EWidgetFlags::Pressed;
+}
+
+void Widget::OnHoverStartedInternal()
+{
+    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    assert(parameter != nullptr);
+
+    parameter->Flags |= WidgetPerPassConstants::EWidgetFlags::Hovered;
+}
+
+void Widget::OnHoverEndedInternal()
+{
+    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    assert(parameter != nullptr);
+
+    parameter->Flags &= ~WidgetPerPassConstants::EWidgetFlags::Hovered;
+}
+
+void Widget::OnDragStartedInternal()
+{
+}
+
+void Widget::OnDragEndedInternal()
+{
+}
+
+void Widget::OnRightClickPressedInternal()
+{
+}
+
+void Widget::OnRightClickReleasedInternal()
+{
+}
+
+void Widget::OnMiddleClickPressedInternal()
+{
+}
+
+void Widget::OnMiddleClickReleasedInternal()
+{
 }
 
 void Widget::UpdateMaterialParameters() const

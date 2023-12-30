@@ -7,6 +7,7 @@
 #include "Engine/Engine.h"
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
+#include "Widgets/Checkbox.h"
 #include "Widgets/TextWidget.h"
 #include "Widgets/UIStatics.h"
 #include "Widgets/FlowBox.h"
@@ -89,51 +90,65 @@ bool Window::Initialize()
     _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
 
     {
-        const std::shared_ptr<FlowBox> menuWidget = std::make_shared<FlowBox>();
-        menuWidget->Initialize();
-        menuWidget->SetDirection(EFlowBoxDirection::Vertical);
-        _rootWidget->AddChild(menuWidget);
-        menuWidget->SetDesiredSize({0.33f, 0.66f});
-        menuWidget->SetCollisionEnabled(false);
-        {
-            WidgetPerPassConstants* param = menuWidget->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-            param->BaseColor = Color(0.4f, 0.4f, 0.4f, 1.0f);
-        }
-        {
-            const std::shared_ptr<Widget> button = std::make_shared<Widget>();
-            button->Initialize();
-            //button->SetCollisionEnabled(false);
-            menuWidget->AddChild(button);
-        
-            const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
-            textWidget->Initialize();
-            button->AddChild(textWidget);
-            textWidget->SetCollisionEnabled(false);
-            textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
-            textWidget->SetText(L"Main Menu");
-            textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
-            textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
-        }
-        {
-            const std::shared_ptr<Widget> button = std::make_shared<Widget>();
-            button->Initialize();
-            menuWidget->AddChild(button);
-        
-            const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
-            textWidget->Initialize();
-            button->AddChild(textWidget);
-            textWidget->SetCollisionEnabled(false);
-            textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
-            textWidget->SetText(L"Hello World!");
-            textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
-            textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
-        }
+        // const std::shared_ptr<FlowBox> menuWidget = std::make_shared<FlowBox>();
+        // menuWidget->Initialize();
+        // menuWidget->SetDirection(EFlowBoxDirection::Vertical);
+        // _rootWidget->AddChild(menuWidget);
+        // menuWidget->SetDesiredSize({0.33f, 0.66f});
+        // menuWidget->SetCollisionEnabled(false);
+        // {
+        //     WidgetPerPassConstants* param = menuWidget->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+        //     param->BaseColor = Color(0.4f, 0.4f, 0.4f, 1.0f);
+        // }
+        // {
+        //     const std::shared_ptr<Widget> button = std::make_shared<Widget>();
+        //     button->Initialize();
+        //     //button->SetCollisionEnabled(false);
+        //     menuWidget->AddChild(button);
+        //
+        //     const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
+        //     textWidget->Initialize();
+        //     button->AddChild(textWidget);
+        //     textWidget->SetCollisionEnabled(false);
+        //     textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
+        //     textWidget->SetText(L"Main Menu");
+        //     textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
+        //     textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
+        // }
+        // {
+        //     const std::shared_ptr<Widget> button = std::make_shared<Widget>();
+        //     button->Initialize();
+        //     menuWidget->AddChild(button);
+        //
+        //     const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
+        //     textWidget->Initialize();
+        //     button->AddChild(textWidget);
+        //     textWidget->SetCollisionEnabled(false);
+        //     textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
+        //     textWidget->SetText(L"Hello World!");
+        //     textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
+        //     textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
+        // }
 
         {
+            const std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+            flowBox->Initialize();
+            flowBox->SetDirection(EFlowBoxDirection::Horizontal);
+            flowBox->SetCollisionEnabled(false);
+            {
+                WidgetPerPassConstants* param = flowBox->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+                param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
+            }
+            _rootWidget->AddChild(flowBox);
+
             const std::shared_ptr<Widget> button = std::make_shared<Widget>();
             button->Initialize();
-            menuWidget->AddChild(button);
-        
+            flowBox->AddChild(button);
+
+            const std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
+            checkbox->Initialize();
+            flowBox->AddChild(checkbox);
+
             const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
             textWidget->Initialize();
             button->AddChild(textWidget);
@@ -152,7 +167,7 @@ bool Window::Initialize()
         newWidget->SetSize({0.2f, 0.1f});
         newWidget->SetAnchor(EWidgetAnchor::TopLeft);
         newWidget->SetPosition({0.1f, -0.05f});
-    
+
         const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
         textWidget->Initialize();
         newWidget->AddChild(textWidget);
@@ -162,7 +177,7 @@ bool Window::Initialize()
         textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
         textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
     }
-    
+
     {
         const std::shared_ptr<Widget> newWidget = std::make_shared<Widget>();
         newWidget->Initialize();
@@ -177,19 +192,16 @@ bool Window::Initialize()
 
     _onLMBDownHandle = inputSubsystem.OnMouseLeftButtonDown.Subscribe([this]()
     {
-        const Vector2 mousePositionWS = UIStatics::ToWidgetSpace(InputSubsystem::Get().GetMousePosition(), shared_from_this());
+        if (_pressedWidget.lock() != nullptr)
+        {
+            return;
+        }
 
-        Widget** hitWidgetPtr = _hitTestGrid.FindAtByPredicate(mousePositionWS,
-                                                               [](const Vector2& positionWS, const Widget* widget)
-                                                               {
-                                                                   return widget->GetBoundingBox().Contains(positionWS);
-                                                               });
-
-        if (hitWidgetPtr != nullptr)
+        if (Widget** hitWidgetPtr = GetWidgetUnderCursor())
         {
             if (Widget* hitWidget = *hitWidgetPtr)
             {
-                _interactedWidget = hitWidget->SharedFromThis();
+                _pressedWidget = hitWidget->SharedFromThis();
                 hitWidget->OnPressed({});
             }
         }
@@ -197,27 +209,46 @@ bool Window::Initialize()
 
     _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Subscribe([this]()
     {
-        if (const std::shared_ptr<Widget> interactedWidget = _interactedWidget.lock())
+        if (const std::shared_ptr<Widget> interactedWidget = _pressedWidget.lock())
         {
             interactedWidget->OnReleased({});
-            _interactedWidget.reset();
+            _pressedWidget.reset();
 
             return;
         }
 
-        const Vector2 mousePositionWS = UIStatics::ToWidgetSpace(InputSubsystem::Get().GetMousePosition(), shared_from_this());
+        if (Widget** hitWidgetPtr = GetWidgetUnderCursor())
+        {
+            if (hitWidgetPtr != nullptr)
+            {
+                if (Widget* hitWidget = *hitWidgetPtr)
+                {
+                    hitWidget->OnReleased({});
+                }
+            }
+        }
+    });
 
-        Widget** hitWidgetPtr = _hitTestGrid.FindAtByPredicate(mousePositionWS,
-                                                               [](const Vector2& positionWS, const Widget* widget)
-                                                               {
-                                                                   return widget->GetBoundingBox().Contains(positionWS);
-                                                               });
+    _onMouseMovedHandle = inputSubsystem.OnMouseMoved.Subscribe([this](const Vector2 mousePosition)
+    {
+        const std::shared_ptr<Widget> previousHoveredWidget = _hoveredWidget.lock();
+
+        Widget** hitWidgetPtr = GetWidgetUnderCursor();
+        if (previousHoveredWidget != nullptr && hitWidgetPtr != nullptr && *hitWidgetPtr != previousHoveredWidget.get() || hitWidgetPtr == nullptr && previousHoveredWidget != nullptr)
+        {
+            previousHoveredWidget->OnHoverEnded({});
+            _hoveredWidget.reset();
+        }
 
         if (hitWidgetPtr != nullptr)
         {
             if (Widget* hitWidget = *hitWidgetPtr)
             {
-                hitWidget->OnReleased({});
+                if (hitWidget != _hoveredWidget.lock().get())
+                {
+                    _hoveredWidget = hitWidget->SharedFromThis();
+                    hitWidget->OnHoverStarted({});
+                }
             }
         }
     });
@@ -298,6 +329,20 @@ void Window::RequestResize(uint32 width, uint32 height)
 Widget* Window::GetRootWidget() const
 {
     return _rootWidget.get();
+}
+
+Widget** Window::GetWidgetAt(const Vector2& positionWS)
+{
+    return _hitTestGrid.FindAtByPredicate(positionWS,
+                                          [](const Vector2& position, const Widget* widget)
+                                          {
+                                              return widget->GetBoundingBox().Contains(position);
+                                          });
+}
+
+Widget** Window::GetWidgetUnderCursor()
+{
+    return GetWidgetAt(UIStatics::ToWidgetSpace(InputSubsystem::Get().GetMousePosition(), shared_from_this()));
 }
 
 void Window::OnDestroyed()
