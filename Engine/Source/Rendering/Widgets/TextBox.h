@@ -2,7 +2,7 @@
 
 #include "Widget.h"
 #include "Rendering/Font.h"
-#include "TextWidget.reflection.h"
+#include "TextBox.reflection.h"
 
 // REFLECTED() todo implement reflection for enums
 enum class ETextFormatting : uint8
@@ -13,15 +13,15 @@ enum class ETextFormatting : uint8
 };
 
 REFLECTED()
-class TextWidget : public Widget
+class TextBox : public Widget
 {
     GENERATED()
 
 public:
-    TextWidget() = default;
+    TextBox() = default;
 
-    TextWidget(const TextWidget& other);
-    TextWidget& operator=(const TextWidget& other);
+    TextBox(const TextBox& other);
+    TextBox& operator=(const TextBox& other);
 
     void SetText(const std::wstring& text);
     const std::wstring& GetText() const;
@@ -31,6 +31,9 @@ public:
 
     void SetFontType(Font::EType fontType);
     Font::EType GetFontType() const;
+
+    void SetFontSize(float fontSize);
+    float GetFontSize() const;
 
     void SetTextColor(const Color& color);
     const Color& GetTextColor() const;
@@ -42,7 +45,20 @@ public:
     bool IsBackgroundVisible() const;
 
 protected:
+    virtual void OnTextChanged();
+    
+    // Widget
+public:
+    virtual bool Initialize() override;
+
+    // Widget
+protected:
     virtual bool InitializeRenderingProxy() override;
+
+    virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow) override;
+    
+    virtual void OnHoverStartedInternal() override;
+    virtual void OnHoverEndedInternal() override;
 
 private:
     PROPERTY(EditInEditor, DisplayName = "Text")
@@ -65,7 +81,4 @@ private:
 
     PROPERTY(EditInEditor, DisplayName = "Background")
     bool _isBackgroundVisible = false;
-
-private:
-    void OnTextChanged();
 };

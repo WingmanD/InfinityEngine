@@ -40,13 +40,13 @@ float4 PS(VertexOut pIn) : SV_Target
     {
         color = GWidgetConstants.DisabledColor;
     }
-    else if (HasFlag(GWidgetConstants, Hovered))
-    {
-        color = GWidgetConstants.HoveredColor;
-    }
     else if (HasFlag(GWidgetConstants, Pressed))
     {
         color = GWidgetConstants.PressedColor;
+    }
+    else if (HasFlag(GWidgetConstants, Hovered))
+    {
+        color = GWidgetConstants.HoveredColor;
     }
 
     const float2 position = GetWidgetPositionCS(GWidgetConstants, GWindowGlobals);

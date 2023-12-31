@@ -28,6 +28,11 @@ KeyState& InputSubsystem::GetKey(EKey key)
     return _keyStates.at(key);
 }
 
+bool InputSubsystem::IsCapsLockToggled() const
+{
+    return _isCapsLockToggled;
+}
+
 DirectX::Mouse& InputSubsystem::GetMouse() const
 {
     return *_mouse.get();
@@ -42,6 +47,23 @@ Vector2 InputSubsystem::GetMousePosition() const
 const DirectX::Mouse::State& InputSubsystem::GetMouseState() const
 {
     return _mouseState;
+}
+
+void InputSubsystem::SetCursorIcon(ECursorIcon icon)
+{
+    if (_cursorIcon == icon)
+    {
+        return;
+    }
+
+    _cursorIcon = icon;
+
+    ApplyCursorIcon();
+}
+
+ECursorIcon InputSubsystem::GetCursorIcon() const
+{
+    return _cursorIcon;
 }
 
 LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, const std::shared_ptr<Window>& window, PassKey<Window>)
@@ -111,6 +133,8 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
             keyState.IsDown = true;
             _pendingDelegates.push_back(&keyState.OnKeyDown);
 
+            _pendingOnAnyKeyDown.push_back(key);
+
             return 0;
         }
         case WM_KEYUP:
@@ -119,7 +143,20 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
             _keyStates[key].IsDown = false;
             _pendingDelegates.push_back(&_keyStates[key].OnKeyUp);
 
+            _pendingOnAnyKeyUp.push_back(key);
+
             return 0;
+        }
+
+        case WM_SETCURSOR:
+        {
+            if (LOWORD(lParam) == HTCLIENT)
+            {
+                ApplyCursorIcon();
+                return TRUE;
+            }
+
+            break;
         }
         default:
             break;
@@ -280,6 +317,11 @@ bool InputSubsystem::Initialize()
 
     _mouseState = _mouse->GetState();
 
+    GetKey(EKey::CapsLock).OnKeyDown.Subscribe([this]()
+    {
+        _isCapsLockToggled = !_isCapsLockToggled;
+    });
+
     return true;
 }
 
@@ -299,9 +341,98 @@ void InputSubsystem::Tick(double deltaTime)
     }
 
     _pendingDelegates.clear();
+
+    for (EKey pendingKey : _pendingOnAnyKeyDown)
+    {
+        OnAnyKeyDown.Broadcast(std::move(pendingKey));
+    }
+    _pendingOnAnyKeyDown.clear();
+
+    for (EKey pendingKey : _pendingOnAnyKeyUp)
+    {
+        OnAnyKeyUp.Broadcast(std::move(pendingKey));
+    }
+    _pendingOnAnyKeyUp.clear();
 }
 
 EKey InputSubsystem::ConvertKeyCode(WPARAM virtualKeyCode) const
 {
     return static_cast<EKey>(virtualKeyCode);
+}
+
+void InputSubsystem::ApplyCursorIcon()
+{
+    LPWSTR cursor;
+    switch (GetCursorIcon())
+    {
+        case ECursorIcon::Arrow:
+        {
+            cursor = IDC_ARROW;
+            break;
+        }
+        case ECursorIcon::Crosshair:
+        {
+            cursor = IDC_CROSS;
+            break;
+        }
+        case ECursorIcon::Hand:
+        {
+            cursor = IDC_HAND;
+            break;
+        }
+        case ECursorIcon::IBeam:
+        {
+            cursor = IDC_IBEAM;
+            break;
+        }
+        case ECursorIcon::SizeAll:
+        {
+            cursor = IDC_SIZEALL;
+            break;
+        }
+        case ECursorIcon::SizeNESW:
+        {
+            cursor = IDC_SIZENESW;
+            break;
+        }
+        case ECursorIcon::SizeNS:
+        {
+            cursor = IDC_SIZENS;
+            break;
+        }
+        case ECursorIcon::SizeNWSE:
+        {
+            cursor = IDC_SIZENWSE;
+            break;
+        }
+        case ECursorIcon::SizeWE:
+        {
+            cursor = IDC_SIZEWE;
+            break;
+        }
+        case ECursorIcon::Wait:
+        {
+            cursor = IDC_WAIT;
+            break;
+        }
+        case ECursorIcon::Help:
+        {
+            cursor = IDC_HELP;
+            break;
+        }
+        case ECursorIcon::NotAllowed:
+        {
+            cursor = IDC_NO;
+            break;
+        }
+        default:
+        {
+            DEBUG_BREAK();
+            cursor = IDC_ARROW;
+            break;
+        }
+    }
+
+    const HCURSOR hCursor = LoadCursor(NULL, cursor);
+    SetCursor(hCursor);
 }

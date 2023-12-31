@@ -136,6 +136,22 @@ struct KeyState
     Delegate<> OnKeyUp;
 };
 
+enum class ECursorIcon : uint8
+{
+    Arrow,
+    Crosshair,
+    Hand,
+    IBeam,
+    SizeAll,
+    SizeNESW,
+    SizeNS,
+    SizeNWSE,
+    SizeWE,
+    Wait,
+    Help,
+    NotAllowed
+};
+
 class InputSubsystem : public EngineSubsystem
 {
 public:
@@ -164,10 +180,15 @@ public:
 
     KeyState& GetKey(EKey key);
 
+    bool IsCapsLockToggled() const;
+    
     DirectX::Mouse& GetMouse() const;
 
     Vector2 GetMousePosition() const;
     const DirectX::Mouse::State& GetMouseState() const;
+
+    void SetCursorIcon(ECursorIcon icon);
+    ECursorIcon GetCursorIcon() const;
 
     LRESULT ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, const std::shared_ptr<Window>& window, PassKey<Window>);
 
@@ -184,13 +205,20 @@ private:
     std::unique_ptr<DirectX::Mouse> _mouse;
     DirectX::Mouse::State _mouseState;
     DirectX::Mouse::ButtonStateTracker _mouseButtonStateTracker;
+    ECursorIcon _cursorIcon = ECursorIcon::Arrow;
 
     std::unordered_map<EKey, KeyState> _keyStates;
 
     std::weak_ptr<Window> _focusedWindow;
 
     std::vector<Delegate<>*> _pendingDelegates;
+    
+    std::vector<EKey> _pendingOnAnyKeyDown;
+    std::vector<EKey> _pendingOnAnyKeyUp;
+
+    bool _isCapsLockToggled = false;
 
 private:
     EKey ConvertKeyCode(WPARAM virtualKeyCode) const;
+    void ApplyCursorIcon();
 };

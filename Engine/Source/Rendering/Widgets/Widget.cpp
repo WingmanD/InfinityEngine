@@ -88,6 +88,26 @@ bool Widget::Initialize()
     return true;
 }
 
+void Widget::SetEnabled(bool value)
+{
+    if (value == IsEnabled())
+    {
+        return;
+    }
+
+    _state = value ? _state | EWidgetState::Enabled : _state & ~EWidgetState::Enabled;
+
+    WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    assert(parameter != nullptr);
+
+    parameter->Flags = value ? parameter->Flags | WidgetPerPassConstants::EWidgetFlags::Enabled : parameter->Flags & ~WidgetPerPassConstants::EWidgetFlags::Enabled;
+}
+
+bool Widget::IsEnabled() const
+{
+    return (_state & EWidgetState::Enabled) != EWidgetState::None;
+}
+
 void Widget::SetVisibility(bool value, bool recursive /*= false*/)
 {
     if (value == IsVisible())
@@ -180,6 +200,23 @@ void Widget::SetCollapsed(bool value)
 bool Widget::IsCollapsed() const
 {
     return (_state & EWidgetState::Collapsed) != EWidgetState::None;
+}
+
+void Widget::SetFocused(bool value)
+{
+    if (value == IsFocused())
+    {
+        return;
+    }
+
+    _state = value ? _state | EWidgetState::Focused : _state & ~EWidgetState::Focused;
+
+    OnFocusChanged(value);
+}
+
+bool Widget::IsFocused() const
+{
+    return (_state & EWidgetState::Focused) != EWidgetState::None;
 }
 
 bool Widget::IsRootWidget() const
@@ -302,23 +339,10 @@ void Widget::SetDesiredSize(const Vector2& size)
 {
     _desiredSize = size;
 
-    Vector2 parentScreenSize = Vector2::One;
     if (const std::shared_ptr<Widget> parent = GetParentWidget())
     {
         parent->OnChildDesiredSizeChanged(SharedFromThis());
-
-        parentScreenSize = parent->GetScreenRelativeSize();
     }
-
-    if (parentScreenSize.LengthSquared() <= 0.0f)
-    {
-        return;
-    }
-
-    Vector2 newSize = _desiredSize / parentScreenSize;
-    newSize.Clamp(Vector2::Zero, Vector2::One);
-
-    SetSize(newSize);
 }
 
 const Vector2& Widget::GetDesiredSize() const
@@ -426,12 +450,6 @@ const RECT& Widget::GetRect() const
 
 void Widget::SetWindow(const std::shared_ptr<Window>& window)
 {
-    if (window == nullptr)
-    {
-        Destroy();
-        return;
-    }
-
     const std::shared_ptr<Window> oldWindow = _parentWindow.lock();
     if (oldWindow == window)
     {
@@ -493,6 +511,18 @@ EWidgetAnchor Widget::GetAnchor() const
     return _anchor;
 }
 
+void Widget::SetFillMode(EWidgetFillMode fillMode)
+{
+    _fillMode = fillMode;
+    
+    SetDesiredSize(GetDesiredSize());
+}
+
+EWidgetFillMode Widget::GetFillMode() const
+{
+    return _fillMode;
+}
+
 void Widget::SetIgnoreChildDesiredSize(bool value)
 {
     _ignoreChildDesiredSize = value;
@@ -527,54 +557,74 @@ const BoundingBox2D& Widget::GetBoundingBox() const
     return _boundingBox;
 }
 
-void Widget::OnPressed(PassKey<Window>)
+void Widget::Pressed(PassKey<Window>)
 {
     OnPressedInternal();
+
+    OnPressed.Broadcast();
 }
 
-void Widget::OnReleased(PassKey<Window>)
+void Widget::Released(PassKey<Window>)
 {
     OnReleasedInternal();
+
+    OnReleased.Broadcast();
 }
 
-void Widget::OnHoverStarted(PassKey<Window>)
+void Widget::HoverStarted(PassKey<Window>)
 {
     OnHoverStartedInternal();
+
+    OnHoverStarted.Broadcast();
 }
 
-void Widget::OnHoverEnded(PassKey<Window>)
+void Widget::HoverEnded(PassKey<Window>)
 {
     OnHoverEndedInternal();
+
+    OnHoverEnded.Broadcast();
 }
 
-void Widget::OnDragStarted(PassKey<Window>)
+void Widget::DragStarted(PassKey<Window>)
 {
     OnDragStartedInternal();
+
+    OnDragStarted.Broadcast();
 }
 
-void Widget::OnDragEnded(PassKey<Window>)
+void Widget::DragEnded(PassKey<Window>)
 {
     OnDragEndedInternal();
+
+    OnDragEnded.Broadcast();
 }
 
-void Widget::OnRightClickPressed(PassKey<Window>)
+void Widget::RightClickPressed(PassKey<Window>)
 {
     OnRightClickPressedInternal();
+
+    OnRightClickPressed.Broadcast();
 }
 
-void Widget::OnRightClickReleased(PassKey<Window>)
+void Widget::RightClickReleased(PassKey<Window>)
 {
     OnRightClickReleasedInternal();
+
+    OnRightClickReleased.Broadcast();
 }
 
-void Widget::OnMiddleClickPressed(PassKey<Window>)
+void Widget::MiddleClickPressed(PassKey<Window>)
 {
     OnMiddleClickPressedInternal();
+
+    OnMiddleClickPressed.Broadcast();
 }
 
-void Widget::OnMiddleClickReleased(PassKey<Window>)
+void Widget::MiddleClickReleased(PassKey<Window>)
 {
     OnMiddleClickReleasedInternal();
+
+    OnMiddleClickReleased.Broadcast();
 }
 
 bool Widget::InitializeRenderingProxy()
@@ -588,6 +638,10 @@ bool Widget::InitializeRenderingProxy()
     RenderingProxy->SetWidget(this);
 
     return RenderingProxy->Initialize();
+}
+
+void Widget::OnFocusChanged(bool focused)
+{
 }
 
 void Widget::OnTransformChanged()
@@ -624,7 +678,7 @@ Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
     const Vector2 anchorPosition = _anchorPositionMap[static_cast<uint32>(anchor)];
     if (const std::shared_ptr<Widget>& parentWidget = GetParentWidget())
     {
-        return parentWidget->GetSize() * anchorPosition * 0.5f;
+        return parentWidget->GetSizeWS() * anchorPosition * 0.5f;
     }
 
     return anchorPosition;
@@ -658,21 +712,30 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
 
 void Widget::OnChildAdded(const std::shared_ptr<Widget>& child)
 {
-    child->_parentWidget = std::static_pointer_cast<Widget>(shared_from_this());
-    child->SetZOrder(GetZOrder() + 1);
-    child->SetWindow(GetParentWindow());
+    child->OnAddedToParent(SharedFromThis());
 
     OnChildDesiredSizeChanged(child);
-
-    child->OnParentResized();
 }
 
 void Widget::OnChildRemoved(const std::shared_ptr<Widget>& child)
 {
-    child->_parentWidget.reset();
-    child->SetWindow(nullptr);
+    child->OnRemovedFromParent(SharedFromThis());
 
     OnChildDesiredSizeChanged(nullptr);
+}
+
+void Widget::OnAddedToParent(const std::shared_ptr<Widget>& parent)
+{
+    _parentWidget = parent;
+    SetZOrder(parent->GetZOrder() + 1);
+    SetWindow(parent->GetParentWindow());
+    OnParentResized();
+}
+
+void Widget::OnRemovedFromParent(const std::shared_ptr<Widget>& parent)
+{
+    _parentWidget.reset();
+    SetWindow(nullptr);
 }
 
 void Widget::OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child)
@@ -701,6 +764,12 @@ void Widget::SetZOrder(uint16 zOrder)
     _zOrder = zOrder;
 
     _quadTransform.SetZOffset(1 - static_cast<float>(zOrder) / 100.0f);
+
+    const uint16 childZOrder = zOrder + 1;
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->SetZOrder(childZOrder);
+    }
 }
 
 void Widget::OnPressedInternal()

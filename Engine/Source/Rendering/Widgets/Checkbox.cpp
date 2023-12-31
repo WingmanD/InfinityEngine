@@ -25,6 +25,8 @@ bool Checkbox::Initialize()
     {
         return false;
     }
+
+    SetFillMode(EWidgetFillMode::RetainAspectRatio);
     
     if (GetDesiredSize() == Vector2::One)
     {

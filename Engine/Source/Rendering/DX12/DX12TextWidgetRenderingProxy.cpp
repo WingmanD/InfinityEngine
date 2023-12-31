@@ -4,7 +4,7 @@
 #include "RenderTargetState.h"
 #include "ResourceUploadBatch.h"
 #include "SpriteBatch.h"
-#include "Rendering/Widgets/TextWidget.h"
+#include "Rendering/Widgets/TextBox.h"
 #include "Rendering/Widgets/UIStatics.h"
 #include "Rendering/Widgets/Widget.h"
 
@@ -46,7 +46,7 @@ void DX12TextWidgetRenderingProxy::OnWindowChanged(const std::shared_ptr<Window>
 
 void DX12TextWidgetRenderingProxy::OnTransformChanged()
 {
-    const TextWidget& widget = static_cast<TextWidget&>(GetOwningWidget());
+    const TextBox& widget = static_cast<TextBox&>(GetOwningWidget());
 
     const std::shared_ptr<Font> font = widget.GetFont();
     if (font == nullptr)
@@ -87,7 +87,7 @@ void DX12TextWidgetRenderingProxy::OnTransformChanged()
         const Transform2D transformWS = widget.GetTransformWS();
 
         const Vector2 position = UIStatics::ToScreenSpace(transformWS.GetPosition(), parentWindow);
-        const Vector2 scale = Vector2(widget.GetSizeWS().x);    // todo fix this
+        const Vector2 scale = Vector2(widget.GetFontSize());
         const float rotation = transformWS.GetRotation();
 
         _transform.SetPosition(position);
@@ -98,7 +98,7 @@ void DX12TextWidgetRenderingProxy::OnTransformChanged()
 
 void DX12TextWidgetRenderingProxy::SetupDrawingInternal(ID3D12GraphicsCommandList* commandList) const
 {
-    const TextWidget& widget = static_cast<TextWidget&>(GetOwningWidget());
+    const TextBox& widget = static_cast<TextBox&>(GetOwningWidget());
 
     if (widget.IsBackgroundVisible())
     {

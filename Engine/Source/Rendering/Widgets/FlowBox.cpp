@@ -18,6 +18,16 @@ void FlowBox::OnChildAdded(const std::shared_ptr<Widget>& child)
 {
     Widget::OnChildAdded(child);
 
+    // todo anchors
+    if (GetDirection() == EFlowBoxDirection::Horizontal)
+    {
+        child->SetAnchor(EWidgetAnchor::CenterLeft);
+    }
+    else
+    {
+        child->SetAnchor(EWidgetAnchor::TopCenter);
+    }
+
     UpdateLayout();
 }
 
@@ -59,6 +69,12 @@ void FlowBox::UpdateLayout()
 {
     const Vector2& desiredSize = GetDesiredSize();
 
+    const Vector2 screenSize = GetScreenRelativeSize();
+    if (screenSize.LengthSquared() <= 0.0f)
+    {
+        return;
+    }
+
     int32 index = 0;
 
     Vector2 offset;
@@ -69,21 +85,40 @@ void FlowBox::UpdateLayout()
         Vector2 newChildSize;
         if (_direction == EFlowBoxDirection::Horizontal)
         {
-            newChildSize = Vector2(childDesiredSize.x / desiredSize.x, childDesiredSize.y / desiredSize.y);
+            if ((widget->GetFillMode() & EWidgetFillMode::FillY) != EWidgetFillMode::None)
+            {
+                newChildSize = Vector2(childDesiredSize.x / desiredSize.x, 1.0f);
+            } 
+            else
+            {
+                newChildSize = childDesiredSize / desiredSize;
+            }
         }
         else
         {
-            newChildSize = Vector2(widget->GetSize().x, childDesiredSize.y / desiredSize.y);
+            if ((widget->GetFillMode() & EWidgetFillMode::FillX) != EWidgetFillMode::None)
+            {
+                newChildSize = Vector2(1.0f, childDesiredSize.y / desiredSize.y);
+            }
+            else
+            {
+                newChildSize = childDesiredSize / desiredSize;
+            }
         }
 
         const Vector2 newChildPaddedSize = newChildSize * widget->GetPaddedDesiredSize() / childDesiredSize;
 
         // todo implement relative size so we can remove this hack
+        float aspectRatio = 1.0f;
         if (const std::shared_ptr<Window>& window = GetParentWindow())
         {
-            newChildSize.x /= window->GetAspectRatio();
+            if ((widget->GetFillMode() & EWidgetFillMode::RetainAspectRatio) != EWidgetFillMode::None)
+            {
+                aspectRatio = window->GetAspectRatio();
+                newChildSize.x /= aspectRatio;
+            }
         }
-        
+
         widget->SetSize(newChildSize);
 
         if (GetChildren().size() > 1)
@@ -91,12 +126,12 @@ void FlowBox::UpdateLayout()
             Vector2 childPosition;
             if (_direction == EFlowBoxDirection::Horizontal)
             {
-                childPosition.x = -0.5f + offset.x + newChildPaddedSize.x * 0.5f;
+                childPosition.x = offset.x + newChildPaddedSize.x * 0.5f;
                 offset.x += newChildPaddedSize.x;
             }
             else
             {
-                childPosition.y = 0.5f - offset.y - newChildPaddedSize.y * 0.5f;
+                childPosition.y = -offset.y - newChildPaddedSize.y * 0.5f;
                 offset.y += newChildPaddedSize.y;
             }
 

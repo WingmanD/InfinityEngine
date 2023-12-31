@@ -10,6 +10,7 @@
 #include <array>
 #include <d3d12.h>
 #include "Widget.reflection.h"
+#include "Rendering/Delegate.h"
 
 class StaticMeshInstance;
 class Window;
@@ -19,9 +20,11 @@ class StaticMesh;
 enum class EWidgetState : uint8
 {
     None             = 0,
+    Enabled          = 1 << 0,
     Visible          = 1 << 1,
     CollisionEnabled = 1 << 2,
     Collapsed        = 1 << 3,
+    Focused          = 1 << 4,
 };
 ENABLE_ENUM_OPS(EWidgetState)
 
@@ -40,8 +43,10 @@ enum class EWidgetAnchor : uint8
 
 enum class EWidgetFillMode : uint8
 {
-    FillX = 0,
+    None = 0,
+    FillX = 1 << 0,
     FillY = 1 << 1,
+    RetainAspectRatio = 1 << 2,
 };
 ENABLE_ENUM_OPS(EWidgetFillMode)
 
@@ -49,6 +54,22 @@ REFLECTED()
 class Widget : public Asset
 {
     GENERATED()
+
+public:
+    Delegate<> OnPressed;
+    Delegate<> OnReleased;
+
+    Delegate<> OnHoverStarted;
+    Delegate<> OnHoverEnded;
+
+    Delegate<> OnDragStarted;
+    Delegate<> OnDragEnded;
+
+    Delegate<> OnRightClickPressed;
+    Delegate<> OnRightClickReleased;
+
+    Delegate<> OnMiddleClickPressed;
+    Delegate<> OnMiddleClickReleased;
 
 public:
     explicit Widget();
@@ -60,6 +81,9 @@ public:
 
     virtual bool Initialize() override;
 
+    void SetEnabled(bool value);
+    bool IsEnabled() const;
+
     void SetVisibility(bool value, bool recursive = false);
     bool IsVisible() const;
 
@@ -68,6 +92,9 @@ public:
 
     void SetCollapsed(bool value);
     bool IsCollapsed() const;
+
+    void SetFocused(bool value);
+    bool IsFocused() const;
 
     bool IsRootWidget() const;
 
@@ -122,6 +149,9 @@ public:
     void SetAnchor(EWidgetAnchor anchor);
     EWidgetAnchor GetAnchor() const;
 
+    void SetFillMode(EWidgetFillMode fillMode);
+    EWidgetFillMode GetFillMode() const;
+
     void SetIgnoreChildDesiredSize(bool value);
     bool ShouldIgnoreChildDesiredSize() const;
 
@@ -132,26 +162,28 @@ public:
     const BoundingBox2D& GetBoundingBox() const;
 
 public:
-    void OnPressed(PassKey<Window>);
-    void OnReleased(PassKey<Window>);
+    void Pressed(PassKey<Window>);
+    void Released(PassKey<Window>);
 
-    void OnHoverStarted(PassKey<Window>);
-    void OnHoverEnded(PassKey<Window>);
+    void HoverStarted(PassKey<Window>);
+    void HoverEnded(PassKey<Window>);
 
-    void OnDragStarted(PassKey<Window>);
-    void OnDragEnded(PassKey<Window>);
+    void DragStarted(PassKey<Window>);
+    void DragEnded(PassKey<Window>);
 
-    void OnRightClickPressed(PassKey<Window>);
-    void OnRightClickReleased(PassKey<Window>);
+    void RightClickPressed(PassKey<Window>);
+    void RightClickReleased(PassKey<Window>);
 
-    void OnMiddleClickPressed(PassKey<Window>);
-    void OnMiddleClickReleased(PassKey<Window>);
+    void MiddleClickPressed(PassKey<Window>);
+    void MiddleClickReleased(PassKey<Window>);
 
 protected:
     std::unique_ptr<WidgetRenderingProxy> RenderingProxy = nullptr;
 
 protected:
     virtual bool InitializeRenderingProxy();
+
+    virtual void OnFocusChanged(bool focused);
 
     virtual void OnTransformChanged();
 
@@ -161,7 +193,10 @@ protected:
 
     virtual void OnChildAdded(const std::shared_ptr<Widget>& child);
     virtual void OnChildRemoved(const std::shared_ptr<Widget>& child);
-    
+
+    virtual void OnAddedToParent(const std::shared_ptr<Widget>& parent);
+    virtual void OnRemovedFromParent(const std::shared_ptr<Widget>& parent);
+
     void OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child);
     virtual void OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child);
 
@@ -189,6 +224,9 @@ private:
 
     PROPERTY(EditableInEditor, DisplayName = "Size")
     EWidgetAnchor _anchor = EWidgetAnchor::Center;
+    
+    PROPERTY(EditableInEditor, DisplayName = "Fill Mode")
+    EWidgetFillMode _fillMode = EWidgetFillMode::None;
 
     PROPERTY(EditableInEditor, DisplayName = "Should Ignore Child Desired Size")
     bool _ignoreChildDesiredSize = false;
