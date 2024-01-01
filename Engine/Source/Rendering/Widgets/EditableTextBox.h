@@ -52,5 +52,5 @@ private:
     std::weak_ptr<Caret> _caret;
 
 private:
-    void OnCursorPositionChanged();
+    void OnCursorPositionChanged() const;
 };

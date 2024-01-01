@@ -269,4 +269,5 @@ private:
 
 private:
     void UpdateMaterialParameters() const;
+    void UpdateWidgetRect();
 };

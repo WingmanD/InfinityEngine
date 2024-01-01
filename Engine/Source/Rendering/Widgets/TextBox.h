@@ -44,6 +44,9 @@ public:
     void SetBackgroundVisibility(bool value);
     bool IsBackgroundVisible() const;
 
+    const Transform2D& GetTextTransform() const;
+    const Vector2& GetTextOrigin() const;
+
 protected:
     virtual void OnTextChanged();
     
@@ -54,6 +57,8 @@ public:
     // Widget
 protected:
     virtual bool InitializeRenderingProxy() override;
+
+    virtual void OnTransformChanged() override;
 
     virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow) override;
     
@@ -81,4 +86,7 @@ private:
 
     PROPERTY(EditInEditor, DisplayName = "Background")
     bool _isBackgroundVisible = false;
+
+    Transform2D _textTransform{};
+    Vector2 _textOrigin = Vector2::Zero;
 };

@@ -34,6 +34,8 @@ public:
 
     DirectX::SpriteFont* GetSpriteFont(EType fontType) const;
 
+    Vector2 MeasureString(const std::wstring& text, EType fontType) const;
+
     // Asset
 public:
     virtual bool Initialize() override;

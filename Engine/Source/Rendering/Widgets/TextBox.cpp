@@ -70,7 +70,7 @@ void TextBox::SetFontSize(float fontSize)
     {
         return;
     }
-    
+
     _fontSize = fontSize;
 
     OnTextChanged();
@@ -111,6 +111,16 @@ void TextBox::SetBackgroundVisibility(bool value)
 bool TextBox::IsBackgroundVisible() const
 {
     return _isBackgroundVisible;
+}
+
+const Transform2D& TextBox::GetTextTransform() const
+{
+    return _textTransform;
+}
+
+const Vector2& TextBox::GetTextOrigin() const
+{
+    return _textOrigin;
 }
 
 void TextBox::OnTextChanged()
@@ -165,6 +175,52 @@ bool TextBox::InitializeRenderingProxy()
     RenderingProxy->SetWidget(this);
 
     return RenderingProxy->Initialize();
+}
+
+void TextBox::OnTransformChanged()
+{
+    Widget::OnTransformChanged();
+
+    const std::shared_ptr<Font>& font = GetFont();
+    if (font == nullptr)
+    {
+        return;
+    }
+
+    switch (GetFormatting())
+    {
+        case ETextFormatting::Center:
+        {
+            _textOrigin = GetFont()->MeasureString(GetText().c_str(), GetFontType());
+            _textOrigin /= 2.0f;
+            break;
+        }
+        case ETextFormatting::Left:
+        {
+            // todo
+            break;
+        }
+        case ETextFormatting::Right:
+        {
+            // todo
+            _textOrigin = GetFont()->MeasureString(GetText().c_str(), GetFontType());
+            _textOrigin.x *= -1.0f;
+            break;
+        }
+    }
+
+    if (const std::shared_ptr<Window> parentWindow = GetParentWindow())
+    {
+        const Transform2D transformWS = GetTransformWS();
+
+        const Vector2 position = UIStatics::ToScreenSpace(transformWS.GetPosition(), parentWindow);
+        const Vector2 scale = Vector2(GetFontSize());
+        const float rotation = transformWS.GetRotation();
+
+        _textTransform.SetPosition(position);
+        _textTransform.SetScale(scale);
+        _textTransform.SetRotation(rotation);
+    }
 }
 
 void TextBox::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow)

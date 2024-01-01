@@ -514,7 +514,7 @@ EWidgetAnchor Widget::GetAnchor() const
 void Widget::SetFillMode(EWidgetFillMode fillMode)
 {
     _fillMode = fillMode;
-    
+
     SetDesiredSize(GetDesiredSize());
 }
 
@@ -652,16 +652,10 @@ void Widget::OnTransformChanged()
 
     _boundingBox = BoundingBox2D(GetPositionWS(), GetSizeWS());
 
+    UpdateWidgetRect();
+
     if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
     {
-        const Vector2 minSS = UIStatics::ToScreenSpace(_boundingBox.GetMin(), parentWindow);
-        const Vector2 maxSS = UIStatics::ToScreenSpace(_boundingBox.GetMax(), parentWindow);
-
-        _widgetRect.left = static_cast<LONG>(minSS.x);
-        _widgetRect.top = static_cast<LONG>(maxSS.y);
-        _widgetRect.right = static_cast<LONG>(maxSS.x);
-        _widgetRect.bottom = static_cast<LONG>(minSS.y);
-
         if (IsCollisionEnabled())
         {
             HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGrid();
@@ -703,11 +697,18 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
 
     if (newWindow != nullptr)
     {
+        UpdateWidgetRect();
+        
         if (IsCollisionEnabled())
         {
             newWindow->GetHitTestGrid().InsertElement(this, GetBoundingBox(), GWidgetComparator);
         }
     }
+
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->SetWindow(newWindow);
+    } 
 }
 
 void Widget::OnChildAdded(const std::shared_ptr<Widget>& child)
@@ -834,4 +835,18 @@ void Widget::UpdateMaterialParameters() const
     assert(parameter != nullptr);
 
     parameter->Transform = _quadTransform * GetTransformWS();
+}
+
+void Widget::UpdateWidgetRect()
+{
+    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
+    {
+        const Vector2 minSS = UIStatics::ToScreenSpace(_boundingBox.GetMin(), parentWindow);
+        const Vector2 maxSS = UIStatics::ToScreenSpace(_boundingBox.GetMax(), parentWindow);
+
+        _widgetRect.left = static_cast<LONG>(minSS.x);
+        _widgetRect.top = static_cast<LONG>(maxSS.y);
+        _widgetRect.right = static_cast<LONG>(maxSS.x);
+        _widgetRect.bottom = static_cast<LONG>(minSS.y);
+    }
 }

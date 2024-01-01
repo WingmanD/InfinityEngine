@@ -1,5 +1,6 @@
 ﻿#include "EditableTextBox.h"
 #include "Caret.h"
+#include "UIStatics.h"
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Rendering/Window.h"
 
@@ -157,9 +158,9 @@ void EditableTextBox::OnFocusChanged(bool focused)
                         std::wstring text = GetText();
 
                         text.erase(GetCursorPosition() - 1, 1);
-                        SetCursorPosition(GetCursorPosition() - 1);
-
                         SetText(text);
+
+                        SetCursorPosition(GetCursorPosition() - 1);
                     }
                     break;
                 }
@@ -211,30 +212,35 @@ void EditableTextBox::OnFocusChanged(bool focused)
     }
 }
 
-void EditableTextBox::OnCursorPositionChanged()
+void EditableTextBox::OnCursorPositionChanged() const
 {
     const std::shared_ptr<Caret> caret = _caret.lock();
     const std::wstring& text = GetText();
     if (text.empty())
     {
-        caret->SetPosition({-0.5f, 0.0f});
+        // todo other formatting
+        caret->SetPosition({0.0f, 0.0f});
         return;
     }
 
-    const std::wstring_view substring = std::wstring_view(text).substr(0, GetCursorPosition());
     const std::shared_ptr<Font> font = GetFont();
     if (font == nullptr)
     {
         return;
     }
 
-    const DirectX::SpriteFont* spriteFont = font->GetSpriteFont(GetFontType());
-    if (spriteFont == nullptr)
-    {
-        return;
-    }
+    const std::shared_ptr<Window>& window = GetParentWindow();
 
-    const Vector2 size = spriteFont->MeasureString(substring.data());
-    const Vector2 position = {size.x - 0.5f, 0.0f};
-    caret->SetPosition(position);
+    const std::wstring substring = text.substr(0, GetCursorPosition());
+
+    Vector2 offset = font->MeasureString(substring.data(), GetFontType());
+    offset.y = 0.0f;
+
+    const Vector2 textOriginSS = GetTextTransform().GetPosition() - GetTextOrigin() + offset;
+    const Vector2 textOriginWS = UIStatics::ToWidgetSpace(textOriginSS, window);
+
+    Vector2 caretPosition = textOriginWS - GetPositionWS();
+    caretPosition.x *= window->GetAspectRatio() * 1.5f;
+
+    caret->SetPosition(caretPosition);
 }

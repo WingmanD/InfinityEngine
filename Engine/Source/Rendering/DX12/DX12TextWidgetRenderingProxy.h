@@ -6,9 +6,6 @@
 #include <d3d12.h>
 #include <memory>
 
-#include "Math/Transform2D.h"
-
-
 class DX12TextWidgetRenderingProxy : public DX12WidgetRenderingProxy
 {
 public:
@@ -18,12 +15,8 @@ public:
 public:
     virtual bool Initialize() override;
     virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow) override;
-    virtual void OnTransformChanged() override;
     
 private:
     std::unique_ptr<DirectX::SpriteBatch> _spriteBatch;
     DelegateHandle _viewportChangedHandle{};
-
-    Transform2D _transform{};
-    Vector2 _origin = Vector2::Zero;
 };

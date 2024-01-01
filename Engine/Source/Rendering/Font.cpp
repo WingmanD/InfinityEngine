@@ -116,6 +116,17 @@ DirectX::SpriteFont* Font::GetSpriteFont(EType fontType) const
     }
 }
 
+Vector2 Font::MeasureString(const std::wstring& text, EType fontType) const
+{
+    const DirectX::SpriteFont* spriteFont = GetSpriteFont(fontType);
+    if (spriteFont == nullptr)
+    {
+        return Vector2::Zero;
+    }
+
+    return spriteFont->MeasureString(text.c_str(), false);
+}
+
 bool Font::Initialize()
 {
     if (!Asset::Initialize())
