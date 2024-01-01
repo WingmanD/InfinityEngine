@@ -29,7 +29,7 @@ public:
     template <typename T> requires std::is_enum_v<T>
     const Enum* FindEnum() const
     {
-        return FindEnumByName(typeid(T).name());
+        return FindEnumByName(NameOf<T>());
     }
 
 private:
