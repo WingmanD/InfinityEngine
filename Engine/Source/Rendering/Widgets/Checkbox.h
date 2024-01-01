@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Widget.h"
-#include "Rendering/Delegate.h"
+#include "Delegate.h"
 #include "Checkbox.reflection.h"
 
 REFLECTED()

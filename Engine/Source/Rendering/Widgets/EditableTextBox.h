@@ -2,7 +2,7 @@
 
 #include "TextBox.h"
 #include "EditableTextBox.reflection.h"
-#include "Rendering/Delegate.h"
+#include "Delegate.h"
 
 class Caret;
 

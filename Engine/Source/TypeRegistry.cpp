@@ -14,12 +14,13 @@ Type* TypeRegistry::FindTypeForID(uint64_t id)
 
 Type* TypeRegistry::FindTypeByName(const std::string& name)
 {
-    if (!_typeNameMap.contains(name))
+    const auto it = _typeNameMap.find(name);
+    if (it != _typeNameMap.end())
     {
-        return nullptr;
+        return it->second;
     }
 
-    return _typeNameMap[name];
+    return nullptr;
 }
 
 void TypeRegistry::RegisterType(Type* type)
@@ -33,7 +34,7 @@ void TypeRegistry::RegisterType(Type* type)
     _typeNameMap[type->GetName()] = type;
 }
 
-void TypeRegistry::PrintRegisteredTypes() const
+void TypeRegistry::LogRegisteredTypes() const
 {
     std::cout << "All registered types: " << std::endl;
     for (const auto& [id, type] : _typeMap)

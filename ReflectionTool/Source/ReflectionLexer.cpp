@@ -71,6 +71,7 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
                 if (c == ',')
                 {
                     ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::Comma, ",", line});
 
                     continue;
                 }

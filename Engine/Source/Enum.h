@@ -1,5 +1,86 @@
 ﻿#pragma once
 
+#include "PassKey.h"
+#include <string>
+#include <unordered_map>
+
+#include "ReflectionShared.h"
+
+class EnumRegistry;
+
+class Enum
+{
+public:
+    Enum() = default;
+
+    template <typename T> requires std::is_enum_v<T>
+    static Enum Create(std::string name, const std::initializer_list<Attribute>& attributes, const std::initializer_list<std::pair<std::string, T>>& entries, PassKey<EnumRegistry>)
+    {
+        Enum newEnum(std::move(name));
+        for (const auto& [entryName, value] : entries)
+        {
+            newEnum.AddEntry(std::move(entryName), value);
+        }
+
+        newEnum._attributes.reserve(attributes.size());
+        for (const Attribute& attribute : attributes)
+        {
+            newEnum._attributes.push_back(attribute);
+
+            if (!newEnum.IsBitField() && attribute.Name == "BitField")
+            {
+                newEnum._isBitField = true;
+            }
+        }
+
+        return newEnum;
+    }
+
+    const std::string& GetName() const;
+
+    const std::string& GetEntryName(uint32_t value) const;
+
+    template <typename T> requires std::is_enum_v<T>
+    const std::string& GetEntryName(T value) const
+    {
+        return GetEntryName(static_cast<uint32_t>(value));
+    }
+
+    uint32_t GetEntryValue(const std::string& name) const;
+
+    template <typename T> requires std::is_enum_v<T>
+    T GetEntryValue(const std::string& name) const
+    {
+        return static_cast<T>(GetEntryValue(name));
+    }
+
+    bool IsBitField() const;
+
+    const std::vector<Attribute>& GetAttributes() const;
+
+private:
+    std::string _name;
+    std::unordered_map<std::string, uint32_t> _entriesByName;
+    std::unordered_map<uint32_t, std::string> _entriesByValue;
+
+    bool _isBitField = false;
+
+    std::vector<Attribute> _attributes;
+
+private:
+    Enum(std::string name);
+
+    template <typename T>
+    Enum* AddEntry(const std::string& name, T value)
+    {
+        const uint32_t valueAsInt = static_cast<uint32_t>(value);
+        _entriesByName[name] = valueAsInt;
+        _entriesByValue[valueAsInt] = name;
+        
+        return this;
+    }
+};
+
 template <typename Enum>
 struct EnableBitMaskOperators
 {

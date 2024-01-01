@@ -110,7 +110,7 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
                 std::stringstream propertyAttributes;
                 for (size_t attributeIndex = 0; attributeIndex < property.Attributes.size(); ++attributeIndex)
                 {
-                    const Argument& attribute = property.Attributes[attributeIndex];
+                    const Attribute& attribute = property.Attributes[attributeIndex];
                     propertyAttributes << "\"" << attribute.Name << "\"";
                     if (attributeIndex < property.Attributes.size() - 1)
                     {
@@ -136,13 +136,13 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
 
         std::string dataOffsetDefinition;
         auto dataStartIt = std::ranges::find_if(typeInfo.Attributes,
-                                                [](const Argument& attribute)
+                                                [](const Attribute& attribute)
                                                 {
                                                     return attribute.Name == "DataStart";
                                                 });
         if (dataStartIt != typeInfo.Attributes.end())
         {
-            const Argument& dataStart = *dataStartIt;
+            const Attribute& dataStart = *dataStartIt;
 
             if (!dataStart.Value.empty())
             {
@@ -154,7 +154,7 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
             }
         }
 
-        // todo methods, pragma once is written before each class
+        // todo methods
         std::print(reflectionHeader,
                    R"(
 #define GENERATED_{}_{}() \
@@ -215,5 +215,5 @@ private:
 
 void ReflectionGenerator::GenerateReflectionInitializer(const std::filesystem::path& outputDirectory, bool force /*= false*/)
 {
-    _reflectionInitializer.Generate(outputDirectory, force);
+    _reflectionInitializer.Generate(outputDirectory, _parser.GetEnumInfos(), force);
 }

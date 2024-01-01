@@ -5,18 +5,19 @@
 #include "BoundingBox2D.h"
 #include "Math/Transform2D.h"
 #include "WidgetRenderingProxy.h"
+#include "Delegate.h"
 #include <memory>
 #include <vector>
 #include <array>
 #include <d3d12.h>
 #include "Widget.reflection.h"
-#include "Rendering/Delegate.h"
 
 class StaticMeshInstance;
 class Window;
 class Material;
 class StaticMesh;
 
+REFLECTED(BitField)
 enum class EWidgetState : uint8
 {
     None             = 0,
@@ -28,6 +29,7 @@ enum class EWidgetState : uint8
 };
 ENABLE_ENUM_OPS(EWidgetState)
 
+REFLECTED()
 enum class EWidgetAnchor : uint8
 {
     TopLeft,
@@ -41,6 +43,7 @@ enum class EWidgetAnchor : uint8
     BottomRight
 };
 
+REFLECTED(BitField)
 enum class EWidgetFillMode : uint8
 {
     None = 0,

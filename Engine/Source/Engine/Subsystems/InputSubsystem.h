@@ -6,7 +6,7 @@
 #include "EngineSubsystem.h"
 #include "Mouse.h"
 #include "PassKey.h"
-#include "Rendering/Delegate.h"
+#include "Delegate.h"
 
 class Window;
 

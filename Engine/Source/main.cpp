@@ -3,14 +3,14 @@
 #endif
 
 #include "Core.h"
-#include "Reflection.generated.h"
 #include "Engine/Engine.h"
+#include "Reflection.generated.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     InitializeReflection();
-    TypeRegistry::Get().PrintRegisteredTypes();
-
+    TypeRegistry::Get().LogRegisteredTypes();
+    
     wchar_t executablePath[MAX_PATH];
     if (!GetModuleFileNameW(nullptr, executablePath, MAX_PATH))
     {
@@ -28,7 +28,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     {
         return -1;
     }
-    
+
     Engine& engine = Engine::Get();
     if (!engine.Initialize(hInstance))
     {

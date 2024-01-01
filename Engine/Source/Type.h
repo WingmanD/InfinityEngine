@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "PropertyMap.h"
 #include "ReflectionTags.h"
+#include "ReflectionShared.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -25,18 +26,11 @@ public:
     Type* WithDataOffset(size_t offset);
 
     template <typename T>
-    static std::string GetTypeName()
-    {
-        const std::string name = typeid(T).name();
-        return name.substr(name.find(' ') + 1);
-    }
-
-    template <typename T>
     static uint64 CalculatePrimaryID()
     {
         uint64 id = 5381;
 
-        id ^= HashTypeName(GetTypeName<T>());
+        id ^= HashTypeName(NameOf<T>());
 
         return id;
     }

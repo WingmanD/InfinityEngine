@@ -4,7 +4,7 @@
 #include "Rendering/Font.h"
 #include "TextBox.reflection.h"
 
-// REFLECTED() todo implement reflection for enums
+REFLECTED()
 enum class ETextFormatting : uint8
 {
     Center,

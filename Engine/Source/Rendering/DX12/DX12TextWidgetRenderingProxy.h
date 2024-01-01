@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "DX12WidgetRenderingProxy.h"
-#include "Rendering/Delegate.h"
+#include "Delegate.h"
 #include "SpriteBatch.h"
 #include <d3d12.h>
 #include <memory>

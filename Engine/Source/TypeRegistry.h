@@ -45,7 +45,7 @@ public:
     Type* FindTypeForID(uint64_t id);
     Type* FindTypeByName(const std::string& name);
 
-    void PrintRegisteredTypes() const;
+    void LogRegisteredTypes() const;
 
 private:
     std::unordered_map<uint64_t, Type*> _typeMap;
@@ -68,7 +68,7 @@ private:
         newType->_id = id;
         newType->_familyID = id;
         newType->_fullID = id;
-        newType->_name = Type::GetTypeName<T>();
+        newType->_name = NameOf<T>();
         newType->_cdo = std::make_unique<T>();
         newType->_size = sizeof(T);
         newType->_alignment = alignof(T);

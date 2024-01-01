@@ -45,6 +45,11 @@ const std::vector<TypeInfo>& ReflectionParser::GetTypeInfos() const
     return _typeInfos;
 }
 
+const std::vector<EnumInfo>& ReflectionParser::GetEnumInfos() const
+{
+    return _enumInfos;
+}
+
 void ReflectionParser::Reset()
 {
     _lexer.Reset();
@@ -58,7 +63,7 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
 
     const int scopeDepthAtStart = _currentScopeDepth;
 
-    static std::vector<Argument> arguments;
+    static std::vector<Attribute> arguments;
     arguments.clear();
 
     auto startToken = _lexer.GetCurrentToken();
@@ -74,7 +79,7 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
         const Token& token = _lexer.GetNextToken();
         if (token.Type == TokenType::Keyword && token.Value == "enum")
         {
-            return false;   // todo return ProcessEnum();
+           return ProcessReflectedEnum(arguments);
         }
 
         if (!SkipUntilNextIs({TokenType::ParentSeparatorColon, TokenType::ScopeStart}))
@@ -133,7 +138,7 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
                 ++_currentScopeDepth;
                 continue;
             }
-            
+
             if (_lexer.PeekNextToken().Type == TokenType::ScopeEnd)
             {
                 _lexer.SkipToken();
@@ -144,7 +149,7 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
                 }
 
                 --_currentScopeDepth;
-                    
+
                 if (_currentScopeDepth == scopeDepthAtStart)
                 {
                     if (nestParent != nullptr)
@@ -155,7 +160,7 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
                     {
                         _typeInfos.push_back(typeInfo);
                     }
-                        
+
                     return true;
                 }
             }
@@ -201,7 +206,7 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
 
 bool ReflectionParser::ProcessPropertyTag(TypeInfo& typeInfo)
 {
-    static std::vector<Argument> arguments;
+    static std::vector<Attribute> arguments;
     arguments.clear();
 
     _lexer.SkipToken();
@@ -243,7 +248,7 @@ bool ReflectionParser::ProcessPropertyTag(TypeInfo& typeInfo)
 
 bool ReflectionParser::ProcessMethodTag(TypeInfo& typeInfo)
 {
-    static std::vector<Argument> arguments;
+    static std::vector<Attribute> arguments;
     arguments.clear();
 
     _lexer.SkipToken();
@@ -330,7 +335,77 @@ bool ReflectionParser::ProcessMethodTag(TypeInfo& typeInfo)
     return true;
 }
 
-bool ReflectionParser::ParseArgumentList(std::vector<Argument>& arguments)
+bool ReflectionParser::ProcessReflectedEnum(const std::vector<Attribute>& arguments)
+{
+    if (!SkipUntilNextIs({TokenType::ParentSeparatorColon, TokenType::ScopeStart}))
+    {
+        std::println("Error: Could not find ';' or a scope after enum declaration");
+        return false;
+    }
+
+    const Token& enumNameToken = _lexer.GetCurrentToken();
+    if (enumNameToken.Type != TokenType::Identifier)
+    {
+        std::println("Error: Expected enum name identifier before ':' or '{{' after REFLECTED tag");
+        return false;
+    }
+
+    EnumInfo enumInfo;
+    enumInfo.Attributes = arguments;
+    enumInfo.Name = enumNameToken.Value;
+
+    if (!SkipUntil(TokenType::ScopeStart))
+    {
+        std::println("Error: Could not find ';' or a scope after enum declaration");
+        return false;
+    }
+
+    _lexer.SkipToken();
+
+    while (SkipUntilNextIs({TokenType::Comma, TokenType::Operator, TokenType::ScopeEnd}))
+    {
+        const Token& token = _lexer.GetCurrentToken();
+        const Token& nextToken = _lexer.PeekNextToken();
+
+        _lexer.SkipToken();
+
+        if (nextToken.Type == TokenType::Comma || (nextToken.Type == TokenType::Operator && nextToken.Value == "="))
+        {
+            if (token.Type == TokenType::Identifier)
+            {
+                enumInfo.EntryNames.push_back(token.Value);
+            }
+
+            continue;
+        }
+
+        if (nextToken.Type == TokenType::ScopeEnd)
+        {
+            if (token.Type == TokenType::Identifier)
+            {
+                enumInfo.EntryNames.push_back(token.Value);
+            }
+
+            break;
+        }
+    }
+
+    const Token& token = _lexer.GetCurrentToken();
+    if (token.Type != TokenType::ScopeEnd)
+    {
+        std::println("Error: Could not find matching '}}' after enum declaration");
+        return false;
+    }
+
+    _lexer.SkipToken();
+    _lexer.SkipToken();
+
+    _enumInfos.push_back(enumInfo);
+
+    return true;
+}
+
+bool ReflectionParser::ParseArgumentList(std::vector<Attribute>& arguments)
 {
     const Token& openParenthesis = _lexer.GetCurrentToken();
     if (openParenthesis.Type != TokenType::ParenthesisOpen)
@@ -346,7 +421,7 @@ bool ReflectionParser::ParseArgumentList(std::vector<Argument>& arguments)
             break;
         }
 
-        std::optional<Argument> parameter = ParseArgument();
+        std::optional<Attribute> parameter = ParseArgument();
         if (parameter.has_value())
         {
             arguments.push_back(parameter.value());
@@ -417,7 +492,7 @@ std::string ReflectionParser::ParseType()
     return Reflection::Util::Trim(ss.str());
 }
 
-std::optional<Argument> ReflectionParser::ParseArgument()
+std::optional<Attribute> ReflectionParser::ParseArgument()
 {
     const Token& nameToken = _lexer.GetCurrentToken();
     if (nameToken.Type != TokenType::Identifier)
@@ -425,7 +500,7 @@ std::optional<Argument> ReflectionParser::ParseArgument()
         return std::nullopt;
     }
 
-    Argument parameter;
+    Attribute parameter;
     parameter.Name = nameToken.Value;
 
     const Token& assignmentOperatorToken = _lexer.PeekNextToken();
