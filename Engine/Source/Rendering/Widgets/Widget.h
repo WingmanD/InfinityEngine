@@ -136,6 +136,7 @@ public:
     void AddChild(const std::shared_ptr<Widget>& widget);
     void RemoveChild(const std::shared_ptr<Widget>& widget);
     const std::vector<std::shared_ptr<Widget>>& GetChildren() const;
+    void RemoveFromParent();
 
     [[nodiscard]] std::shared_ptr<Widget> GetParentWidget() const;
     const RECT& GetRect() const;

@@ -138,7 +138,7 @@ void TextBox::OnTextChanged()
         return;
     }
 
-    Vector2 windowSize;
+    Vector2 windowSize = {1920.0f, 1080.0f};
     if (const std::shared_ptr<Window> window = GetParentWindow())
     {
         windowSize = Vector2(static_cast<float>(window->GetWidth()), static_cast<float>(window->GetHeight()));

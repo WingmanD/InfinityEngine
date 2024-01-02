@@ -11,6 +11,8 @@
 #include "Widgets/UIStatics.h"
 #include "Widgets/FlowBox.h"
 #include <memory>
+#include "Widgets/DropdownMenu.h"
+#include "Widgets/DropdownTypeChoice.h"
 
 Window::Window(uint32 width, uint32 height, std::wstring title) :
     _width(width),
@@ -159,66 +161,91 @@ bool Window::Initialize()
         //     textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
         // }
 
+        // {
+        //     const std::shared_ptr<CanvasPanel> panel = std::make_shared<CanvasPanel>();
+        //     panel->Initialize();
+        //     panel->SetVisibility(false);
+        //     panel->SetCollisionEnabled(false);
+        //     _rootWidget->AddChild(panel);
+        //     
+        //     const std::shared_ptr<FlowBox> menu = std::make_shared<FlowBox>();
+        //     menu->Initialize();
+        //     menu->SetCollisionEnabled(false);
+        //     {
+        //         WidgetPerPassConstants* param = menu->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+        //         param->BaseColor = Color(0.0f, 0.0f, 1.0f, 1.0f);
+        //     }
+        //     panel->AddChild(menu);
+        //
+        //     {
+        //         const std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+        //         flowBox->Initialize();
+        //         flowBox->SetDirection(EFlowBoxDirection::Horizontal);
+        //         flowBox->SetFillMode(EWidgetFillMode::FillX);
+        //         flowBox->SetCollisionEnabled(false);
+        //         {
+        //             WidgetPerPassConstants* param = flowBox->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+        //             param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
+        //         }
+        //         menu->AddChild(flowBox);
+        //
+        //         const std::shared_ptr<EditableTextBox> editableTextBox = std::make_shared<EditableTextBox>();
+        //         editableTextBox->Initialize();
+        //         editableTextBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+        //         flowBox->AddChild(editableTextBox);
+        //
+        //         const std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
+        //         checkbox->Initialize();
+        //         flowBox->AddChild(checkbox);
+        //     }
+        //     
+        //     {
+        //         const std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+        //         flowBox->Initialize();
+        //         flowBox->SetDirection(EFlowBoxDirection::Horizontal);
+        //         flowBox->SetFillMode(EWidgetFillMode::FillX);
+        //         flowBox->SetCollisionEnabled(false);
+        //         {
+        //             WidgetPerPassConstants* param = flowBox->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+        //             param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
+        //         }
+        //         menu->AddChild(flowBox);
+        //
+        //         const std::shared_ptr<EditableTextBox> editableTextBox = std::make_shared<EditableTextBox>();
+        //         editableTextBox->Initialize();
+        //         editableTextBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+        //         flowBox->AddChild(editableTextBox);
+        //
+        //         const std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
+        //         checkbox->Initialize();
+        //         flowBox->AddChild(checkbox);
+        //     }
+        // }
+    }
+
+    {
+        std::shared_ptr<DropdownMenu> dropdownMenu = std::make_shared<DropdownMenu>();
+        dropdownMenu->SetChoiceWidgetType(DropdownTypeChoice::StaticType());
+        dropdownMenu->Initialize();
+        _rootWidget->AddChild(dropdownMenu);
+    
         {
-            const std::shared_ptr<CanvasPanel> panel = std::make_shared<CanvasPanel>();
-            panel->Initialize();
-            panel->SetVisibility(false);
-            panel->SetCollisionEnabled(false);
-            _rootWidget->AddChild(panel);
-            
-            const std::shared_ptr<FlowBox> menu = std::make_shared<FlowBox>();
-            menu->Initialize();
-            menu->SetCollisionEnabled(false);
-            {
-                WidgetPerPassConstants* param = menu->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-                param->BaseColor = Color(0.0f, 0.0f, 1.0f, 1.0f);
-            }
-            panel->AddChild(menu);
-        
-            {
-                const std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
-                flowBox->Initialize();
-                flowBox->SetDirection(EFlowBoxDirection::Horizontal);
-                flowBox->SetFillMode(EWidgetFillMode::FillX);
-                flowBox->SetCollisionEnabled(false);
-                {
-                    WidgetPerPassConstants* param = flowBox->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-                    param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
-                }
-                menu->AddChild(flowBox);
-        
-                const std::shared_ptr<EditableTextBox> editableTextBox = std::make_shared<EditableTextBox>();
-                editableTextBox->Initialize();
-                editableTextBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-                flowBox->AddChild(editableTextBox);
-        
-                const std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
-                checkbox->Initialize();
-                flowBox->AddChild(checkbox);
-            }
-            
-            {
-                const std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
-                flowBox->Initialize();
-                flowBox->SetDirection(EFlowBoxDirection::Horizontal);
-                flowBox->SetFillMode(EWidgetFillMode::FillX);
-                flowBox->SetCollisionEnabled(false);
-                {
-                    WidgetPerPassConstants* param = flowBox->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-                    param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
-                }
-                menu->AddChild(flowBox);
-        
-                const std::shared_ptr<EditableTextBox> editableTextBox = std::make_shared<EditableTextBox>();
-                editableTextBox->Initialize();
-                editableTextBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-                flowBox->AddChild(editableTextBox);
-        
-                const std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
-                checkbox->Initialize();
-                flowBox->AddChild(checkbox);
-            }
+            std::shared_ptr<DropdownTypeChoice> dropdownTypeChoice = std::make_shared<DropdownTypeChoice>();
+            dropdownTypeChoice->InitializeFromType(StaticMesh::StaticType());
+            dropdownMenu->AddChoice(dropdownTypeChoice);
         }
+    
+        {
+            std::shared_ptr<DropdownTypeChoice> dropdownTypeChoice = std::make_shared<DropdownTypeChoice>();
+            dropdownTypeChoice->InitializeFromType(DropdownTypeChoice::StaticType());
+            dropdownMenu->AddChoice(dropdownTypeChoice);
+        }
+        
+        // {
+        //     std::shared_ptr<DropdownTypeChoice> dropdownTypeChoice = std::make_shared<DropdownTypeChoice>();
+        //     dropdownTypeChoice->InitializeFromType(Shader::StaticType());
+        //     dropdownMenu->AddChoice(dropdownTypeChoice);
+        // }
     }
 
     // {
