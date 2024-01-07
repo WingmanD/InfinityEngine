@@ -108,21 +108,22 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
                 const PropertyInfo& property = typeInfo.Properties[i];
 
                 std::stringstream propertyAttributes;
-                for (size_t attributeIndex = 0; attributeIndex < property.Attributes.size(); ++attributeIndex)
+
+                propertyAttributes << "{";
+                for (const Attribute& attribute : property.Attributes)
                 {
-                    const Attribute& attribute = property.Attributes[attributeIndex];
-                    propertyAttributes << "\"" << attribute.Name << "\"";
-                    if (attributeIndex < property.Attributes.size() - 1)
+                    propertyAttributes << std::format(R"({{"{}", "{}"}})", attribute.Name, attribute.Value);
+                    if (&attribute != &property.Attributes.back())
                     {
                         propertyAttributes << ", ";
                     }
                 }
-
-                const std::string tmp = propertyAttributes.str();
+                propertyAttributes << "}";
 
                 std::print(propertyMapDefinition,
-                           R"(                  .WithProperty("{}", &{}::{}, {{ {} }}))",
+                           R"(                  .WithProperty("{}", TypeOf<UnderlyingType<{}>>(), &{}::{}, {}))",
                            property.Name,
+                           property.Type,
                            typeInfo.Name,
                            property.Name,
                            propertyAttributes.str());

@@ -4,10 +4,10 @@
 #include "Delegate.h"
 #include "MaterialParameterMap.h"
 #include "MaterialRenderingData.h"
+#include "AssetPtr.h"
+#include "Shader.h"
 #include <memory>
 #include "Material.reflection.h"
-
-class Shader;
 
 REFLECTED()
 class Material : public Asset
@@ -48,8 +48,8 @@ public:
     virtual bool Deserialize(MemoryReader& reader) override;
 
 private:
-    PROPERTY(EditableInEditor, Load, DisplayName = "Shader")
-    std::shared_ptr<Shader> _shader;
+    PROPERTY(Edit, Load, DisplayName = "Shader")
+    AssetPtr<Shader> _shader;
 
     DelegateHandle _materialParameterMapChangedHandle{};
     std::unique_ptr<MaterialParameterMap> _materialParameterMap;

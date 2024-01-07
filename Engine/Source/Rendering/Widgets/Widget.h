@@ -6,16 +6,15 @@
 #include "Math/Transform2D.h"
 #include "WidgetRenderingProxy.h"
 #include "Delegate.h"
+#include "AssetPtr.h"
+#include "Rendering/Material.h"
 #include <memory>
 #include <vector>
 #include <array>
-#include <d3d12.h>
 #include "Widget.reflection.h"
 
 class StaticMeshInstance;
 class Window;
-class Material;
-class StaticMesh;
 
 REFLECTED(BitField)
 enum class EWidgetState : uint8
@@ -74,11 +73,14 @@ public:
     Delegate<> OnMiddleClickPressed;
     Delegate<> OnMiddleClickReleased;
 
+    Delegate<> OnDestroyed;
+
 public:
     explicit Widget();
 
     Widget(const Widget& other);
     Widget& operator=(const Widget& other);
+    ~Widget() override;
 
     bool operator==(const Widget& other) const;
 
@@ -224,15 +226,15 @@ protected:
 private:
     static std::array<const Vector2, 9> _anchorPositionMap;
 
-    EWidgetState _state = EWidgetState::Visible;
+    EWidgetState _state = EWidgetState::Visible | EWidgetState::Enabled;
 
-    PROPERTY(EditableInEditor, DisplayName = "Size")
+    PROPERTY(Edit, DisplayName = "Size")
     EWidgetAnchor _anchor = EWidgetAnchor::Center;
     
-    PROPERTY(EditableInEditor, DisplayName = "Fill Mode")
+    PROPERTY(Edit, DisplayName = "Fill Mode")
     EWidgetFillMode _fillMode = EWidgetFillMode::None;
 
-    PROPERTY(EditableInEditor, DisplayName = "Should Ignore Child Desired Size")
+    PROPERTY(Edit, DisplayName = "Should Ignore Child Desired Size")
     bool _ignoreChildDesiredSize = false;
 
     std::shared_ptr<StaticMeshInstance> _quadMeshInstance;
@@ -242,22 +244,22 @@ private:
 
     uint16 _zOrder = 0;
 
-    PROPERTY(EditableInEditor, Load, EditInPlace, DisplayName = "Material")
-    std::shared_ptr<Material> _material;
+    PROPERTY(Edit, Load, EditInPlace, DisplayName = "Material")
+    AssetPtr<Material> _material;
 
     std::vector<std::shared_ptr<Widget>> _children;
 
-    PROPERTY(EditableInEditor, DisplayName = "Transform")
+    //PROPERTY(Edit, DisplayName = "Transform")
     Transform2D _transform;
 
     Vector2 _relativePosition = Vector2::Zero;
 
     Vector2 _size = Vector2::One;
 
-    PROPERTY(EditableInEditor, DisplayName = "Desired Size")
-    Vector2 _desiredSize = Vector2::One;
+    PROPERTY(Edit, DisplayName = "Desired Size")
+    Vector2 _desiredSize = {0.2f, 0.1f};
 
-    PROPERTY(EditableInEditor, DisplayName = "Padding")
+    PROPERTY(Edit, DisplayName = "Padding")
     Vector4 _padding = Vector4::Zero;
 
     Vector2 _storedCollapsedSize;

@@ -23,7 +23,7 @@ std::array<const Vector2, 9> Widget::_anchorPositionMap = {
     Vector2(1.0f, 0.0f), // CenterRight
     Vector2(-1.0f, -1.0f), // BottomLeft
     Vector2(0.0f, -1.0f), // BottomCenter
-    Vector2(1.0f, -1.0f)  // BottomRight
+    Vector2(1.0f, -1.0f) // BottomRight
 };
 
 Widget::Widget()
@@ -50,6 +50,11 @@ Widget& Widget::operator=(const Widget& other)
     }
 
     return *this;
+}
+
+Widget::~Widget()
+{
+    Destroy();
 }
 
 bool Widget::operator==(const Widget& other) const
@@ -100,7 +105,9 @@ void Widget::SetEnabled(bool value)
     WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
     assert(parameter != nullptr);
 
-    parameter->Flags = value ? parameter->Flags | WidgetPerPassConstants::EWidgetFlags::Enabled : parameter->Flags & ~WidgetPerPassConstants::EWidgetFlags::Enabled;
+    parameter->Flags = value
+                           ? parameter->Flags | WidgetPerPassConstants::EWidgetFlags::Enabled
+                           : parameter->Flags & ~WidgetPerPassConstants::EWidgetFlags::Enabled;
 }
 
 bool Widget::IsEnabled() const
@@ -128,7 +135,8 @@ void Widget::SetVisibility(bool value, bool recursive /*= false*/)
 
 bool Widget::IsVisible() const
 {
-    return (_state & EWidgetState::Visible) != EWidgetState::None && (_state & EWidgetState::Collapsed) == EWidgetState::None;
+    return (_state & EWidgetState::Visible) != EWidgetState::None && (_state & EWidgetState::Collapsed) ==
+        EWidgetState::None;
 }
 
 void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
@@ -340,6 +348,8 @@ void Widget::SetDesiredSize(const Vector2& size)
 {
     _desiredSize = size;
 
+    TRACE_LOG("Widget {} desired size set to {}, {}", GetType()->GetName(), size.x, size.y);
+
     if (const std::shared_ptr<Widget> parent = GetParentWidget())
     {
         parent->OnChildDesiredSizeChanged(SharedFromThis());
@@ -503,13 +513,18 @@ void Widget::Destroy()
 
     for (const std::shared_ptr<Widget>& child : _children)
     {
-        child->Destroy();
+        if (child != nullptr)
+        {
+            child->Destroy();
+        }
     }
 
     if (const std::shared_ptr<Widget> parent = GetParentWidget())
     {
         parent->RemoveChild(std::static_pointer_cast<Widget>(shared_from_this()));
     }
+
+    OnDestroyed.Broadcast();
 }
 
 void Widget::SetAnchor(EWidgetAnchor anchor)

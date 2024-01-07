@@ -1,11 +1,11 @@
 ﻿#include "DropdownMenu.h"
 #include "FlowBox.h"
-#include "TextBox.h"
 
 void DropdownMenu::AddChoice(const std::shared_ptr<Widget>& choice)
 {
     // todo ScrollBox
-    const std::shared_ptr<FlowBox> flowBox = std::dynamic_pointer_cast<FlowBox>(_choicesWidget.lock()->GetChildren()[0]);
+    const std::shared_ptr<FlowBox> flowBox = std::dynamic_pointer_cast<
+        FlowBox>(_choicesWidget.lock()->GetChildren()[0]);
 
     choice->SetVisibility(flowBox->IsVisible(), true);
     choice->SetCollisionEnabled(flowBox->IsVisible());
@@ -33,16 +33,20 @@ Type* DropdownMenu::GetChoiceWidgetType() const
     return _choiceWidgetType;
 }
 
+std::shared_ptr<Widget> DropdownMenu::GetSelectedChoice() const
+{
+    return _selectedWidget.lock();
+}
+
+void DropdownMenu::SetSelectedChoice(const std::shared_ptr<Widget>& choice)
+{
+    OnChoiceSelected(choice);
+}
+
 bool DropdownMenu::Initialize()
 {
     if (!Widget::Initialize())
     {
-        return false;
-    }
-
-    if (_choiceWidgetType == nullptr)
-    {
-        DEBUG_BREAK();
         return false;
     }
 
@@ -76,6 +80,12 @@ bool DropdownMenu::Initialize()
 
 void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
 {
+    if (choice == nullptr)
+    {
+        DEBUG_BREAK();
+        return;
+    }
+
     if (const std::shared_ptr<Widget> selectedWidget = _selectedWidget.lock())
     {
         selectedWidget->Destroy();
@@ -111,6 +121,11 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
     OnSelectionChanged.Broadcast(std::move(choice));
 }
 
+const std::vector<std::shared_ptr<Widget>>& DropdownMenu::GetChoices() const
+{
+    return _choicesWidget.lock()->GetChildren()[0]->GetChildren();
+}
+
 void DropdownMenu::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child)
 {
     if (child == _choicesWidget.lock())
@@ -131,7 +146,8 @@ void DropdownMenu::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widge
     }
     else if (child == _selectedWidget.lock())
     {
-        const float newDesiredWidth = std::max(child->GetPaddedDesiredSize().x, _choicesWidget.lock()->GetPaddedDesiredSize().x);
+        const float newDesiredWidth = std::max(child->GetPaddedDesiredSize().x,
+                                               _choicesWidget.lock()->GetPaddedDesiredSize().x);
         SetDesiredSize({newDesiredWidth, child->GetPaddedDesiredSize().y});
     }
 }
@@ -140,6 +156,7 @@ void DropdownMenu::UpdateChoicesWidgetTransform() const
 {
     const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
 
+    TRACE_LOG("ChoicesWidget size: {} {}", choicesWidget->GetSize().x, choicesWidget->GetSize().y);
     choicesWidget->SetPosition({0.0f, -choicesWidget->GetSize().y / 4.0f});
 }
 
@@ -155,6 +172,11 @@ void DropdownMenu::ToggleChoicesWidget() const
 
 void DropdownMenu::SetChoicesWidgetEnabled(bool value) const
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+
     const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
 
     const std::shared_ptr<FlowBox> flowBox = std::dynamic_pointer_cast<FlowBox>(choicesWidget->GetChildren()[0]);

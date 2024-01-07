@@ -77,6 +77,40 @@ void AssetManager::DeleteAsset(const std::shared_ptr<Asset>& asset)
     }
 }
 
+bool AssetManager::ForEachAssetOfType(Type* type, const std::function<bool(const std::shared_ptr<Asset>&)>& callback,
+                                      bool recursive /*= false*/) const
+{
+    if (type == nullptr)
+    {
+        return false;
+    }
+
+    const auto it = _assetTypeMap.find(type);
+    if (it != _assetTypeMap.end())
+    {
+        for (const uint64 id : it->second)
+        {
+            if (const std::shared_ptr<Asset> asset = FindAsset(id))
+            {
+                if (!callback(asset))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    if (recursive)
+    {
+        for (Type* subtype : type->GetSubtypes())
+        {
+            return ForEachAssetOfType(subtype, callback, true);
+        }
+    }
+
+    return true;
+}
+
 bool AssetManager::RegisterAsset(const std::shared_ptr<Asset>& asset)
 {
     if (asset == nullptr)
@@ -98,7 +132,8 @@ bool AssetManager::RegisterAsset(const std::shared_ptr<Asset>& asset)
 
     if (_assetNameMap.contains(asset->GetName()))
     {
-        LOG(L"Failed to register asset {} - asset name {} is already registered!", asset->GetName(), asset->GetAssetID());
+        LOG(L"Failed to register asset {} - asset name {} is already registered!", asset->GetName(),
+            asset->GetAssetID());
         return false;
     }
 
@@ -106,6 +141,7 @@ bool AssetManager::RegisterAsset(const std::shared_ptr<Asset>& asset)
 
     _assetMap[asset->GetAssetID()] = asset;
     _assetNameMap[asset->GetName()] = asset->GetAssetID();
+    _assetTypeMap[asset->GetType()].push_back(asset->GetAssetID());
 
     OnAssetMapChanged();
 
@@ -120,6 +156,15 @@ bool AssetManager::UnregisterAsset(const std::shared_ptr<Asset>& asset)
     }
 
     _assetNameMap.erase(asset->GetName());
+
+    _assetTypeMap[asset->GetType()].erase(std::ranges::find(_assetTypeMap[asset->GetType()],
+                                                            asset->GetAssetID()));
+
+    std::erase_if(_assetTypeMap[asset->GetType()],
+                  [asset](uint64 id)
+                  {
+                      return asset->GetAssetID() == id;
+                  });
 
     if (_assetMap.erase(asset->GetAssetID()) > 0)
     {
@@ -418,7 +463,7 @@ bool AssetManager::Load()
         std::filesystem::path assetPath;
         reader >> assetPath;
 
-        const Type* type = TypeRegistry::Get().FindTypeForID(assetTypeID);
+        Type* type = TypeRegistry::Get().FindTypeForID(assetTypeID);
         if (type == nullptr)
         {
             LOG(L"Loading asset description failed - unknown type {}...", assetPath.wstring());
@@ -443,6 +488,7 @@ bool AssetManager::Load()
         {
             _assetMap[asset->GetAssetID()] = asset;
             _assetNameMap[asset->GetName()] = asset->GetAssetID();
+            _assetTypeMap[type].push_back(asset->GetAssetID());
         }
         else
         {

@@ -4,28 +4,28 @@
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Rendering/Window.h"
 
-void EditableTextBox::SetMinLenght(int32 lenght)
+void EditableTextBox::SetMinLength(int32 length)
 {
-    _minLenght = std::max(0, lenght);
+    _minLength = std::max(0, length);
 
     OnTextChanged();
 }
 
-int32 EditableTextBox::GetMinLenght() const
+int32 EditableTextBox::GetMinLength() const
 {
-    return _maxLenght;
+    return _maxLength;
 }
 
-void EditableTextBox::SetMaxLenght(int32 lenght)
+void EditableTextBox::SetMaxLength(int32 length)
 {
-    _maxLenght = std::max(0, lenght);
+    _maxLength = std::max(0, length);
 
     OnTextChanged();
 }
 
-int32 EditableTextBox::GetMaxLenght() const
+int32 EditableTextBox::GetMaxLength() const
 {
-    return _maxLenght;
+    return _maxLength;
 }
 
 void EditableTextBox::SetCursorPosition(int32 position)
@@ -97,7 +97,7 @@ void EditableTextBox::OnTextChanged()
         return;
     }
 
-    Vector2 windowSize;
+    Vector2 windowSize = {1920.0f, 1080.0f};
     if (const std::shared_ptr<Window> window = GetParentWindow())
     {
         windowSize = Vector2(static_cast<float>(window->GetWidth()), static_cast<float>(window->GetHeight()));
@@ -105,9 +105,9 @@ void EditableTextBox::OnTextChanged()
 
     int32 numSpaces = 0;
     const std::wstring& text = GetText();
-    if (text.size() < _minLenght)
+    if (text.size() < _minLength)
     {
-        numSpaces = _minLenght - static_cast<int32>(text.size());
+        numSpaces = _minLength - static_cast<int32>(text.size());
     }
 
     Vector2 spaceSize;
@@ -125,6 +125,8 @@ void EditableTextBox::OnTextChanged()
     const Vector2 desiredSize = (Vector2(spriteFont->MeasureString(GetText().c_str(), false)) + spaceSize) / windowSize;
 
     SetDesiredSize(desiredSize);
+
+    OnValueChanged.Broadcast(GetText());
 }
 
 void EditableTextBox::OnFocusChanged(bool focused)
@@ -141,17 +143,17 @@ void EditableTextBox::OnFocusChanged(bool focused)
         {
             switch (key)
             {
-                case EKey::Left:
+            case EKey::Left:
                 {
                     SetCursorPosition(GetCursorPosition() - 1);
                     break;
                 }
-                case EKey::Right:
+            case EKey::Right:
                 {
                     SetCursorPosition(GetCursorPosition() + 1);
                     break;
                 }
-                case EKey::Backspace:
+            case EKey::Backspace:
                 {
                     if (GetCursorPosition() > 0)
                     {
@@ -164,13 +166,14 @@ void EditableTextBox::OnFocusChanged(bool focused)
                     }
                     break;
                 }
-                default:
+            default:
                 {
-                    if (GetText().size() >= _maxLenght)
+                    if (GetText().size() >= _maxLength)
                     {
                         break;
                     }
 
+                    // todo this should be char and then converted to wchar_t
                     wchar_t c = static_cast<wchar_t>(key);
                     if (key == EKey::Space)
                     {
@@ -183,16 +186,16 @@ void EditableTextBox::OnFocusChanged(bool focused)
 
                     if (key == EKey::Tab)
                     {
-                        break;  // Not supported by DirectXTK fonts
+                        break; // Not supported by DirectXTK fonts
                     }
 
-                    if (iswalnum(c) || iswspace(c))
+                    if (iswprint(c))
                     {
                         const InputSubsystem& inputSubsystem = InputSubsystem::Get();
 
                         if (!inputSubsystem.IsCapsLockToggled() && !inputSubsystem.IsKeyDown(EKey::Shift))
                         {
-                            c = static_cast<char>(std::tolower(c));
+                            c = static_cast<wchar_t>(std::tolower(c));
                         }
 
                         std::wstring text = GetText();

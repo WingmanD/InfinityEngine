@@ -6,13 +6,14 @@
 #include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Widgets/CanvasPanel.h"
 #include "Widgets/Checkbox.h"
-#include "Widgets/EditableTextBox.h"
-#include "Widgets/TextBox.h"
 #include "Widgets/UIStatics.h"
-#include "Widgets/FlowBox.h"
 #include <memory>
-#include "Widgets/DropdownMenu.h"
-#include "Widgets/DropdownTypeChoice.h"
+
+#include "StaticMeshInstance.h"
+#include "Widgets/AssetPicker.h"
+#include "Widgets/EditableTextBox.h"
+#include "Widgets/FlowBox.h"
+#include "Widgets/TextBox.h"
 
 Window::Window(uint32 width, uint32 height, std::wstring title) :
     _width(width),
@@ -91,185 +92,10 @@ bool Window::Initialize()
     _rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
     _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
 
-    {
-        // const std::shared_ptr<FlowBox> menuWidget = std::make_shared<FlowBox>();
-        // menuWidget->Initialize();
-        // menuWidget->SetDirection(EFlowBoxDirection::Vertical);
-        // _rootWidget->AddChild(menuWidget);
-        // menuWidget->SetDesiredSize({0.33f, 0.66f});
-        // menuWidget->SetCollisionEnabled(false);
-        // {
-        //     WidgetPerPassConstants* param = menuWidget->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-        //     param->BaseColor = Color(0.4f, 0.4f, 0.4f, 1.0f);
-        // }
-        // {
-        //     const std::shared_ptr<Widget> button = std::make_shared<Widget>();
-        //     button->Initialize();
-        //     //button->SetCollisionEnabled(false);
-        //     menuWidget->AddChild(button);
-        //
-        //     const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
-        //     textWidget->Initialize();
-        //     button->AddChild(textWidget);
-        //     textWidget->SetCollisionEnabled(false);
-        //     textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
-        //     textWidget->SetText(L"Main Menu");
-        //     textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
-        //     textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
-        // }
-        // {
-        //     const std::shared_ptr<Widget> button = std::make_shared<Widget>();
-        //     button->Initialize();
-        //     menuWidget->AddChild(button);
-        //
-        //     const std::shared_ptr<TextWidget> textWidget = std::make_shared<TextWidget>();
-        //     textWidget->Initialize();
-        //     button->AddChild(textWidget);
-        //     textWidget->SetCollisionEnabled(false);
-        //     textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
-        //     textWidget->SetText(L"Hello World!");
-        //     textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
-        //     textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
-        // }
-
-        // {
-        //     const std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
-        //     flowBox->Initialize();
-        //     flowBox->SetDirection(EFlowBoxDirection::Vertical);
-        //     flowBox->SetCollisionEnabled(false);
-        //     {
-        //         WidgetPerPassConstants* param = flowBox->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-        //         param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
-        //     }
-        //     _rootWidget->AddChild(flowBox);
-        //
-        //     const std::shared_ptr<Widget> button = std::make_shared<Widget>();
-        //     button->Initialize();
-        //     flowBox->AddChild(button);
-        //
-        //     const std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
-        //     checkbox->Initialize();
-        //     flowBox->AddChild(checkbox);
-        //
-        //     const std::shared_ptr<TextBox> textWidget = std::make_shared<TextBox>();
-        //     textWidget->Initialize();
-        //     button->AddChild(textWidget);
-        //     textWidget->SetCollisionEnabled(false);
-        //     textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
-        //     textWidget->SetText(L"Second Button");
-        //     textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
-        //     textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
-        // }
-
-        // {
-        //     const std::shared_ptr<CanvasPanel> panel = std::make_shared<CanvasPanel>();
-        //     panel->Initialize();
-        //     panel->SetVisibility(false);
-        //     panel->SetCollisionEnabled(false);
-        //     _rootWidget->AddChild(panel);
-        //     
-        //     const std::shared_ptr<FlowBox> menu = std::make_shared<FlowBox>();
-        //     menu->Initialize();
-        //     menu->SetCollisionEnabled(false);
-        //     {
-        //         WidgetPerPassConstants* param = menu->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-        //         param->BaseColor = Color(0.0f, 0.0f, 1.0f, 1.0f);
-        //     }
-        //     panel->AddChild(menu);
-        //
-        //     {
-        //         const std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
-        //         flowBox->Initialize();
-        //         flowBox->SetDirection(EFlowBoxDirection::Horizontal);
-        //         flowBox->SetFillMode(EWidgetFillMode::FillX);
-        //         flowBox->SetCollisionEnabled(false);
-        //         {
-        //             WidgetPerPassConstants* param = flowBox->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-        //             param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
-        //         }
-        //         menu->AddChild(flowBox);
-        //
-        //         const std::shared_ptr<EditableTextBox> editableTextBox = std::make_shared<EditableTextBox>();
-        //         editableTextBox->Initialize();
-        //         editableTextBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-        //         flowBox->AddChild(editableTextBox);
-        //
-        //         const std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
-        //         checkbox->Initialize();
-        //         flowBox->AddChild(checkbox);
-        //     }
-        //     
-        //     {
-        //         const std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
-        //         flowBox->Initialize();
-        //         flowBox->SetDirection(EFlowBoxDirection::Horizontal);
-        //         flowBox->SetFillMode(EWidgetFillMode::FillX);
-        //         flowBox->SetCollisionEnabled(false);
-        //         {
-        //             WidgetPerPassConstants* param = flowBox->GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-        //             param->BaseColor = Color(1.0f, 0.0f, 0.0f, 1.0f);
-        //         }
-        //         menu->AddChild(flowBox);
-        //
-        //         const std::shared_ptr<EditableTextBox> editableTextBox = std::make_shared<EditableTextBox>();
-        //         editableTextBox->Initialize();
-        //         editableTextBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-        //         flowBox->AddChild(editableTextBox);
-        //
-        //         const std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
-        //         checkbox->Initialize();
-        //         flowBox->AddChild(checkbox);
-        //     }
-        // }
-    }
-
-    {
-        std::shared_ptr<DropdownMenu> dropdownMenu = std::make_shared<DropdownMenu>();
-        dropdownMenu->SetChoiceWidgetType(DropdownTypeChoice::StaticType());
-        dropdownMenu->Initialize();
-        _rootWidget->AddChild(dropdownMenu);
+    auto asset = AssetManager::Get().FindAssetByName<Material>(L"DefaultWidgetMaterial");
+    std::shared_ptr<Widget> propertyWidget = asset->GetType()->CreatePropertiesWidget(asset);
+    _rootWidget->AddChild(propertyWidget);
     
-        {
-            std::shared_ptr<DropdownTypeChoice> dropdownTypeChoice = std::make_shared<DropdownTypeChoice>();
-            dropdownTypeChoice->InitializeFromType(StaticMesh::StaticType());
-            dropdownMenu->AddChoice(dropdownTypeChoice);
-        }
-    
-        {
-            std::shared_ptr<DropdownTypeChoice> dropdownTypeChoice = std::make_shared<DropdownTypeChoice>();
-            dropdownTypeChoice->InitializeFromType(DropdownTypeChoice::StaticType());
-            dropdownMenu->AddChoice(dropdownTypeChoice);
-        }
-        
-        // {
-        //     std::shared_ptr<DropdownTypeChoice> dropdownTypeChoice = std::make_shared<DropdownTypeChoice>();
-        //     dropdownTypeChoice->InitializeFromType(Shader::StaticType());
-        //     dropdownMenu->AddChoice(dropdownTypeChoice);
-        // }
-    }
-
-    // {
-    //     const std::shared_ptr<TextBox> textWidget = std::make_shared<TextBox>();
-    //     textWidget->Initialize();
-    //     _rootWidget->AddChild(textWidget);
-    //     textWidget->SetCollisionEnabled(true);
-    //     textWidget->SetFont(AssetManager::Get().FindAssetByName<Font>(L"Arial"));
-    //     textWidget->SetText(L"Hello World!");
-    //     textWidget->SetTextColor({0.9f, 0.9f, 0.9f, 1.0f});
-    //     textWidget->SetPadding({0.01f, 0.01f, 0.005f, 0.005f});
-    //     textWidget->SetAnchor(EWidgetAnchor::TopLeft);
-    //     textWidget->SetPosition({0.1f, -0.05f});
-    // }
-    //
-    // {
-    //     const std::shared_ptr<Widget> newWidget = std::make_shared<Widget>();
-    //     newWidget->Initialize();
-    //     _rootWidget->AddChild(newWidget);
-    //     newWidget->SetSize({0.2f, 0.1f});
-    //     newWidget->SetAnchor(EWidgetAnchor::TopRight);
-    //     newWidget->SetPosition({-0.1f, -0.05f});
-    // }
-
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});
 

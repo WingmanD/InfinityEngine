@@ -3,6 +3,7 @@
 #include "Singleton.h"
 #include "Type.h"
 #include "Util.h"
+#include "TypeTraits.h"
 #include <cstdint>
 #include <unordered_map>
 
@@ -44,6 +45,12 @@ public:
 
     Type* FindTypeForID(uint64_t id);
     Type* FindTypeByName(const std::string& name);
+
+    template <typename T>
+    Type* FindType()
+    {
+        return FindTypeByName(NameOf<T>());
+    }
 
     void LogRegisteredTypes() const;
 

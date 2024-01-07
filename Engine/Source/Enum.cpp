@@ -25,6 +25,11 @@ const std::vector<Attribute>& Enum::GetAttributes() const
     return _attributes;
 }
 
+const std::unordered_map<std::string, uint32_t>& Enum::GetEntries() const
+{
+    return _entriesByName;
+}
+
 Enum::Enum(std::string name) : _name(std::move(name))
 {
 }

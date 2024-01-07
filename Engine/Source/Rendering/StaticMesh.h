@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Asset.h"
+#include "AssetPtr.h"
 #include "Material.h"
 #include "StaticMeshRenderingData.h"
 #include "StaticMesh.reflection.h"
@@ -16,16 +17,17 @@ struct Vertex
 };
 
 REFLECTED()
+
 class StaticMesh : public Asset
 {
     GENERATED()
 
 public:
     StaticMesh() = default;
-    
+
     StaticMesh(const StaticMesh& other);
     StaticMesh& operator=(const StaticMesh& other);
-    
+
     explicit StaticMesh(std::wstring name);
 
     virtual bool Initialize() override;
@@ -54,7 +56,7 @@ private:
     std::vector<uint32_t> _indices;
 
     PROPERTY(Load)
-    std::shared_ptr<Material> _material;
+    AssetPtr<Material> _material;
 
     std::unique_ptr<StaticMeshRenderingData> _renderingData;
 };

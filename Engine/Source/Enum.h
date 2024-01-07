@@ -1,10 +1,9 @@
 ﻿#pragma once
 
 #include "PassKey.h"
+#include "ReflectionShared.h"
 #include <string>
 #include <unordered_map>
-
-#include "ReflectionShared.h"
 
 class EnumRegistry;
 
@@ -57,6 +56,8 @@ public:
     bool IsBitField() const;
 
     const std::vector<Attribute>& GetAttributes() const;
+
+    const std::unordered_map<std::string, uint32_t>& GetEntries() const;
 
 private:
     std::string _name;

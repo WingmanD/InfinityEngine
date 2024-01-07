@@ -1,10 +1,8 @@
 ﻿#pragma once
 
 #include "Asset.h"
+#include "StaticMesh.h"
 #include "StaticMeshInstance.reflection.h"
-
-class Material;
-class StaticMesh;
 
 REFLECTED(InstancedOnly)
 class StaticMeshInstance : public Asset
@@ -22,9 +20,9 @@ public:
     void SetMaterial(const std::shared_ptr<Material>& material);
 
 private:
-    PROPERTY(EditableInEditor, Load, DisplayName = "Mesh")
-    std::shared_ptr<StaticMesh> _mesh;
+    PROPERTY(Edit, Load, DisplayName = "Mesh")
+    AssetPtr<StaticMesh> _mesh;
     
-    PROPERTY(EditableInEditor, Load, DisplayName = "Material")
-    std::shared_ptr<Material> _material;
+    PROPERTY(Edit, Load, DisplayName = "Material")
+    AssetPtr<Material> _material;
 };

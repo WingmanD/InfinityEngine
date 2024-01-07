@@ -8,15 +8,8 @@
 #include <vector>
 #include <memory>
 #include <optional>
-#include <typeinfo>
 
 class Object;
-
-template <typename T>
-concept IsReflectedType = requires
-{
-    T::StaticType();
-};
 
 class Type
 {
@@ -84,6 +77,12 @@ public:
 
     bool IsA(const Type* type) const;
 
+    template <typename T> requires IsReflectedType<T>
+    bool IsA() const
+    {
+        return IsA(T::StaticType());
+    }
+
     bool HasA(const Type* type) const;
 
     [[nodiscard]] const Object* GetCDO() const;
@@ -107,6 +106,8 @@ public:
     
     const std::vector<Type*>& GetParentTypes() const;
     const std::vector<Type*>& GetSubtypes() const;
+
+    bool ForEachSubtype(const std::function<bool(Type*)>& callback, bool recursive = false);
 
     template <typename ValueType, typename ObjectType>
     std::optional<ValueType> GetProperty(const ObjectType* object, const std::string& name) const
@@ -148,7 +149,10 @@ public:
         return property->GetRef(object);
     }
 
+    bool ForEachProperty(const std::function<bool(PropertyBase*)>& callback) const;
     bool ForEachPropertyWithTag(const std::string& tag, const std::function<bool(PropertyBase*)>& callback) const;
+
+    std::shared_ptr<Widget> CreatePropertiesWidget(const std::shared_ptr<Object>& object) const;
 
     friend auto operator<=>(const Type& lhs, const Type& rhs);
 

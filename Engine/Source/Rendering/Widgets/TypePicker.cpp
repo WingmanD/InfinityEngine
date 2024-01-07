@@ -1,0 +1,133 @@
+﻿#include "TypePicker.h"
+#include "TextBox.h"
+
+DropdownTypeChoice::DropdownTypeChoice(const DropdownTypeChoice& other) : DropdownTextChoice(other)
+{
+    _type = other._type;
+}
+
+DropdownTypeChoice& DropdownTypeChoice::operator=(const DropdownTypeChoice& other)
+{
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    return *this;
+}
+
+bool DropdownTypeChoice::InitializeFromType(Type* type)
+{
+    if (type == nullptr)
+    {
+        DEBUG_BREAK();
+        return false;
+    }
+
+    if (!Initialize())
+    {
+        return false;
+    }
+
+    return InitializeFromTypeInternal(type);
+}
+
+Type* DropdownTypeChoice::GetSelectedType() const
+{
+    return _type;
+}
+
+bool DropdownTypeChoice::InitializeFromTypeInternal(Type* type)
+{
+    if (type == nullptr)
+    {
+        DEBUG_BREAK();
+        return false;
+    }
+
+    const std::shared_ptr<TextBox> textWidget = GetTextBox();
+    textWidget->SetText(Util::ToWString(type->GetName()));
+
+    return true;
+}
+
+std::shared_ptr<TypePicker> TypePicker::CreateForType(Type* baseType)
+{
+    if (baseType == nullptr)
+    {
+        DEBUG_BREAK();
+        return nullptr;
+    }
+
+    const std::shared_ptr<TypePicker> typePicker = std::make_shared<TypePicker>();
+    typePicker->InitializeFromType(baseType);
+
+    return typePicker;
+}
+
+void TypePicker::InitializeFromType(Type* baseType)
+{
+    if (baseType == nullptr)
+    {
+        DEBUG_BREAK();
+        return;
+    }
+
+    _baseType = baseType;
+
+    baseType->ForEachSubtype([this](Type* type)
+                             {
+                                 const std::shared_ptr<DropdownTypeChoice> choice = std::make_shared<
+                                     DropdownTypeChoice>();
+                                 if (!choice->InitializeFromType(type))
+                                 {
+                                     DEBUG_BREAK();
+                                     return false;
+                                 }
+
+                                 AddChoice(choice);
+
+                                 return true;
+                             },
+                             true);
+}
+
+Type* TypePicker::GetBaseType() const
+{
+    return _baseType;
+}
+
+Type* TypePicker::GetSelectedType() const
+{
+    const std::shared_ptr<DropdownTypeChoice> selectedWidget = GetSelectedChoice<DropdownTypeChoice>();
+    if (selectedWidget == nullptr)
+    {
+        return nullptr;
+    }
+
+    return selectedWidget->GetSelectedType();
+}
+
+void TypePicker::SetSelectedType(const Type* type)
+{
+    if (type == nullptr)
+    {
+        DEBUG_BREAK();
+        return;
+    }
+
+    for (const std::shared_ptr<Widget>& widget : GetChoices())
+    {
+        const std::shared_ptr<DropdownTypeChoice> choice = std::dynamic_pointer_cast<DropdownTypeChoice>(widget);
+        if (choice == nullptr)
+        {
+            continue;
+        }
+
+        if (choice->GetSelectedType() == type)
+        {
+            SetSelectedChoice(choice);
+            return;
+        }
+    }
+}

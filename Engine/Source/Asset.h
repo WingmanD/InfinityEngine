@@ -52,13 +52,13 @@ protected:
 private:
     uint64 _id = 0;
 
-    PROPERTY(Editable, DisplayName = "Name")
+    PROPERTY(Edit, DisplayName = "Name")
     std::wstring _name;
 
-    PROPERTY(Visible, DisplayName = "Import Path")
+    PROPERTY(DisplayName = "Import Path")
     std::filesystem::path _importPath;
 
-    PROPERTY(Visible, DisplayName = "Asset Path")
+    PROPERTY(DisplayName = "Asset Path")
     std::filesystem::path _assetPath;
 
     bool _isLoaded = false;

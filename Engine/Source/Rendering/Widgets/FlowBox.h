@@ -3,6 +3,7 @@
 #include "Widget.h"
 #include "FlowBox.reflection.h"
 
+REFLECTED()
 enum class EFlowBoxDirection : uint8
 {
     Horizontal,
@@ -34,6 +35,6 @@ private:
     void UpdateLayout();
 
 private:
-    PROPERTY(EditableInEditor, DisplayName = "Direction")
+    PROPERTY(Edit, DisplayName = "Direction")
     EFlowBoxDirection _direction = EFlowBoxDirection::Vertical;
 };

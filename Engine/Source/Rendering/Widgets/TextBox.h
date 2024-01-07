@@ -70,7 +70,7 @@ private:
     std::wstring _text;
 
     PROPERTY(EditInEditor, Load, DisplayName = "Font")
-    std::shared_ptr<Font> _font;
+    AssetPtr<Font> _font;
 
     PROPERTY(EditInEditor, DisplayName = "Font Type")
     Font::EType _fontType = Font::EType::Regular;

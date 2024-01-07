@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "AssetPtrBase.h"
 #include "Engine/Subsystems/AssetManager.h"
 
 Asset::Asset(std::wstring name) : _name(std::move(name))
@@ -114,7 +115,7 @@ bool Asset::Load()
     GetType()->ForEachPropertyWithTag("Load", [this](PropertyBase* property)
     {
         // todo this should be dynamic cast
-        const std::shared_ptr<Asset> valueRef = static_cast<Property<Asset, std::shared_ptr<Asset>>*>(property)->GetRef(this);
+        const std::shared_ptr<Asset> valueRef = static_cast<Property<Asset, AssetPtrBase>*>(property)->GetRef(this);
         if (valueRef == nullptr)
         {
             return true;

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "TextBox.h"
-#include "EditableTextBox.reflection.h"
 #include "Delegate.h"
+#include "EditableTextBox.reflection.h"
 
 class Caret;
 
@@ -12,16 +12,19 @@ class EditableTextBox : public TextBox
     GENERATED()
 
 public:
+    Delegate<const std::wstring&> OnValueChanged;
+
+public:
     EditableTextBox() = default;
 
     EditableTextBox(const EditableTextBox& other) = default;
     EditableTextBox& operator=(const EditableTextBox& other) = default;
 
-    void SetMinLenght(int32 lenght);
-    int32 GetMinLenght() const;
+    void SetMinLength(int32 length);
+    int32 GetMinLength() const;
 
-    void SetMaxLenght(int32 lenght);
-    int32 GetMaxLenght() const;
+    void SetMaxLength(int32 length);
+    int32 GetMaxLength() const;
 
     void SetCursorPosition(int32 position);
     int32 GetCursorPosition() const;
@@ -33,18 +36,18 @@ public:
     // TextBox
 protected:
     virtual void OnTextChanged() override;
-    
+
     // Widget
 protected:
     virtual void OnFocusChanged(bool focused) override;
 
 private:
-    PROPERTY(EditableInEditor, DisplayName = "Min Lenght")
-    int32 _minLenght = 5;
-    
-    PROPERTY(EditableInEditor, DisplayName = "Max Lenght")
-    int32 _maxLenght = 100;
-    
+    PROPERTY(Edit, DisplayName = "Min Lenght")
+    int32 _minLength = 5;
+
+    PROPERTY(Edit, DisplayName = "Max Lenght")
+    int32 _maxLength = 100;
+
     int32 _cursorPosition = 0;
 
     DelegateHandle _onKeyDownHandle;

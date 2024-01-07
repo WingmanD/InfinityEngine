@@ -1,6 +1,8 @@
 #include <sstream>
 #include "Type.h"
 #include "Object.h"
+#include "Rendering/Widgets/FlowBox.h"
+#include "Rendering/Widgets/TextBox.h"
 
 Type* Type::WithPropertyMap(PropertyMap&& propertyMap)
 {
@@ -47,7 +49,7 @@ bool Type::IsA(const Type* type) const
         return true;
     }
 
-    for (Type* parentType : _parentTypes)
+    for (const Type* parentType : _parentTypes)
     {
         if (parentType->IsA(type))
         {
@@ -65,7 +67,7 @@ bool Type::HasA(const Type* type) const
         return true;
     }
 
-    for (Type* compositionType : _compositionTypes)
+    for (const Type* compositionType : _compositionTypes)
     {
         if (compositionType->IsA(type))
         {
@@ -110,7 +112,7 @@ uint64_t Type::HashTypeName(const std::string& str)
 {
     uint64_t hash = 5381;
 
-    for (char c : str)
+    for (const char c : str)
     {
         hash = ((hash << 5) + hash) ^ c;
     }
@@ -148,7 +150,44 @@ const std::vector<Type*>& Type::GetSubtypes() const
     return _subtypes;
 }
 
-bool Type::ForEachPropertyWithTag(const std::string& tag, const std::function<bool(PropertyBase*)>& callback) const
+bool Type::ForEachSubtype(const std::function<bool(Type*)>& callback, bool recursive)
+{
+    callback(this);
+
+    if (recursive)
+    {
+        for (Type* subtype : _subtypes)
+        {
+            if (!subtype->ForEachSubtype(callback, recursive))
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool Type::ForEachProperty(const std::function<bool(PropertyBase*)>& callback) const
+{
+    if (!_propertyMap.ForEachProperty(callback))
+    {
+        return false;
+    }
+
+    for (const Type* parentType : _parentTypes)
+    {
+        if (!parentType->ForEachProperty(callback))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Type::ForEachPropertyWithTag(const std::string& tag,
+                                  const std::function<bool(PropertyBase*)>& callback) const
 {
     if (!_propertyMap.ForEachPropertyWithTag(tag, callback))
     {
@@ -164,6 +203,67 @@ bool Type::ForEachPropertyWithTag(const std::string& tag, const std::function<bo
     }
 
     return true;
+}
+
+std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Object>& object) const
+{
+    if (object == nullptr)
+    {
+        DEBUG_BREAK();
+        return nullptr;
+    }
+
+
+    std::shared_ptr<FlowBox> propertiesWidget = std::make_shared<FlowBox>();
+    if (!propertiesWidget->Initialize())
+    {
+        return nullptr;
+    }
+
+    propertiesWidget->SetDirection(EFlowBoxDirection::Vertical);
+    propertiesWidget->SetCollisionEnabled(false);
+
+    ForEachProperty([&propertiesWidget, &object](PropertyBase* prop)
+    {
+        const std::shared_ptr<FlowBox> propertyHorizontalBox = std::make_shared<FlowBox>();
+        if (!propertyHorizontalBox->Initialize())
+        {
+            return false;
+        }
+
+        propertyHorizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
+        propertyHorizontalBox->SetCollisionEnabled(false);
+        propertiesWidget->AddChild(propertyHorizontalBox);
+
+        const std::shared_ptr<TextBox> nameLabel = std::make_shared<TextBox>();
+        if (!nameLabel->Initialize())
+        {
+            return false;
+        }
+        propertyHorizontalBox->AddChild(nameLabel);
+
+        nameLabel->SetText(prop->GetDisplayName() + L":");
+
+        const Type* propertyType = prop->GetType();
+        if (propertyType != nullptr && !propertyType->IsA<Asset>())
+        {
+            if (const std::shared_ptr<Widget> newWidget = propertyType->CreatePropertiesWidget(object))
+            {
+                propertyHorizontalBox->AddChild(newWidget);
+            }
+        }
+        else
+        {
+            if (const std::shared_ptr<Widget> newWidget = prop->CreateWidget(object))
+            {
+                propertyHorizontalBox->AddChild(newWidget);
+            }
+        }
+
+        return true;
+    });
+
+    return propertiesWidget;
 }
 
 void Type::AddParentType(Type* type)
@@ -182,7 +282,7 @@ void Type::UpdateFullID()
 {
     _fullID = _familyID;
 
-    for (Type* compositionType : _compositionTypes)
+    for (const Type* compositionType : _compositionTypes)
     {
         _fullID ^= compositionType->GetID();
     }

@@ -10,31 +10,40 @@ class BucketArray
 public:
     BucketArray() = default;
 
-    void Add(const T& element)
+    T* Add(const T& element)
     {
         if (!_availableBucketIndices.empty())
         {
             const size_t index = _availableBucketIndices.back();
 
-            _buckets[index]->Add(element);
+            T* ptr = _buckets[index]->Add(element);
             
             if (_buckets[index]->IsFull())
             {
                 _availableBucketIndices.pop_back();
             }
             
-            return;
+            return ptr;
         }
         
         _buckets.push_back(std::make_unique<Bucket>());
+        _buckets.back()->Add(element);
+        
+        _availableBucketIndices.push_back(_buckets.size() - 1);
     }
 
     void Remove(const T& element)
     {
         for (auto& bucket : _buckets)
         {
+            const bool wasFull = bucket->IsFull();
             if (bucket.Remove(element))
             {
+                if (wasFull)
+                {
+                    _availableBucketIndices.push_back(_buckets.size() - 1);
+                }
+                
                 return;
             }
         }

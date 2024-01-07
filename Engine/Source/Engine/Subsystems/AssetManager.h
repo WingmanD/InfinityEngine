@@ -66,6 +66,8 @@ public:
         return std::dynamic_pointer_cast<T>(FindAsset(id));
     }
 
+    bool ForEachAssetOfType(Type* type, const std::function<bool(const std::shared_ptr<Asset>&)>& callback, bool recursive = false) const;
+
     bool RegisterAsset(const std::shared_ptr<Asset>& asset);
     bool UnregisterAsset(const std::shared_ptr<Asset>& asset);
 
@@ -86,9 +88,10 @@ private:
     
     std::unique_ptr<PackageManifest> _manifest;
     std::fstream _assetCache;
-
+    
     std::unordered_map<uint64, std::shared_ptr<Asset>> _assetMap;
     std::unordered_map<std::wstring, uint64> _assetNameMap;
+    std::unordered_map<Type*, std::vector<uint64>> _assetTypeMap;
 
     std::filesystem::path _projectRootPath;
     std::filesystem::path _assetCacheDirectory;
