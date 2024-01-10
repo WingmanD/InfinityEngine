@@ -13,6 +13,10 @@ concept IsA = std::is_base_of_v<Base, Derived>;
 class AssetManager : public EngineSubsystem
 {
 public:
+    Delegate<std::shared_ptr<Asset>> OnAssetCreated;
+    Delegate<std::shared_ptr<Asset>> OnAssetDeleted;
+    
+public:
     static AssetManager& Get();
 
     ~AssetManager() override;
@@ -67,6 +71,7 @@ public:
     }
 
     bool ForEachAssetOfType(Type* type, const std::function<bool(const std::shared_ptr<Asset>&)>& callback, bool recursive = false) const;
+    void ForEachAsset(const std::function<bool(std::shared_ptr<Asset>&)>& callback);
 
     bool RegisterAsset(const std::shared_ptr<Asset>& asset);
     bool UnregisterAsset(const std::shared_ptr<Asset>& asset);

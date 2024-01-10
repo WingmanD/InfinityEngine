@@ -17,18 +17,21 @@ class StaticMeshInstance;
 class Window;
 
 REFLECTED(BitField)
+
 enum class EWidgetState : uint8
 {
-    None             = 0,
-    Enabled          = 1 << 0,
-    Visible          = 1 << 1,
+    None = 0,
+    Enabled = 1 << 0,
+    Visible = 1 << 1,
     CollisionEnabled = 1 << 2,
-    Collapsed        = 1 << 3,
-    Focused          = 1 << 4,
+    Collapsed = 1 << 3,
+    Focused = 1 << 4,
 };
+
 ENABLE_ENUM_OPS(EWidgetState)
 
 REFLECTED()
+
 enum class EWidgetAnchor : uint8
 {
     TopLeft,
@@ -43,6 +46,7 @@ enum class EWidgetAnchor : uint8
 };
 
 REFLECTED(BitField)
+
 enum class EWidgetFillMode : uint8
 {
     None = 0,
@@ -50,9 +54,11 @@ enum class EWidgetFillMode : uint8
     FillY = 1 << 1,
     RetainAspectRatio = 1 << 2,
 };
+
 ENABLE_ENUM_OPS(EWidgetFillMode)
 
 REFLECTED()
+
 class Widget : public Asset
 {
     GENERATED()
@@ -132,10 +138,27 @@ public:
     const Transform2D& GetTransform() const;
     Transform2D GetTransformWS() const;
 
+    void SetZOrder(uint16 zOrder);
+
     void SetMaterial(const std::shared_ptr<Material>& material);
     std::shared_ptr<Material> GetMaterial() const;
 
     void AddChild(const std::shared_ptr<Widget>& widget);
+
+    template <typename T> requires std::is_base_of_v<Widget, T>
+    std::shared_ptr<T> AddChild()
+    {
+        std::shared_ptr<T> widget = std::make_shared<T>();
+        if (!widget->Initialize())
+        {
+            return nullptr;
+        }
+
+        AddChild(widget);
+
+        return widget;
+    }
+
     void RemoveChild(const std::shared_ptr<Widget>& widget);
     const std::vector<std::shared_ptr<Widget>>& GetChildren() const;
     void RemoveFromParent();
@@ -206,8 +229,6 @@ protected:
     void OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child);
     virtual void OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child);
 
-    void SetZOrder(uint16 zOrder);
-
     virtual void OnPressedInternal();
     virtual void OnReleasedInternal();
 
@@ -230,7 +251,7 @@ private:
 
     PROPERTY(Edit, DisplayName = "Size")
     EWidgetAnchor _anchor = EWidgetAnchor::Center;
-    
+
     PROPERTY(Edit, DisplayName = "Fill Mode")
     EWidgetFillMode _fillMode = EWidgetFillMode::None;
 

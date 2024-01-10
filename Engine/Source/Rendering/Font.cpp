@@ -70,7 +70,6 @@ std::shared_ptr<Font> Font::Import(AssetManager& assetManager, const std::filesy
         return nullptr;
     }
 
-
     std::shared_ptr<Font> font = assetManager.NewAsset<Font>(Util::ToWString(name));
     font->_bitmapPathBase = fontPath / legalName;
     if (!font->Initialize())

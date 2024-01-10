@@ -24,12 +24,12 @@ bool DropdownTypeChoice::InitializeFromType(Type* type)
         return false;
     }
 
-    if (!Initialize())
-    {
-        return false;
-    }
+    _type = type;
 
-    return InitializeFromTypeInternal(type);
+    const std::shared_ptr<TextBox> textWidget = GetTextBox();
+    textWidget->SetText(Util::ToWString(_type->GetName()));
+
+    return true;
 }
 
 Type* DropdownTypeChoice::GetSelectedType() const
@@ -37,16 +37,20 @@ Type* DropdownTypeChoice::GetSelectedType() const
     return _type;
 }
 
-bool DropdownTypeChoice::InitializeFromTypeInternal(Type* type)
+bool DropdownTypeChoice::Initialize()
 {
-    if (type == nullptr)
+    if (!DropdownTextChoice::Initialize())
     {
-        DEBUG_BREAK();
         return false;
     }
 
-    const std::shared_ptr<TextBox> textWidget = GetTextBox();
-    textWidget->SetText(Util::ToWString(type->GetName()));
+    if (_type != nullptr)
+    {
+        if (!InitializeFromType(_type))
+        {
+            return false;
+        }
+    }
 
     return true;
 }
@@ -67,7 +71,7 @@ std::shared_ptr<TypePicker> TypePicker::CreateForType(Type* baseType)
 
 void TypePicker::InitializeFromType(Type* baseType)
 {
-    if (baseType == nullptr)
+    if (baseType == nullptr || _baseType != nullptr)
     {
         DEBUG_BREAK();
         return;
@@ -79,6 +83,11 @@ void TypePicker::InitializeFromType(Type* baseType)
                              {
                                  const std::shared_ptr<DropdownTypeChoice> choice = std::make_shared<
                                      DropdownTypeChoice>();
+                                 if (!choice->Initialize())
+                                 {
+                                     return false;
+                                 }
+
                                  if (!choice->InitializeFromType(type))
                                  {
                                      DEBUG_BREAK();

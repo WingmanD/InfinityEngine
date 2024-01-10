@@ -9,11 +9,9 @@
 #include "Widgets/UIStatics.h"
 #include <memory>
 
-#include "StaticMeshInstance.h"
-#include "Widgets/AssetPicker.h"
-#include "Widgets/EditableTextBox.h"
-#include "Widgets/FlowBox.h"
-#include "Widgets/TextBox.h"
+#include "Widgets/AssetBrowser.h"
+#include "Widgets/AssetCreatorMenu.h"
+#include "Widgets/TypePicker.h"
 
 Window::Window(uint32 width, uint32 height, std::wstring title) :
     _width(width),
@@ -92,14 +90,23 @@ bool Window::Initialize()
     _rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
     _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
 
-    auto asset = AssetManager::Get().FindAssetByName<Material>(L"DefaultWidgetMaterial");
-    std::shared_ptr<Widget> propertyWidget = asset->GetType()->CreatePropertiesWidget(asset);
-    _rootWidget->AddChild(propertyWidget);
+    const std::shared_ptr<AssetBrowser> assetBrowser = _rootWidget->AddChild<AssetBrowser>();
+    if (assetBrowser == nullptr)
+    {
+        return false;
+    }
+    
+    // auto typePicker = _rootWidget->AddChild<TypePicker>();
+    // if (typePicker == nullptr)
+    // {
+    //     return false;
+    // }
+    // typePicker->InitializeFromType(Object::StaticType());
     
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});
 
-    _onLMBDownHandle = inputSubsystem.OnMouseLeftButtonDown.Subscribe([this]()
+    _onLMBDownHandle = inputSubsystem.OnMouseLeftButtonDown.Add([this]()
     {
         if (_pressedWidget.lock() != nullptr)
         {
@@ -126,7 +133,7 @@ bool Window::Initialize()
         }
     });
 
-    _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Subscribe([this]()
+    _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Add([this]()
     {
         if (const std::shared_ptr<Widget> interactedWidget = _pressedWidget.lock())
         {
@@ -142,7 +149,7 @@ bool Window::Initialize()
         }
     });
 
-    _onMouseMovedHandle = inputSubsystem.OnMouseMoved.Subscribe([this](const Vector2 mousePosition)
+    _onMouseMovedHandle = inputSubsystem.OnMouseMoved.Add([this](const Vector2 mousePosition)
     {
         const std::shared_ptr<Widget> previousHoveredWidget = _hoveredWidget.lock();
 
@@ -261,8 +268,8 @@ Widget* Window::GetWidgetUnderCursor()
 void Window::OnDestroyed()
 {
     RenderingSubsystem::Get().OnWindowDestroyed(this);
-    InputSubsystem::Get().OnMouseLeftButtonDown.Unsubscribe(_onLMBDownHandle);
-    InputSubsystem::Get().OnMouseLeftButtonUp.Unsubscribe(_onLMBUpHandle);
+    InputSubsystem::Get().OnMouseLeftButtonDown.Remove(_onLMBDownHandle);
+    InputSubsystem::Get().OnMouseLeftButtonUp.Remove(_onLMBUpHandle);
 }
 
 void Window::OnResized()

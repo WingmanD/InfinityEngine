@@ -139,7 +139,7 @@ void EditableTextBox::OnFocusChanged(bool focused)
     {
         caret->SetVisibility(true);
 
-        _onKeyDownHandle = inputSubsystem.OnAnyKeyDown.Subscribe([this](EKey key)
+        _onKeyDownHandle = inputSubsystem.OnAnyKeyDown.Add([this](EKey key)
         {
             switch (key)
             {
@@ -211,7 +211,7 @@ void EditableTextBox::OnFocusChanged(bool focused)
     {
         caret->SetVisibility(false);
 
-        inputSubsystem.OnAnyKeyDown.Unsubscribe(_onKeyDownHandle);
+        inputSubsystem.OnAnyKeyDown.Remove(_onKeyDownHandle);
     }
 }
 

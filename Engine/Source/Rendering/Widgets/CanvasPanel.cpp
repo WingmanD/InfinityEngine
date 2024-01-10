@@ -9,6 +9,11 @@ void CanvasPanel::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget
 {
     Widget::OnChildDesiredSizeChangedInternal(child);
 
+    if (child == nullptr)
+    {
+        return;
+    }
+
     const Vector2 screenSize = GetScreenRelativeSize();
     if (screenSize.LengthSquared() <= 0.0f)
     {

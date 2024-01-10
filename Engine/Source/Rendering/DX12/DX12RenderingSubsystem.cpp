@@ -323,21 +323,21 @@ bool DX12RenderingSubsystem::Initialize()
     _rtvHeap = DescriptorHeap(_device.Get(), rtvHeapDesc);
 
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-    dsvHeapDesc.NumDescriptors = 100;
+    dsvHeapDesc.NumDescriptors = 10;
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     dsvHeapDesc.NodeMask = 0;
     _dsvHeap = DescriptorHeap(_device.Get(), dsvHeapDesc);
 
     D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
-    cbvHeapDesc.NumDescriptors = 100;
+    cbvHeapDesc.NumDescriptors = 1024;
     cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     cbvHeapDesc.NodeMask = 0;
     _cbvHeap = std::make_shared<DescriptorHeap>(_device.Get(), cbvHeapDesc);
 
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc;
-    srvHeapDesc.NumDescriptors = 100;
+    srvHeapDesc.NumDescriptors = 1024;
     srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     srvHeapDesc.NodeMask = 0;

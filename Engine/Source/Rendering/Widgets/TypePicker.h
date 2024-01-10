@@ -19,11 +19,11 @@ public:
 
     Type* GetSelectedType() const;
 
-private:
-    Type* _type = nullptr;
+public:
+    bool Initialize() override;
 
 private:
-    bool InitializeFromTypeInternal(Type* type);
+    Type* _type = nullptr;
 };
 
 REFLECTED()

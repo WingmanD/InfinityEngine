@@ -16,7 +16,7 @@ std::shared_ptr<Widget> CreateWidgetForNumber(const std::shared_ptr<Object>& obj
 
     textBox->SetText(std::to_wstring(*value));
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, textBox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
         if (object == nullptr)
         {
@@ -27,7 +27,7 @@ std::shared_ptr<Widget> CreateWidgetForNumber(const std::shared_ptr<Object>& obj
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -36,7 +36,7 @@ std::shared_ptr<Widget> CreateWidgetForNumber(const std::shared_ptr<Object>& obj
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -56,7 +56,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForNumber(const std::shared_ptr<Obje
 
     textBox->SetText(std::to_wstring(*value));
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, textBox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
         if (object == nullptr)
         {
@@ -67,7 +67,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForNumber(const std::shared_ptr<Obje
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -76,11 +76,11 @@ std::shared_ptr<Widget> CreateEditableWidgetForNumber(const std::shared_ptr<Obje
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
-    textBox->OnValueChanged.Subscribe([object, value](const std::wstring& newText)
+    textBox->OnValueChanged.Add([object, value](const std::wstring& newText)
     {
         if (object == nullptr)
         {

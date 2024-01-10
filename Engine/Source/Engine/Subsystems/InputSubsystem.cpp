@@ -317,7 +317,7 @@ bool InputSubsystem::Initialize()
 
     _mouseState = _mouse->GetState();
 
-    GetKey(EKey::CapsLock).OnKeyDown.Subscribe([this]()
+    GetKey(EKey::CapsLock).OnKeyDown.Add([this]()
     {
         _isCapsLockToggled = !_isCapsLockToggled;
     });

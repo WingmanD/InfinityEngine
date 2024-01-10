@@ -27,7 +27,7 @@ void Material::SetShader(const std::shared_ptr<Shader>& shader)
 
     if (_shader != nullptr)
     {
-        _shader->OnRecompiled.Unsubscribe(_materialParameterMapChangedHandle);
+        _shader->OnRecompiled.Remove(_materialParameterMapChangedHandle);
     }
 
     _shader = shader;
@@ -113,7 +113,7 @@ bool Material::Deserialize(MemoryReader& reader)
 void Material::OnShaderChanged()
 {
     std::weak_ptr weakThis = shared_from_this();
-    _materialParameterMapChangedHandle = _shader->OnRecompiled.Subscribe([weakThis](const Shader* shader)
+    _materialParameterMapChangedHandle = _shader->OnRecompiled.Add([weakThis](const Shader* shader)
     {
         std::shared_ptr<Material> sharedThis = std::static_pointer_cast<Material>(weakThis.lock());
         if (sharedThis == nullptr)

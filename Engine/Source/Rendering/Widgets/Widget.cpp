@@ -29,7 +29,6 @@ std::array<const Vector2, 9> Widget::_anchorPositionMap = {
 Widget::Widget()
 {
     SetVisibility(true);
-    SetCollisionEnabled(true);
 }
 
 Widget::Widget(const Widget& other) : Asset(other)
@@ -348,8 +347,6 @@ void Widget::SetDesiredSize(const Vector2& size)
 {
     _desiredSize = size;
 
-    TRACE_LOG("Widget {} desired size set to {}, {}", GetType()->GetName(), size.x, size.y);
-
     if (const std::shared_ptr<Widget> parent = GetParentWidget())
     {
         parent->OnChildDesiredSizeChanged(SharedFromThis());
@@ -402,6 +399,24 @@ Transform2D Widget::GetTransformWS() const
     return _transform;
 }
 
+void Widget::SetZOrder(uint16 zOrder)
+{
+    if (zOrder == _zOrder)
+    {
+        return;
+    }
+    
+    _zOrder = zOrder;
+
+    _quadTransform.SetZOffset(1.0f - static_cast<float>(zOrder) / 100.0f);
+
+    const uint16 childZOrder = zOrder + 1;
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->SetZOrder(childZOrder);
+    }
+}
+
 void Widget::SetMaterial(const std::shared_ptr<Material>& material)
 {
     // todo unlink old material and shared param
@@ -425,6 +440,7 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget)
 {
     if (widget == nullptr)
     {
+        DEBUG_BREAK();
         return;
     }
 
@@ -589,6 +605,11 @@ const BoundingBox2D& Widget::GetBoundingBox() const
 
 void Widget::Pressed(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnPressedInternal();
 
     OnPressed.Broadcast();
@@ -596,6 +617,11 @@ void Widget::Pressed(PassKey<Window>)
 
 void Widget::Released(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnReleasedInternal();
 
     OnReleased.Broadcast();
@@ -603,6 +629,11 @@ void Widget::Released(PassKey<Window>)
 
 void Widget::HoverStarted(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnHoverStartedInternal();
 
     OnHoverStarted.Broadcast();
@@ -610,6 +641,11 @@ void Widget::HoverStarted(PassKey<Window>)
 
 void Widget::HoverEnded(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnHoverEndedInternal();
 
     OnHoverEnded.Broadcast();
@@ -617,6 +653,11 @@ void Widget::HoverEnded(PassKey<Window>)
 
 void Widget::DragStarted(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnDragStartedInternal();
 
     OnDragStarted.Broadcast();
@@ -624,6 +665,11 @@ void Widget::DragStarted(PassKey<Window>)
 
 void Widget::DragEnded(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnDragEndedInternal();
 
     OnDragEnded.Broadcast();
@@ -631,6 +677,11 @@ void Widget::DragEnded(PassKey<Window>)
 
 void Widget::RightClickPressed(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnRightClickPressedInternal();
 
     OnRightClickPressed.Broadcast();
@@ -638,6 +689,11 @@ void Widget::RightClickPressed(PassKey<Window>)
 
 void Widget::RightClickReleased(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnRightClickReleasedInternal();
 
     OnRightClickReleased.Broadcast();
@@ -645,6 +701,11 @@ void Widget::RightClickReleased(PassKey<Window>)
 
 void Widget::MiddleClickPressed(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnMiddleClickPressedInternal();
 
     OnMiddleClickPressed.Broadcast();
@@ -652,6 +713,11 @@ void Widget::MiddleClickPressed(PassKey<Window>)
 
 void Widget::MiddleClickReleased(PassKey<Window>)
 {
+    if (!IsEnabled())
+    {
+        return;
+    }
+    
     OnMiddleClickReleasedInternal();
 
     OnMiddleClickReleased.Broadcast();
@@ -790,19 +856,6 @@ void Widget::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& ch
     }
 
     SetDesiredSize(maxChildPaddedDesiredSize);
-}
-
-void Widget::SetZOrder(uint16 zOrder)
-{
-    _zOrder = zOrder;
-
-    _quadTransform.SetZOffset(1 - static_cast<float>(zOrder) / 100.0f);
-
-    const uint16 childZOrder = zOrder + 1;
-    for (const std::shared_ptr<Widget>& widget : _children)
-    {
-        widget->SetZOrder(childZOrder);
-    }
 }
 
 void Widget::OnPressedInternal()

@@ -17,7 +17,7 @@ void DropdownMenu::AddChoice(const std::shared_ptr<Widget>& choice)
         OnChoiceSelected(choice);
     }
 
-    _choiceReleasedHandle = choice->OnReleased.Subscribe([this, choice]()
+    _choiceReleasedHandle = choice->OnReleased.Add([this, choice]()
     {
         OnChoiceSelected(choice);
     });
@@ -105,10 +105,10 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
 
     if (_choiceReleasedHandle.IsValid())
     {
-        selectedWidget->OnReleased.Unsubscribe(_choiceReleasedHandle);
+        selectedWidget->OnReleased.Remove(_choiceReleasedHandle);
     }
 
-    _choiceReleasedHandle = selectedWidget->OnReleased.Subscribe([this]()
+    _choiceReleasedHandle = selectedWidget->OnReleased.Add([this]()
     {
         ToggleChoicesWidget();
     });
@@ -128,6 +128,11 @@ const std::vector<std::shared_ptr<Widget>>& DropdownMenu::GetChoices() const
 
 void DropdownMenu::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child)
 {
+    if (child == nullptr)
+    {
+        return;
+    }
+    
     if (child == _choicesWidget.lock())
     {
         Vector2 newSize = child->GetPaddedDesiredSize() / GetScreenRelativeSize();
@@ -156,8 +161,8 @@ void DropdownMenu::UpdateChoicesWidgetTransform() const
 {
     const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
 
-    TRACE_LOG("ChoicesWidget size: {} {}", choicesWidget->GetSize().x, choicesWidget->GetSize().y);
-    choicesWidget->SetPosition({0.0f, -choicesWidget->GetSize().y / 4.0f});
+    //choicesWidget->SetPosition({0.0f, -choicesWidget->GetSize().y / 4.0f});
+    choicesWidget->SetPosition({0.0f, -0.5f});
 }
 
 void DropdownMenu::ToggleChoicesWidget() const
@@ -185,6 +190,6 @@ void DropdownMenu::SetChoicesWidgetEnabled(bool value) const
     for (const std::shared_ptr<Widget>& widget : flowBox->GetChildren())
     {
         widget->SetVisibility(value, true);
-        widget->SetCollisionEnabled(value);
+        widget->SetCollisionEnabled(value); // todo this doesn't work - collision is disabled in state flags, but hittest grid still has references to the widget
     }
 }

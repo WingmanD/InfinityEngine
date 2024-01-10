@@ -55,6 +55,8 @@ std::shared_ptr<Asset> AssetManager::NewAsset(const Type* type, const std::wstri
 
     MarkDirtyForAutosave(asset);
 
+    OnAssetCreated.Broadcast(asset);
+
     return asset;
 }
 
@@ -64,6 +66,8 @@ void AssetManager::DeleteAsset(const std::shared_ptr<Asset>& asset)
     {
         return;
     }
+
+    OnAssetDeleted.Broadcast(asset);
 
     if (!std::filesystem::remove(asset->GetAssetPath()))
     {
@@ -99,7 +103,7 @@ bool AssetManager::ForEachAssetOfType(Type* type, const std::function<bool(const
             }
         }
     }
-    
+
     if (recursive)
     {
         for (Type* subtype : type->GetSubtypes())
@@ -109,6 +113,18 @@ bool AssetManager::ForEachAssetOfType(Type* type, const std::function<bool(const
     }
 
     return true;
+}
+
+void AssetManager::ForEachAsset(const std::function<bool(std::shared_ptr<Asset>&)>& callback)
+{
+    // todo optimize this
+    for (std::shared_ptr<Asset>& asset : _assetMap | std::views::values)
+    {
+        if (!callback(asset))
+        {
+            return;
+        }
+    }
 }
 
 bool AssetManager::RegisterAsset(const std::shared_ptr<Asset>& asset)

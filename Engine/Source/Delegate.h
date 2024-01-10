@@ -20,19 +20,19 @@ template <typename... Args>
 class Delegate
 {
 public:
-    DelegateHandle Subscribe(std::function<void(Args&&...)>&& function)
+    DelegateHandle Add(std::function<void(Args&&...)>&& function)
     {
         _functions.push_back(function);
 
         return {_functions.size() - 1};
     }
 
-    void Unsubscribe(const DelegateHandle& handle)
+    void Remove(const DelegateHandle& handle)
     {
         _functions.erase(_functions.begin() + handle.Index);
     }
 
-    void Broadcast(Args&&... args)
+    void Broadcast(Args... args)
     {
         for (auto& function : _functions)
         {
@@ -45,11 +45,6 @@ public:
         _functions.clear();
     }
 
-    void operator()(Args&&... args)
-    {
-        Broadcast(std::forward<Args>(args)...);
-    }
-
 private:
-    std::vector<std::function<void(Args&&...)>> _functions;
+    std::vector<std::function<void(Args...)>> _functions;
 };

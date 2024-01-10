@@ -28,7 +28,7 @@ void DX12TextWidgetRenderingProxy::OnWindowChanged(const std::shared_ptr<Window>
     {
         if (DX12Window* window = static_cast<DX12Window*>(oldWindow.get()))
         {
-            window->OnViewportChanged.Unsubscribe(_viewportChangedHandle);
+            window->OnViewportChanged.Remove(_viewportChangedHandle);
         }
     }
 
@@ -36,7 +36,7 @@ void DX12TextWidgetRenderingProxy::OnWindowChanged(const std::shared_ptr<Window>
     {
         _spriteBatch->SetViewport(window->GetViewport());
 
-        window->OnViewportChanged.Subscribe([this](const D3D12_VIEWPORT& viewport)
+        window->OnViewportChanged.Add([this](const D3D12_VIEWPORT& viewport)
         {
             _spriteBatch->SetViewport(viewport);
         });

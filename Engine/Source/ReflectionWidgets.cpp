@@ -20,7 +20,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
 
     textBox->SetText(*value);
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, textBox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
         if (object == nullptr)
         {
@@ -31,7 +31,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -40,7 +40,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -58,7 +58,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     textBox->SetText(*value);
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, textBox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
         if (object == nullptr)
         {
@@ -68,7 +68,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         textBox->SetText(*value);
     });
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -77,7 +77,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -97,7 +97,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
 
     textBox->SetText(Util::ToWString(*value));
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, textBox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
         if (object == nullptr)
         {
@@ -108,7 +108,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -117,7 +117,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -135,7 +135,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     textBox->SetText(Util::ToWString(*value));
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, textBox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
         if (object == nullptr)
         {
@@ -146,7 +146,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -155,7 +155,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -175,7 +175,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
 
     textBox->SetText(value->wstring());
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, textBox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
         if (object == nullptr)
         {
@@ -186,7 +186,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -195,7 +195,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -213,7 +213,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     textBox->SetText(value->wstring());
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, textBox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
         if (object == nullptr)
         {
@@ -224,7 +224,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -233,7 +233,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -266,7 +266,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     checkbox->SetChecked(*value);
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, checkbox, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, checkbox, value]()
     {
         if (object == nullptr)
         {
@@ -277,7 +277,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     });
 
     PropertyBase* propertyPtr = &property;
-    checkbox->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    checkbox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -286,11 +286,11 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
-    checkbox->OnCheckedChanged.Subscribe([object, value](bool checked)
+    checkbox->OnCheckedChanged.Add([object, value](bool checked)
     {
         if (object == nullptr)
         {
@@ -324,7 +324,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         return nullptr;
     }
 
-    typePicker->OnSelectionChanged.Subscribe([object, value, typePicker](const std::shared_ptr<Widget>& widget)
+    typePicker->OnSelectionChanged.Add([object, value, typePicker](const std::shared_ptr<Widget>& widget)
     {
         if (object == nullptr)
         {
@@ -340,7 +340,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         *value = type;
     });
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, typePicker, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, typePicker, value]()
     {
         if (object == nullptr)
         {
@@ -351,7 +351,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     });
 
     PropertyBase* propertyPtr = &property;
-    typePicker->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    typePicker->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -360,7 +360,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -706,7 +706,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForEnum(const std::shared_ptr<Object
         return nullptr;
     }
 
-    enumDropdown->OnSelectionChanged.Subscribe([object, value, enumDropdown](const std::shared_ptr<Widget>& widget)
+    enumDropdown->OnSelectionChanged.Add([object, value, enumDropdown](const std::shared_ptr<Widget>& widget)
     {
         if (object == nullptr)
         {
@@ -716,7 +716,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForEnum(const std::shared_ptr<Object
         *value = enumDropdown->GetSelectedEnumValue();
     });
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, enumDropdown, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, enumDropdown, value]()
     {
         if (object == nullptr)
         {
@@ -727,7 +727,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForEnum(const std::shared_ptr<Object
     });
 
     PropertyBase* propertyPtr = &property;
-    enumDropdown->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    enumDropdown->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -736,7 +736,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForEnum(const std::shared_ptr<Object
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 
@@ -767,7 +767,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     assetPicker->SetSelectedAsset(*value);
 
-    assetPicker->OnSelectionChanged.Subscribe([object, value, assetPicker](const std::shared_ptr<Widget>& widget)
+    assetPicker->OnSelectionChanged.Add([object, value, assetPicker](const std::shared_ptr<Widget>& widget)
     {
         if (object == nullptr)
         {
@@ -785,7 +785,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         value->SetAsset(asset);
     });
 
-    DelegateHandle handle = property.OnChanged.Subscribe([object, assetPicker, value]()
+    DelegateHandle handle = property.OnChanged.Add([object, assetPicker, value]()
     {
         if (object == nullptr)
         {
@@ -796,7 +796,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     });
 
     PropertyBase* propertyPtr = &property;
-    assetPicker->OnDestroyed.Subscribe([object, handle, propertyPtr]()
+    assetPicker->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -805,7 +805,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
         if (handle.IsValid())
         {
-            propertyPtr->OnChanged.Unsubscribe(handle);
+            propertyPtr->OnChanged.Remove(handle);
         }
     });
 

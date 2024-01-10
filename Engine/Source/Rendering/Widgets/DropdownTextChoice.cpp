@@ -12,11 +12,11 @@ bool DropdownTextChoice::Initialize()
     SetPadding({0.005f, 0.005f, 0.005f, 0.005f});
     SetCollisionEnabled(true);
 
-    const std::shared_ptr<TextBox> textWidget = std::make_shared<TextBox>();
-    textWidget->Initialize();
-
-    AddChild(textWidget);
-    textWidget->SetCollisionEnabled(false);
+    const std::shared_ptr<TextBox> textWidget = AddChild<TextBox>();
+    if (textWidget == nullptr)
+    {
+        return false;
+    }
 
     _textBox = textWidget;
     

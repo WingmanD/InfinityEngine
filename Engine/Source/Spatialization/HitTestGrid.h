@@ -2,6 +2,11 @@
 
 #include "Core.h"
 #include "UniformGrid2D.h"
+#include <vector>
+#include <algorithm>
+#include <ranges>
+#include <functional>
+#include <map>
 
 template <typename T>
 class HitTestGrid
@@ -12,42 +17,63 @@ public:
     {
     }
 
-    void InsertElement(const T& element, const BoundingBox2D& aabb, const std::function<bool(const T& lhs, const T& rhs)>& comparator)
+    void InsertElement(T element, const BoundingBox2D& aabb, const std::function<bool(const T& lhs, const T& rhs)>& comparator)
     {
         _grid.ForEachCellInBox(aabb,
        [&](GridCell& cell)
        {
            auto index = std::lower_bound(cell.Elements.begin(), cell.Elements.end(), element, comparator);
-           
-           if (std::find(cell.Elements.begin(), cell.Elements.end(), element) != cell.Elements.end())
-           {
-               return true;
-           }
-           
            cell.Elements.insert(index, element);
+
+           _elementToCell[element].push_back(&cell);
 
            return true;
        });
     }
 
-    bool RemoveElement(const T& element, const BoundingBox2D& aabb, const std::function<bool(const T& lhs, const T& rhs)>& comparator)
+    bool RemoveElement(T element, const BoundingBox2D& aabb, const std::function<bool(const T& lhs, const T& rhs)>& comparator)
     {
-        bool removed = false;
+        // _grid.ForEachCellInBox(aabb,
+        // [&](GridCell& cell)
+        // {
+        //     auto index = std::lower_bound(cell.Elements.begin(), cell.Elements.end(), element, comparator);
+        //     if (index != cell.Elements.end() && *index == element)
+        //     {
+        //         cell.Elements.erase(index);
+        //         return true;
+        //     }
+        //     
+        //     // todo this is expensive, we should iteratively find the element around the index
+        //     auto [start, end] = std::ranges::remove(cell.Elements, element);
+        //     cell.Elements.erase(start, end);
+        //     
+        //     return removed;
+        // });
 
-        _grid.ForEachCellInBox(aabb,
-        [&](GridCell& cell)
+        auto cellIt = _elementToCell.find(element);
+        if (cellIt == _elementToCell.end())
         {
-            auto index = std::lower_bound(cell.Elements.begin(), cell.Elements.end(), element, comparator);
-            if (index != cell.Elements.end() && *index == element)
+            return false;
+        }
+        
+        for (GridCell* cell : cellIt->second)
+        {
+            if (cell->Elements.empty())
             {
-                cell.Elements.erase(index);
-                removed = true;
+                continue;
             }
+            
+            for (int64 i = static_cast<int64>(cell->Elements.size()) - 1; i >= 0; --i)
+            {
+                if (cell->Elements[i] == element)
+                {
+                    cell->Elements.erase(cell->Elements.begin() + i);
+                    break;
+                }
+            }
+        }
 
-            return true;
-        });
-
-        return removed;
+        return false;
     }
 
     T* FindAtByPredicate(const Vector2& positionWS, const std::function<bool(const Vector2&, const T&)>& predicate)
@@ -72,4 +98,6 @@ private:
     };
     
     UniformGrid2D<GridCell> _grid;
+
+    std::map<T, std::vector<GridCell*>> _elementToCell;
 };
