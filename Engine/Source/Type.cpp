@@ -2,6 +2,7 @@
 #include "Type.h"
 #include "Object.h"
 #include "Rendering/Widgets/FlowBox.h"
+#include "Rendering/Widgets/TableWidget.h"
 #include "Rendering/Widgets/TextBox.h"
 
 Type* Type::WithPropertyMap(PropertyMap&& propertyMap)
@@ -130,11 +131,6 @@ size_t Type::GetAlignment() const
     return _alignment;
 }
 
-size_t Type::GetAlignedSize() const
-{
-    return _alignedSize;
-}
-
 size_t Type::GetDataOffset() const
 {
     return _dataOffset;
@@ -214,33 +210,27 @@ std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Objec
     }
 
 
-    std::shared_ptr<FlowBox> propertiesWidget = std::make_shared<FlowBox>();
-    if (!propertiesWidget->Initialize())
+    std::shared_ptr<TableWidget> table = std::make_shared<TableWidget>();
+    if (!table->Initialize())
     {
         return nullptr;
     }
 
-    propertiesWidget->SetDirection(EFlowBoxDirection::Vertical);
-    propertiesWidget->SetCollisionEnabled(false);
-
-    ForEachProperty([&propertiesWidget, &object](PropertyBase* prop)
+    ForEachProperty([&table, &object](PropertyBase* prop)
     {
-        const std::shared_ptr<FlowBox> propertyHorizontalBox = std::make_shared<FlowBox>();
-        if (!propertyHorizontalBox->Initialize())
+        const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        if (!row->Initialize())
         {
             return false;
         }
-
-        propertyHorizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
-        propertyHorizontalBox->SetCollisionEnabled(false);
-        propertiesWidget->AddChild(propertyHorizontalBox);
+        table->AddRow(row);
 
         const std::shared_ptr<TextBox> nameLabel = std::make_shared<TextBox>();
         if (!nameLabel->Initialize())
         {
             return false;
         }
-        propertyHorizontalBox->AddChild(nameLabel);
+        row->AddChild(nameLabel);
 
         nameLabel->SetText(prop->GetDisplayName() + L":");
 
@@ -249,21 +239,21 @@ std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Objec
         {
             if (const std::shared_ptr<Widget> newWidget = propertyType->CreatePropertiesWidget(object))
             {
-                propertyHorizontalBox->AddChild(newWidget);
+                row->AddChild(newWidget);
             }
         }
         else
         {
             if (const std::shared_ptr<Widget> newWidget = prop->CreateWidget(object))
             {
-                propertyHorizontalBox->AddChild(newWidget);
+                row->AddChild(newWidget);
             }
         }
 
         return true;
     });
 
-    return propertiesWidget;
+    return table;
 }
 
 void Type::AddParentType(Type* type)

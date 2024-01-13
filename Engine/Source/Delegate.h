@@ -28,6 +28,8 @@ public:
         const uint64 id = _idGenerator.GenerateID();
         _functions.push_back({function, id});
 
+        _handleIDToIndex[id] = _functions.size() - 1;
+
         return {id};
     }
 
@@ -42,6 +44,12 @@ public:
         size_t index = it->second;
         _handleIDToIndex.erase(handle.ID);
 
+        if (index == _functions.size() - 1)
+        {
+            _functions.pop_back();
+            return;
+        }
+        
         _functions[index] = _functions.back();
         _functions.pop_back();
 

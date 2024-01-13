@@ -50,28 +50,15 @@ bool DropdownMenu::Initialize()
         return false;
     }
 
-    std::shared_ptr<Widget> choicesWidget = std::make_shared<Widget>();
-    if (!choicesWidget->Initialize())
-    {
-        return false;
-    }
-    choicesWidget->SetVisibility(false);
-    choicesWidget->SetCollisionEnabled(false);
-    AddChild(choicesWidget);
-
+    const std::shared_ptr<Widget> choicesWidget = AddChild<Widget>();
     _choicesWidget = choicesWidget;
 
-    std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
-    if (!flowBox->Initialize())
-    {
-        return false;
-    }
-    choicesWidget->AddChild(flowBox);
+    choicesWidget->SetVisibility(false);
+    choicesWidget->SetAnchor(EWidgetAnchor::BottomCenter);
 
+    const std::shared_ptr<FlowBox> flowBox = choicesWidget->AddChild<FlowBox>();
     flowBox->SetVisibility(false);
-    flowBox->SetCollisionEnabled(false);
-    flowBox->SetAnchor(EWidgetAnchor::BottomCenter);
-    flowBox->SetDesiredSize({0.0f, 0.0f});
+    flowBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
     return true;
 }
@@ -130,7 +117,7 @@ void DropdownMenu::RebuildLayoutInternal()
     const std::shared_ptr<Widget> selectedWidget = _selectedWidget.lock();
     selectedWidget->SetPosition(Vector2::Zero);
     selectedWidget->SetSize({1.0f, 1.0f});
-    
+
     UpdateChoicesWidgetTransform();
 }
 
@@ -151,7 +138,7 @@ void DropdownMenu::UpdateDesiredSizeInternal()
         std::max(selectedWidget->GetPaddedDesiredSize().x, choicesWidget->GetPaddedDesiredSize().x),
         selectedWidget->GetPaddedDesiredSize().y
     );
-    
+
     SetDesiredSize(newDesiredSize);
 }
 

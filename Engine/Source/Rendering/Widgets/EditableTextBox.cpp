@@ -62,6 +62,7 @@ bool EditableTextBox::Initialize()
     }
 
     SetBackgroundVisibility(true);
+    SetCollisionEnabled(true);
 
     const std::shared_ptr<Caret> caret = std::make_shared<Caret>();
     if (!caret->Initialize())
@@ -121,6 +122,16 @@ void EditableTextBox::UpdateDesiredSizeInternal()
     SetDesiredSize(desiredSize);
 }
 
+void EditableTextBox::RebuildLayoutInternal()
+{
+    TextBox::RebuildLayoutInternal();
+
+    const std::shared_ptr<Caret> caret = _caret.lock();
+    caret->SetSize(caret->GetDesiredSize() / GetScreenSize());
+
+    OnCursorPositionChanged();
+}
+
 void EditableTextBox::OnFocusChanged(bool focused)
 {
     TextBox::OnFocusChanged(focused);
@@ -166,14 +177,32 @@ void EditableTextBox::OnFocusChanged(bool focused)
                     }
 
                     // todo this should be char and then converted to wchar_t
+                    // todo this should be done in InputSubsystem
                     wchar_t c = static_cast<wchar_t>(key);
-                    if (key == EKey::Space)
+                    switch (key)
                     {
-                        c = L' ';
-                    }
-                    else if (key == EKey::Enter)
-                    {
-                        c = L'\n';
+                        case EKey::Space:
+                            {
+                                c = L' ';
+                                break;
+                            }
+                        case EKey::Enter:
+                            {
+                                c = L'\n';
+                                break;
+                            }
+                        case EKey::Period:
+                            {
+                                c = L'.';
+                                break;
+                            }
+                        case EKey::Comma:
+                            {
+                                c = L',';
+                                break;
+                            }
+                        default:
+                            break;
                     }
 
                     if (key == EKey::Tab)
@@ -224,18 +253,15 @@ void EditableTextBox::OnCursorPositionChanged() const
         return;
     }
 
-    const std::shared_ptr<Window>& window = GetParentWindow();
-
     const std::wstring substring = text.substr(0, GetCursorPosition());
 
-    Vector2 offset = font->MeasureString(substring.data(), GetFontType());
-    offset.y = 0.0f;
+    const float fullTextOffset = font->MeasureString(text.c_str(), GetFontType()).x * GetFontSize() * static_cast<float>(GetParentWindow()->GetHeight()) / 1080.0f;
+    const float substringOffset = font->MeasureString(substring.data(), GetFontType()).x * GetFontSize() * static_cast<float>(GetParentWindow()->GetHeight()) / 1080.0f;
 
-    const Vector2 textOriginSS = GetTextTransform().GetPosition() - GetTextOrigin() + offset;
-    const Vector2 textOriginWS = UIStatics::ToWidgetSpace(textOriginSS, window);
-
-    Vector2 caretPosition = textOriginWS - GetPositionWS();
-    caretPosition.x *= window->GetAspectRatio() * 1.5f;
+    const Vector2 caretPosition = {
+        -(fullTextOffset * 0.5f - substringOffset) / GetScreenSize().x,
+        0.0f
+    };
 
     caret->SetPosition(caretPosition);
 }

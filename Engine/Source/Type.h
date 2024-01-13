@@ -101,7 +101,6 @@ public:
 
     size_t GetSize() const;
     size_t GetAlignment() const;
-    size_t GetAlignedSize() const;
     size_t GetDataOffset() const;
     
     const std::vector<Type*>& GetParentTypes() const;
@@ -166,7 +165,6 @@ private:
 
     size_t _size = 0;
     size_t _alignment = 0;
-    size_t _alignedSize = 0;
     size_t _dataOffset = 0;
 
     uint64 _id = -1;

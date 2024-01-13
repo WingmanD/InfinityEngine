@@ -164,6 +164,8 @@ public:
     const std::vector<std::shared_ptr<Widget>>& GetChildren() const;
     void RemoveFromParent();
 
+    void InvalidateLayout();
+    bool IsLayoutDirty() const;
     void RebuildLayout();
     void ForceRebuildLayout(bool recursive = false);
 
@@ -209,9 +211,6 @@ protected:
     std::unique_ptr<WidgetRenderingProxy> RenderingProxy = nullptr;
 
 protected:
-    void InvalidateLayout();
-    bool IsLayoutDirty() const;
-
     virtual void RebuildLayoutInternal();
     void UpdateDesiredSize();
     void ForceUpdateDesiredSize(bool recursive = false);

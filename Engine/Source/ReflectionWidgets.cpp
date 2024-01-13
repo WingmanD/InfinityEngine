@@ -18,6 +18,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
         return nullptr;
     }
 
+    textBox->SetCollisionEnabled(true);
     textBox->SetText(*value);
 
     DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
@@ -94,7 +95,8 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     {
         return nullptr;
     }
-
+    
+    textBox->SetCollisionEnabled(true);
     textBox->SetText(Util::ToWString(*value));
 
     DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
@@ -173,6 +175,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
         return nullptr;
     }
 
+    textBox->SetCollisionEnabled(true);
     textBox->SetText(value->wstring());
 
     DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
@@ -774,7 +777,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
             return;
         }
 
-        const std::shared_ptr<Asset> asset = assetPicker->GetSelectedChoice();
+        const std::shared_ptr<Asset> asset = assetPicker->GetSelectedAsset();
         if (asset == nullptr)
         {
             return;

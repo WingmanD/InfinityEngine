@@ -1,32 +1,23 @@
 ﻿#pragma once
 
 #include "Widget.h"
+#include "TableWidget.h"
 #include "AssetBrowser.reflection.h"
 
-class FlowBox;
-
 REFLECTED()
-class AssetBrowserEntry : public Widget
+class AssetBrowserEntry : public TableRowWidget
 {
     GENERATED()
 
 public:
     AssetBrowserEntry() = default;
     
-    void InitializeFromAsset(const std::shared_ptr<Asset>& asset);
+    bool InitializeFromAsset(const std::shared_ptr<Asset>& asset);
 
     std::shared_ptr<Asset> GetAsset() const;
 
-    // Widget
-public:
-    bool Initialize() override;
-
 private:
-    std::weak_ptr<FlowBox> _horizontalBox;
-    
     std::weak_ptr<Asset> _asset;
-
-private:
 };
 
 REFLECTED()
@@ -42,7 +33,7 @@ public:
     bool Initialize() override;
     
 private:
-    std::weak_ptr<FlowBox> _verticalBox;
+    std::weak_ptr<TableWidget> _table;
 
 private:
     void AddEntry(const std::shared_ptr<Asset>& asset) const;

@@ -17,4 +17,8 @@ public:
     // Widget
 public:
     virtual bool Initialize() override;
+
+    // Widget
+protected:
+    void UpdateDesiredSizeInternal() override;
 };

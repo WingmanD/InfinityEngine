@@ -73,7 +73,7 @@ bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor
                                                return size;
                                            }
 
-                                           return size + parameterDescriptor.ParameterType->GetAlignedSize();
+                                           return size + parameterDescriptor.ParameterType->GetSize();
                                        });
 
     _data = new std::byte[_dataSize];
@@ -101,7 +101,7 @@ bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor
         _parameters.push_back({newParameter, descriptor.ParameterType, descriptor.Name, descriptor.SlotIndex});
         _nameToParameter[descriptor.Name] = &_parameters.back();
 
-        offset += descriptor.ParameterType->GetAlignedSize();
+        offset += descriptor.ParameterType->GetSize();
     }
 
     return true;

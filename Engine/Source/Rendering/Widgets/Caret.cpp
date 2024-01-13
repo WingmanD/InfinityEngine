@@ -9,11 +9,16 @@ bool Caret::Initialize()
         return false;
     }
 
-    SetDesiredSize({2.0f, 10.0f});
+    SetDesiredSize({4.0f, 30.0f});
     SetVisibility(false);
 
     WidgetPerPassConstants* param = GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
     param->BaseColor = Color(1.0f, 1.0f, 1.0f, 1.0f);
     
     return true;
+}
+
+void Caret::UpdateDesiredSizeInternal()
+{
+    // Do nothing, size is overridden
 }

@@ -41,6 +41,8 @@ protected:
     // Widget
 protected:
     void UpdateDesiredSizeInternal() override;
+    void RebuildLayoutInternal() override;
+    
     virtual void OnFocusChanged(bool focused) override;
 
 private:

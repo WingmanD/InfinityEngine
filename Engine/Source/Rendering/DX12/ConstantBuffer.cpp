@@ -34,7 +34,7 @@ bool ConstantBuffer::CreateInPlace(ConstantBuffer& buffer, Object* parameter, ID
     }
 
     buffer._heap = heap;
-    buffer._size = parameter->GetType()->GetAlignedSize() - dataOffset;
+    buffer._size = parameter->GetType()->GetSize() - dataOffset;
     buffer._offset = dataOffset;
     buffer.Data = parameter;
 

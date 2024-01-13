@@ -13,7 +13,9 @@
 #include "Widgets/AssetCreatorMenu.h"
 #include "Widgets/Button.h"
 #include "Widgets/FlowBox.h"
+#include "Widgets/TableWidget.h"
 #include "Widgets/TextBox.h"
+#include "Widgets/EditableTextBox.h"
 #include "Widgets/TypePicker.h"
 
 Window::Window(uint32 width, uint32 height, std::wstring title) :
@@ -92,11 +94,15 @@ bool Window::Initialize()
     _rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
     _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});  // todo reimport QuadMesh with 2x size to avoid this 2x scaling
 
-    const std::shared_ptr<AssetBrowser> assetBrowser = _rootWidget->AddChild<AssetBrowser>();
-    if (assetBrowser == nullptr)
-    {
-        return false;
-    }
+    // const std::shared_ptr<AssetBrowser> assetBrowser = _rootWidget->AddChild<AssetBrowser>();
+    // if (assetBrowser == nullptr)
+    // {
+    //     return false;
+    // }
+
+    auto material  = AssetManager::Get().FindAssetByName<Material>(L"DefaultMaterial");
+    material->Load();
+    _rootWidget->AddChild(material->GetType()->CreatePropertiesWidget(material));
     
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});

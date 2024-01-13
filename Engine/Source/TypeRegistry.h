@@ -79,7 +79,6 @@ private:
         newType->_cdo = std::make_unique<T>();
         newType->_size = sizeof(T);
         newType->_alignment = alignof(T);
-        newType->_alignedSize = Util::AlignedSize(newType->_size, newType->_alignment);
 
         return newType;
     }

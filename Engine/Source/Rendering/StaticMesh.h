@@ -55,7 +55,7 @@ private:
     std::vector<Vertex> _vertices;
     std::vector<uint32_t> _indices;
 
-    PROPERTY(Load)
+    PROPERTY(Edit, Load)
     AssetPtr<Material> _material;
 
     std::unique_ptr<StaticMeshRenderingData> _renderingData;

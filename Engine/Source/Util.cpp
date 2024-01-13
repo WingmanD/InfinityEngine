@@ -33,8 +33,3 @@ std::wstring Util::ToWString(const char* str)
 
     return result;
 }
-
-size_t Util::AlignedSize(size_t size, size_t alignment)
-{
-    return (size + alignment - 1) & ~(alignment - 1);
-}

@@ -68,7 +68,10 @@ bool Widget::Initialize()
     if (_material != nullptr)
     {
         _material->Load();
-        _quadMeshInstance->SetMaterial(_material->DuplicateStatic<Material>());
+
+        const std::shared_ptr<Material> newMaterial = _material->DuplicateStatic<Material>();
+        newMaterial->Initialize();
+        _quadMeshInstance->SetMaterial(newMaterial);
     }
     else
     {
@@ -493,6 +496,26 @@ void Widget::RemoveFromParent()
     }
 }
 
+void Widget::InvalidateLayout()
+{
+    if (_isLayoutDirty)
+    {
+        return;
+    }
+
+    _isLayoutDirty = true;
+
+    if (const std::shared_ptr<Widget> parent = GetParentWidget())
+    {
+        parent->InvalidateLayout();
+    }
+}
+
+bool Widget::IsLayoutDirty() const
+{
+    return _isLayoutDirty;
+}
+
 void Widget::RebuildLayout()
 {
     if (!IsLayoutDirty())
@@ -742,26 +765,6 @@ void Widget::MiddleClickReleased(PassKey<Window>)
     OnMiddleClickReleased.Broadcast();
 }
 
-void Widget::InvalidateLayout()
-{
-    if (_isLayoutDirty)
-    {
-        return;
-    }
-
-    _isLayoutDirty = true;
-
-    if (const std::shared_ptr<Widget> parent = GetParentWidget())
-    {
-        parent->InvalidateLayout();
-    }
-}
-
-bool Widget::IsLayoutDirty() const
-{
-    return _isLayoutDirty;
-}
-
 void Widget::ForceRebuildLayout(bool recursive /*= false*/)
 {
     // todo resizing window does not trigger update of desired size because 
@@ -807,7 +810,18 @@ void Widget::RebuildLayoutInternal()
     const std::shared_ptr<Widget> firstChild = _children[0];
 
     firstChild->SetPosition({0.0f, 0.0f});
-    firstChild->SetSize({1.0f, 1.0f});
+
+    Vector2 size = firstChild->GetDesiredSize() / GetScreenSize();
+    if (HasFlags(firstChild->GetFillMode(), EWidgetFillMode::FillX))
+    {
+        size.x = 1.0f;
+    }
+    if (HasFlags(firstChild->GetFillMode(), EWidgetFillMode::FillY))
+    {
+        size.y = 1.0f;
+    }
+    
+    firstChild->SetSize(size);
 }
 
 void Widget::UpdateDesiredSize()

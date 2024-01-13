@@ -51,7 +51,7 @@ void FlowBox::RebuildLayoutInternal()
                     childDesiredSize.x * (GetDesiredSize().y / childPaddedDesiredSize.y) / screenSize.x,
                     childDesiredSize.y / childPaddedDesiredSize.y);
             }
-            else if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
+            else if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillY))
             {
                 newChildSize = Vector2(childDesiredSize.x / screenSize.x, 1.0f);
             }
