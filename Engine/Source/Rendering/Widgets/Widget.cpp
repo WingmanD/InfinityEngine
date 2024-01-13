@@ -153,7 +153,7 @@ void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
             }
             else
             {
-                hitTestGrid.RemoveElement(this, _boundingBox, GWidgetComparator);
+                hitTestGrid.RemoveElement(this);
             }
         }
     }
@@ -200,7 +200,7 @@ void Widget::SetCollapsed(bool value)
         }
         else
         {
-            hitTestGrid.RemoveElement(this, _boundingBox, GWidgetComparator);
+            hitTestGrid.RemoveElement(this);
         }
     }
 }
@@ -311,11 +311,6 @@ void Widget::SetSize(const Vector2& size)
     }
 
     OnTransformChanged();
-
-    for (const std::shared_ptr<Widget>& widget : _children)
-    {
-        widget->OnParentResized();
-    }
 }
 
 Vector2 Widget::GetSize() const
@@ -333,6 +328,16 @@ Vector2 Widget::GetSizeWS() const
     return _size;
 }
 
+Vector2 Widget::GetScreenSize() const
+{
+    if (const std::shared_ptr<Window> window = GetParentWindow())
+    {
+        return GetScreenRelativeSize() * window->GetSize();
+    }
+
+    return Vector2::Zero;
+}
+
 Vector2 Widget::GetScreenRelativeSize() const
 {
     if (const std::shared_ptr<Widget> widget = GetParentWidget())
@@ -345,12 +350,14 @@ Vector2 Widget::GetScreenRelativeSize() const
 
 void Widget::SetDesiredSize(const Vector2& size)
 {
+    if (_desiredSize == size)
+    {
+        return;
+    }
+
     _desiredSize = size;
 
-    if (const std::shared_ptr<Widget> parent = GetParentWidget())
-    {
-        parent->OnChildDesiredSizeChanged(SharedFromThis());
-    }
+    InvalidateLayout();
 }
 
 const Vector2& Widget::GetDesiredSize() const
@@ -405,7 +412,7 @@ void Widget::SetZOrder(uint16 zOrder)
     {
         return;
     }
-    
+
     _zOrder = zOrder;
 
     _quadTransform.SetZOffset(1.0f - static_cast<float>(zOrder) / 100.0f);
@@ -436,7 +443,7 @@ std::shared_ptr<Material> Widget::GetMaterial() const
     return _material;
 }
 
-void Widget::AddChild(const std::shared_ptr<Widget>& widget)
+void Widget::AddChild(const std::shared_ptr<Widget>& widget, bool invalidateLayout /*= true*/)
 {
     if (widget == nullptr)
     {
@@ -455,6 +462,13 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget)
     _children.push_back(widget);
 
     OnChildAdded(widget);
+
+    widget->OnAddedToParent(SharedFromThis());
+
+    if (invalidateLayout)
+    {
+        InvalidateLayout();
+    }
 
     // todo what about state flags and propagation?
 }
@@ -477,6 +491,35 @@ void Widget::RemoveFromParent()
     {
         parent->RemoveChild(std::static_pointer_cast<Widget>(shared_from_this()));
     }
+}
+
+void Widget::RebuildLayout()
+{
+    if (!IsLayoutDirty())
+    {
+        return;
+    }
+
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->UpdateDesiredSize();
+    }
+
+    RebuildLayoutInternal();
+
+    if (IsCollisionEnabled())
+    {
+        HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGrid();
+        hitTestGrid.RemoveElement(this);
+        hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+    }
+
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->RebuildLayout();
+    }
+
+    _isLayoutDirty = false;
 }
 
 std::shared_ptr<Widget> Widget::GetParentWidget() const
@@ -523,7 +566,7 @@ void Widget::Destroy()
     {
         if (const std::shared_ptr<Window> window = GetParentWindow())
         {
-            window->GetHitTestGrid().RemoveElement(this, GetBoundingBox(), GWidgetComparator);
+            window->GetHitTestGrid().RemoveElement(this);
         }
     }
 
@@ -569,30 +612,6 @@ EWidgetFillMode Widget::GetFillMode() const
     return _fillMode;
 }
 
-void Widget::SetIgnoreChildDesiredSize(bool value)
-{
-    _ignoreChildDesiredSize = value;
-}
-
-bool Widget::ShouldIgnoreChildDesiredSize() const
-{
-    return _ignoreChildDesiredSize;
-}
-
-void Widget::OnParentResized()
-{
-    const Vector2 size = GetSize();
-    const Vector2 position = GetRelativePosition();
-
-    SetSize(size);
-    SetPosition(position);
-
-    for (const std::shared_ptr<Widget>& widget : _children)
-    {
-        widget->OnParentResized();
-    }
-}
-
 WidgetRenderingProxy& Widget::GetRenderingProxy() const
 {
     return *RenderingProxy.get();
@@ -609,7 +628,7 @@ void Widget::Pressed(PassKey<Window>)
     {
         return;
     }
-    
+
     OnPressedInternal();
 
     OnPressed.Broadcast();
@@ -621,7 +640,7 @@ void Widget::Released(PassKey<Window>)
     {
         return;
     }
-    
+
     OnReleasedInternal();
 
     OnReleased.Broadcast();
@@ -633,7 +652,7 @@ void Widget::HoverStarted(PassKey<Window>)
     {
         return;
     }
-    
+
     OnHoverStartedInternal();
 
     OnHoverStarted.Broadcast();
@@ -645,7 +664,7 @@ void Widget::HoverEnded(PassKey<Window>)
     {
         return;
     }
-    
+
     OnHoverEndedInternal();
 
     OnHoverEnded.Broadcast();
@@ -657,7 +676,7 @@ void Widget::DragStarted(PassKey<Window>)
     {
         return;
     }
-    
+
     OnDragStartedInternal();
 
     OnDragStarted.Broadcast();
@@ -669,7 +688,7 @@ void Widget::DragEnded(PassKey<Window>)
     {
         return;
     }
-    
+
     OnDragEndedInternal();
 
     OnDragEnded.Broadcast();
@@ -681,7 +700,7 @@ void Widget::RightClickPressed(PassKey<Window>)
     {
         return;
     }
-    
+
     OnRightClickPressedInternal();
 
     OnRightClickPressed.Broadcast();
@@ -693,7 +712,7 @@ void Widget::RightClickReleased(PassKey<Window>)
     {
         return;
     }
-    
+
     OnRightClickReleasedInternal();
 
     OnRightClickReleased.Broadcast();
@@ -705,7 +724,7 @@ void Widget::MiddleClickPressed(PassKey<Window>)
     {
         return;
     }
-    
+
     OnMiddleClickPressedInternal();
 
     OnMiddleClickPressed.Broadcast();
@@ -717,10 +736,128 @@ void Widget::MiddleClickReleased(PassKey<Window>)
     {
         return;
     }
-    
+
     OnMiddleClickReleasedInternal();
 
     OnMiddleClickReleased.Broadcast();
+}
+
+void Widget::InvalidateLayout()
+{
+    if (_isLayoutDirty)
+    {
+        return;
+    }
+
+    _isLayoutDirty = true;
+
+    if (const std::shared_ptr<Widget> parent = GetParentWidget())
+    {
+        parent->InvalidateLayout();
+    }
+}
+
+bool Widget::IsLayoutDirty() const
+{
+    return _isLayoutDirty;
+}
+
+void Widget::ForceRebuildLayout(bool recursive /*= false*/)
+{
+    // todo resizing window does not trigger update of desired size because 
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->ForceUpdateDesiredSize(recursive);
+    }
+
+    RebuildLayoutInternal();
+
+    if (IsCollisionEnabled())
+    {
+        HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGrid();
+        hitTestGrid.RemoveElement(this);
+        hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+    }
+
+    if (recursive)
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->ForceRebuildLayout(recursive);
+        }
+    }
+    else
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->RebuildLayout();
+        }
+    }
+
+    _isLayoutDirty = false;
+}
+
+void Widget::RebuildLayoutInternal()
+{
+    if (_children.empty())
+    {
+        return;
+    }
+
+    const std::shared_ptr<Widget> firstChild = _children[0];
+
+    firstChild->SetPosition({0.0f, 0.0f});
+    firstChild->SetSize({1.0f, 1.0f});
+}
+
+void Widget::UpdateDesiredSize()
+{
+    if (!IsLayoutDirty())
+    {
+        return;
+    }
+
+    for (const std::shared_ptr<Widget>& child : _children)
+    {
+        child->UpdateDesiredSize();
+    }
+
+    UpdateDesiredSizeInternal();
+}
+
+void Widget::ForceUpdateDesiredSize(bool recursive)
+{
+    if (recursive)
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->ForceUpdateDesiredSize(recursive);
+        }
+    }
+    else
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->UpdateDesiredSize();
+        }
+    }
+
+    UpdateDesiredSizeInternal();
+}
+
+void Widget::UpdateDesiredSizeInternal()
+{
+    if (_children.empty())
+    {
+        SetDesiredSize(Vector2::Zero);
+
+        return;
+    }
+
+    const std::shared_ptr<Widget> firstChild = _children[0];
+    const Vector2 totalSize = firstChild->GetPaddedDesiredSize();
+
+    SetDesiredSize(totalSize);
 }
 
 bool Widget::InitializeRenderingProxy()
@@ -744,21 +881,9 @@ void Widget::OnTransformChanged()
 {
     UpdateMaterialParameters();
 
-    const BoundingBox2D oldBoundingBox = _boundingBox;
-
     _boundingBox = BoundingBox2D(GetPositionWS(), GetSizeWS());
 
     UpdateWidgetRect();
-
-    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
-    {
-        if (IsCollisionEnabled())
-        {
-            HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGrid();
-            hitTestGrid.RemoveElement(this, oldBoundingBox, GWidgetComparator);
-            hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
-        }
-    }
 
     GetRenderingProxy().OnTransformChanged();
 }
@@ -781,27 +906,17 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
         _material->GetParameterMap().SetSharedParameter("GWindowGlobals", newWindow->GetWindowGlobals(), true);
     }
 
-    SetDesiredSize(GetDesiredSize());
-
     RenderingProxy->OnWindowChanged(oldWindow, newWindow);
 
     if (oldWindow != nullptr)
     {
         if (IsCollisionEnabled())
         {
-            oldWindow->GetHitTestGrid().RemoveElement(this, GetBoundingBox(), GWidgetComparator);
+            oldWindow->GetHitTestGrid().RemoveElement(this);
         }
     }
 
-    if (newWindow != nullptr)
-    {
-        UpdateWidgetRect();
-
-        if (IsCollisionEnabled())
-        {
-            newWindow->GetHitTestGrid().InsertElement(this, GetBoundingBox(), GWidgetComparator);
-        }
-    }
+    UpdateWidgetRect();
 
     for (const std::shared_ptr<Widget>& widget : _children)
     {
@@ -811,16 +926,13 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
 
 void Widget::OnChildAdded(const std::shared_ptr<Widget>& child)
 {
-    child->OnAddedToParent(SharedFromThis());
-
-    OnChildDesiredSizeChanged(child);
 }
 
 void Widget::OnChildRemoved(const std::shared_ptr<Widget>& child)
 {
     child->OnRemovedFromParent(SharedFromThis());
 
-    OnChildDesiredSizeChanged(nullptr);
+    InvalidateLayout();
 }
 
 void Widget::OnAddedToParent(const std::shared_ptr<Widget>& parent)
@@ -828,34 +940,12 @@ void Widget::OnAddedToParent(const std::shared_ptr<Widget>& parent)
     _parentWidget = parent;
     SetZOrder(parent->GetZOrder() + 1);
     SetWindow(parent->GetParentWindow());
-    OnParentResized();
 }
 
 void Widget::OnRemovedFromParent(const std::shared_ptr<Widget>& parent)
 {
     _parentWidget.reset();
     SetWindow(nullptr);
-}
-
-void Widget::OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child)
-{
-    OnChildDesiredSizeChangedInternal(child);
-}
-
-void Widget::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child)
-{
-    if (ShouldIgnoreChildDesiredSize())
-    {
-        return;
-    }
-
-    Vector2 maxChildPaddedDesiredSize = Vector2::Zero;
-    for (const std::shared_ptr<Widget>& widget : _children)
-    {
-        maxChildPaddedDesiredSize = Vector2::Max(widget->GetPaddedDesiredSize(), maxChildPaddedDesiredSize);
-    }
-
-    SetDesiredSize(maxChildPaddedDesiredSize);
 }
 
 void Widget::OnPressedInternal()

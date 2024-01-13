@@ -63,8 +63,6 @@ bool EditableTextBox::Initialize()
 
     SetBackgroundVisibility(true);
 
-    SetIgnoreChildDesiredSize(true);
-
     const std::shared_ptr<Caret> caret = std::make_shared<Caret>();
     if (!caret->Initialize())
     {
@@ -82,6 +80,13 @@ bool EditableTextBox::Initialize()
 
 void EditableTextBox::OnTextChanged()
 {
+    TextBox::OnTextChanged();
+
+    OnValueChanged.Broadcast(GetText());
+}
+
+void EditableTextBox::UpdateDesiredSizeInternal()
+{
     // todo this is mostly copy-paste from TextBox::OnTextChanged - refactor
     const std::shared_ptr<Font> font = GetFont();
     if (font == nullptr)
@@ -90,18 +95,7 @@ void EditableTextBox::OnTextChanged()
         return;
     }
 
-    const DirectX::SpriteFont* spriteFont = font->GetSpriteFont(GetFontType());
-    if (spriteFont == nullptr)
-    {
-        DEBUG_BREAK();
-        return;
-    }
-
-    Vector2 windowSize = {1920.0f, 1080.0f};
-    if (const std::shared_ptr<Window> window = GetParentWindow())
-    {
-        windowSize = Vector2(static_cast<float>(window->GetWidth()), static_cast<float>(window->GetHeight()));
-    }
+    Font::EType fontType = GetFontType();
 
     int32 numSpaces = 0;
     const std::wstring& text = GetText();
@@ -114,7 +108,7 @@ void EditableTextBox::OnTextChanged()
     if (numSpaces > 0)
     {
         const std::wstring spaces = std::wstring(numSpaces, L'A');
-        spaceSize = spriteFont->MeasureString(spaces.c_str(), false);
+        spaceSize = font->MeasureString(spaces.c_str(), fontType);
     }
 
     if (!text.empty())
@@ -122,11 +116,9 @@ void EditableTextBox::OnTextChanged()
         spaceSize.y = 0.0f;
     }
 
-    const Vector2 desiredSize = (Vector2(spriteFont->MeasureString(GetText().c_str(), false)) + spaceSize) / windowSize;
+    const Vector2 desiredSize = (Vector2(font->MeasureString(GetText().c_str(), fontType)) + spaceSize) * GetFontSize();
 
     SetDesiredSize(desiredSize);
-
-    OnValueChanged.Broadcast(GetText());
 }
 
 void EditableTextBox::OnFocusChanged(bool focused)

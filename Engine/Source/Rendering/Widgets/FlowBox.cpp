@@ -5,8 +5,7 @@ void FlowBox::SetDirection(EFlowBoxDirection direction)
 {
     _direction = direction;
 
-    UpdateDesiredSize();
-    UpdateLayout();
+    InvalidateLayout();
 }
 
 EFlowBoxDirection FlowBox::GetDirection() const
@@ -14,11 +13,151 @@ EFlowBoxDirection FlowBox::GetDirection() const
     return _direction;
 }
 
+void FlowBox::SetAlignment(EFlowBoxAlignment alignment)
+{
+    if (_alignment == alignment)
+    {
+        return;
+    }
+
+    _alignment = alignment;
+
+    InvalidateLayout();
+}
+
+EFlowBoxAlignment FlowBox::GetAlignment() const
+{
+    return _alignment;
+}
+
+void FlowBox::RebuildLayoutInternal()
+{
+    const Vector2 screenSize = GetScreenSize();
+
+    int32 index = 0;
+
+    Vector2 offset;
+    for (const std::shared_ptr<Widget>& widget : GetChildren())
+    {
+        const Vector2& childDesiredSize = widget->GetDesiredSize();
+        const Vector2& childPaddedDesiredSize = widget->GetPaddedDesiredSize();
+
+        Vector2 newChildSize;
+        if (_direction == EFlowBoxDirection::Horizontal)
+        {
+            if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillY | EWidgetFillMode::RetainAspectRatio))
+            {
+                newChildSize = Vector2(
+                    childDesiredSize.x * (GetDesiredSize().y / childPaddedDesiredSize.y) / screenSize.x,
+                    childDesiredSize.y / childPaddedDesiredSize.y);
+            }
+            else if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
+            {
+                newChildSize = Vector2(childDesiredSize.x / screenSize.x, 1.0f);
+            }
+            else
+            {
+                newChildSize = childDesiredSize / screenSize;
+            }
+        }
+        else
+        {
+            if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX | EWidgetFillMode::RetainAspectRatio))
+            {
+                newChildSize = Vector2(childDesiredSize.x / childPaddedDesiredSize.x,
+                                       childDesiredSize.y * (GetDesiredSize().x / childPaddedDesiredSize.x) / screenSize
+                                       .y);
+            }
+            else if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
+            {
+                newChildSize = Vector2(1.0f, childDesiredSize.y / screenSize.y);
+            }
+            else
+            {
+                newChildSize = childDesiredSize / screenSize;
+            }
+        }
+
+        const Vector2 newChildPaddedSize = newChildSize * widget->GetPaddedDesiredSize() / childDesiredSize;
+
+        widget->SetSize(newChildSize);
+
+        Vector2 childPosition;
+        if (_direction == EFlowBoxDirection::Horizontal)
+        {
+            childPosition.x = offset.x + newChildPaddedSize.x * 0.5f;
+            offset.x += newChildPaddedSize.x;
+        }
+        else
+        {
+            childPosition.y = -offset.y - newChildPaddedSize.y * 0.5f;
+            offset.y += newChildPaddedSize.y;
+        }
+
+        widget->SetPosition(childPosition);
+
+        ++index;
+    }
+}
+
+void FlowBox::UpdateDesiredSizeInternal()
+{
+    Vector2 newDesiredSize;
+    std::vector<std::shared_ptr<Widget>> widgetsWithFill;
+    if (_direction == EFlowBoxDirection::Horizontal)
+    {
+        for (const std::shared_ptr<Widget>& widget : GetChildren())
+        {
+            const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
+            if ((widget->GetFillMode() & EWidgetFillMode::RetainAspectRatio) != EWidgetFillMode::None)
+            {
+                widgetsWithFill.push_back(widget);
+            }
+            else
+            {
+                newDesiredSize.x += paddedDesiredSize.x;
+            }
+
+            newDesiredSize.y = std::max(newDesiredSize.y, paddedDesiredSize.y);
+        }
+
+        for (const std::shared_ptr<Widget>& widget : widgetsWithFill)
+        {
+            const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
+            newDesiredSize.x += paddedDesiredSize.x * newDesiredSize.y / paddedDesiredSize.y;
+        }
+    }
+    else
+    {
+        for (const std::shared_ptr<Widget>& widget : GetChildren())
+        {
+            const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
+            if ((widget->GetFillMode() & EWidgetFillMode::RetainAspectRatio) != EWidgetFillMode::None)
+            {
+                widgetsWithFill.push_back(widget);
+            }
+            else
+            {
+                newDesiredSize.y += paddedDesiredSize.y;
+            }
+
+            newDesiredSize.x = std::max(newDesiredSize.x, paddedDesiredSize.x);
+        }
+
+        for (const std::shared_ptr<Widget>& widget : widgetsWithFill)
+        {
+            const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
+            newDesiredSize.y += paddedDesiredSize.y * newDesiredSize.x / paddedDesiredSize.x;
+        }
+    }
+
+    SetDesiredSize(newDesiredSize);
+}
+
 void FlowBox::OnChildAdded(const std::shared_ptr<Widget>& child)
 {
     Widget::OnChildAdded(child);
 
-    // todo anchors
     if (GetDirection() == EFlowBoxDirection::Horizontal)
     {
         child->SetAnchor(EWidgetAnchor::CenterLeft);
@@ -26,118 +165,5 @@ void FlowBox::OnChildAdded(const std::shared_ptr<Widget>& child)
     else
     {
         child->SetAnchor(EWidgetAnchor::TopCenter);
-    }
-
-    UpdateLayout();
-}
-
-void FlowBox::OnChildRemoved(const std::shared_ptr<Widget>& child)
-{
-    Widget::OnChildRemoved(child);
-
-    UpdateLayout();
-}
-
-void FlowBox::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child)
-{
-    UpdateDesiredSize();
-    UpdateLayout();
-}
-
-void FlowBox::UpdateDesiredSize()
-{
-    Vector2 newDesiredSize;
-    for (const std::shared_ptr<Widget>& widget : GetChildren())
-    {
-        const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
-        if (_direction == EFlowBoxDirection::Horizontal)
-        {
-            newDesiredSize.x += paddedDesiredSize.x;
-            newDesiredSize.y = std::max(newDesiredSize.y, paddedDesiredSize.y);
-        }
-        else
-        {
-            newDesiredSize.x = std::max(newDesiredSize.x, paddedDesiredSize.x);
-            newDesiredSize.y += paddedDesiredSize.y;
-        }
-    }
-
-    SetDesiredSize(newDesiredSize);
-}
-
-void FlowBox::UpdateLayout()
-{
-    const Vector2& desiredSize = GetDesiredSize();
-
-    const Vector2 screenSize = GetScreenRelativeSize();
-    if (screenSize.LengthSquared() <= 0.0f)
-    {
-        return;
-    }
-
-    int32 index = 0;
-
-    Vector2 offset;
-    for (const std::shared_ptr<Widget>& widget : GetChildren())
-    {
-        const Vector2 childDesiredSize = widget->GetDesiredSize();
-
-        Vector2 newChildSize;
-        if (_direction == EFlowBoxDirection::Horizontal)
-        {
-            if ((widget->GetFillMode() & EWidgetFillMode::FillY) != EWidgetFillMode::None)
-            {
-                newChildSize = Vector2(childDesiredSize.x / desiredSize.x, 1.0f);
-            } 
-            else
-            {
-                newChildSize = childDesiredSize / desiredSize;
-            }
-        }
-        else
-        {
-            if ((widget->GetFillMode() & EWidgetFillMode::FillX) != EWidgetFillMode::None)
-            {
-                newChildSize = Vector2(1.0f, childDesiredSize.y / desiredSize.y);
-            }
-            else
-            {
-                newChildSize = childDesiredSize / desiredSize;
-            }
-        }
-
-        const Vector2 newChildPaddedSize = newChildSize * widget->GetPaddedDesiredSize() / childDesiredSize;
-
-        // todo implement relative size so we can remove this hack
-        float aspectRatio = 1.0f;
-        if (const std::shared_ptr<Window>& window = GetParentWindow())
-        {
-            if ((widget->GetFillMode() & EWidgetFillMode::RetainAspectRatio) != EWidgetFillMode::None)
-            {
-                aspectRatio = window->GetAspectRatio();
-                newChildSize.x /= aspectRatio;
-            }
-        }
-
-        widget->SetSize(newChildSize);
-
-        if (GetChildren().size() > 1)
-        {
-            Vector2 childPosition;
-            if (_direction == EFlowBoxDirection::Horizontal)
-            {
-                childPosition.x = offset.x + newChildPaddedSize.x * 0.5f;
-                offset.x += newChildPaddedSize.x;
-            }
-            else
-            {
-                childPosition.y = -offset.y - newChildPaddedSize.y * 0.5f;
-                offset.y += newChildPaddedSize.y;
-            }
-
-            widget->SetPosition(childPosition);
-        }
-
-        ++index;
     }
 }

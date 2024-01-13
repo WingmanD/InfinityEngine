@@ -25,20 +25,27 @@ bool Checkbox::Initialize()
     {
         return false;
     }
-
-    SetFillMode(EWidgetFillMode::RetainAspectRatio);
     
-    if (GetDesiredSize() == Vector2::One)
+    if (GetDesiredSize() == Vector2::Zero)
     {
-        SetDesiredSize(Vector2(0.04f));
+        SetDesiredSize(Vector2(10.0f));
     }
 
     if (GetPadding() == Vector4::Zero)
     {
-        SetPadding(Vector4(0.01f));
+        SetPadding(Vector4(2.0f));
     }
     
+    SetFillMode(EWidgetFillMode::RetainAspectRatio);
+
+    SetCollisionEnabled(true);
+    
     return true;
+}
+
+void Checkbox::UpdateDesiredSizeInternal()
+{
+    // Do nothing
 }
 
 void Checkbox::OnReleasedInternal()

@@ -11,6 +11,11 @@ const std::wstring& Button::GetText() const
     return _textBox.lock()->GetText();
 }
 
+std::shared_ptr<TextBox> Button::GetTextBox() const
+{
+    return _textBox.lock();
+}
+
 bool Button::Initialize()
 {
     if (!Widget::Initialize())

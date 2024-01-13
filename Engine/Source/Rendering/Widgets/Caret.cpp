@@ -9,14 +9,11 @@ bool Caret::Initialize()
         return false;
     }
 
-    SetSize({0.05f, 0.8f});
-    SetCollisionEnabled(false);
+    SetDesiredSize({2.0f, 10.0f});
     SetVisibility(false);
 
-    {
-        WidgetPerPassConstants* param = GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
-        param->BaseColor = Color(1.0f, 1.0f, 1.0f, 1.0f);
-    }
+    WidgetPerPassConstants* param = GetMaterial()->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
+    param->BaseColor = Color(1.0f, 1.0f, 1.0f, 1.0f);
     
     return true;
 }

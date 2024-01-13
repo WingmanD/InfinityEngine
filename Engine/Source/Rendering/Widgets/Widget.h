@@ -125,6 +125,7 @@ public:
     void SetSize(const Vector2& size);
     Vector2 GetSize() const;
     Vector2 GetSizeWS() const;
+    Vector2 GetScreenSize() const;
     Vector2 GetScreenRelativeSize() const;
 
     void SetDesiredSize(const Vector2& size);
@@ -143,10 +144,10 @@ public:
     void SetMaterial(const std::shared_ptr<Material>& material);
     std::shared_ptr<Material> GetMaterial() const;
 
-    void AddChild(const std::shared_ptr<Widget>& widget);
+    void AddChild(const std::shared_ptr<Widget>& widget, bool invalidateLayout = true);
 
     template <typename T> requires std::is_base_of_v<Widget, T>
-    std::shared_ptr<T> AddChild()
+    std::shared_ptr<T> AddChild(bool invalidateLayout = true)
     {
         std::shared_ptr<T> widget = std::make_shared<T>();
         if (!widget->Initialize())
@@ -154,7 +155,7 @@ public:
             return nullptr;
         }
 
-        AddChild(widget);
+        AddChild(widget, invalidateLayout);
 
         return widget;
     }
@@ -162,6 +163,9 @@ public:
     void RemoveChild(const std::shared_ptr<Widget>& widget);
     const std::vector<std::shared_ptr<Widget>>& GetChildren() const;
     void RemoveFromParent();
+
+    void RebuildLayout();
+    void ForceRebuildLayout(bool recursive = false);
 
     [[nodiscard]] std::shared_ptr<Widget> GetParentWidget() const;
     const RECT& GetRect() const;
@@ -180,12 +184,7 @@ public:
 
     void SetFillMode(EWidgetFillMode fillMode);
     EWidgetFillMode GetFillMode() const;
-
-    void SetIgnoreChildDesiredSize(bool value);
-    bool ShouldIgnoreChildDesiredSize() const;
-
-    void OnParentResized();
-
+    
     WidgetRenderingProxy& GetRenderingProxy() const;
 
     const BoundingBox2D& GetBoundingBox() const;
@@ -210,6 +209,14 @@ protected:
     std::unique_ptr<WidgetRenderingProxy> RenderingProxy = nullptr;
 
 protected:
+    void InvalidateLayout();
+    bool IsLayoutDirty() const;
+
+    virtual void RebuildLayoutInternal();
+    void UpdateDesiredSize();
+    void ForceUpdateDesiredSize(bool recursive = false);
+    virtual void UpdateDesiredSizeInternal();
+    
     virtual bool InitializeRenderingProxy();
 
     virtual void OnFocusChanged(bool focused);
@@ -225,9 +232,6 @@ protected:
 
     virtual void OnAddedToParent(const std::shared_ptr<Widget>& parent);
     virtual void OnRemovedFromParent(const std::shared_ptr<Widget>& parent);
-
-    void OnChildDesiredSizeChanged(const std::shared_ptr<Widget>& child);
-    virtual void OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child);
 
     virtual void OnPressedInternal();
     virtual void OnReleasedInternal();
@@ -277,10 +281,10 @@ private:
 
     Vector2 _size = Vector2::One;
 
-    PROPERTY(Edit, DisplayName = "Desired Size")
-    Vector2 _desiredSize = {0.2f, 0.1f};
+    PROPERTY(Edit, DisplayName = "Desired Size At 1920x1080 [pixel]")
+    Vector2 _desiredSize = Vector2::Zero;
 
-    PROPERTY(Edit, DisplayName = "Padding")
+    PROPERTY(Edit, DisplayName = "Padding [pixel]")
     Vector4 _padding = Vector4::Zero;
 
     Vector2 _storedCollapsedSize;
@@ -290,6 +294,8 @@ private:
     BoundingBox2D _boundingBox;
 
     RECT _widgetRect = {0, 0, 0, 0};
+
+    bool _isLayoutDirty = true;
 
 private:
     void UpdateMaterialParameters() const;

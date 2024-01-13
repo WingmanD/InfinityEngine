@@ -27,9 +27,11 @@ public:
     virtual ~Window() = default;
 
     virtual bool Initialize();
+    void Tick(double deltaTime);
 
     uint32 GetWidth() const;
     uint32 GetHeight() const;
+    const Vector2& GetSize() const;
     float GetAspectRatio() const;
 
     void SetState(WindowState state);
@@ -93,6 +95,7 @@ private:
 
     uint32 _width = 1920u;
     uint32 _height = 1080u;
+    Vector2 _size = Vector2(1920.0f, 1080.0f);
     float _aspectRatio = 16.0f / 9.0f;
     std::wstring _title = L"InfinityEngine";
 

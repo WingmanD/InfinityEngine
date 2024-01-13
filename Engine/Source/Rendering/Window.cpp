@@ -11,6 +11,9 @@
 
 #include "Widgets/AssetBrowser.h"
 #include "Widgets/AssetCreatorMenu.h"
+#include "Widgets/Button.h"
+#include "Widgets/FlowBox.h"
+#include "Widgets/TextBox.h"
 #include "Widgets/TypePicker.h"
 
 Window::Window(uint32 width, uint32 height, std::wstring title) :
@@ -86,22 +89,14 @@ bool Window::Initialize()
     _rootWidget->SetCollisionEnabled(false);
     _rootWidget->SetVisibility(false);
     _rootWidget->SetWindow(shared_from_this());
-    _rootWidget->SetIgnoreChildDesiredSize(true);
     _rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
-    _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
+    _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});  // todo reimport QuadMesh with 2x size to avoid this 2x scaling
 
     const std::shared_ptr<AssetBrowser> assetBrowser = _rootWidget->AddChild<AssetBrowser>();
     if (assetBrowser == nullptr)
     {
         return false;
     }
-    
-    // auto typePicker = _rootWidget->AddChild<TypePicker>();
-    // if (typePicker == nullptr)
-    // {
-    //     return false;
-    // }
-    // typePicker->InitializeFromType(Object::StaticType());
     
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});
@@ -170,6 +165,11 @@ bool Window::Initialize()
     return true;
 }
 
+void Window::Tick(double deltaTime)
+{
+    _rootWidget->RebuildLayout();
+}
+
 uint32 Window::GetWidth() const
 {
     return _width;
@@ -178,6 +178,11 @@ uint32 Window::GetWidth() const
 uint32 Window::GetHeight() const
 {
     return _height;
+}
+
+const Vector2& Window::GetSize() const
+{
+    return _size;
 }
 
 float Window::GetAspectRatio() const
@@ -276,6 +281,7 @@ void Window::OnResized()
 {
     _width = _pendingResize.Width;
     _height = _pendingResize.Height;
+    _size = Vector2(static_cast<float>(_width), static_cast<float>(_height));
     _aspectRatio = static_cast<float>(_width) / static_cast<float>(_height);
 
     _windowGlobals->ResolutionX = static_cast<uint16>(_width);
@@ -288,6 +294,8 @@ void Window::OnResized()
     if (_rootWidget != nullptr)
     {
         _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
+
+        _rootWidget->ForceRebuildLayout(true);
     }
 }
 

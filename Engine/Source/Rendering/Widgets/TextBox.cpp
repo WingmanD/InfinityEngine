@@ -93,9 +93,12 @@ const Color& TextBox::GetTextColor() const
 
 void TextBox::SetFormatting(ETextFormatting formatting)
 {
-    _formatting = formatting;
+    if (_formatting == formatting)
+    {
+        return;
+    }
 
-    OnTextChanged();
+    _formatting = formatting;
 }
 
 ETextFormatting TextBox::GetFormatting() const
@@ -125,28 +128,7 @@ const Vector2& TextBox::GetTextOrigin() const
 
 void TextBox::OnTextChanged()
 {
-    if (_font == nullptr)
-    {
-        DEBUG_BREAK();
-        return;
-    }
-
-    const DirectX::SpriteFont* spriteFont = _font->GetSpriteFont(GetFontType());
-    if (spriteFont == nullptr)
-    {
-        DEBUG_BREAK();
-        return;
-    }
-
-    Vector2 windowSize = {1920.0f, 1080.0f};
-    if (const std::shared_ptr<Window> window = GetParentWindow())
-    {
-        windowSize = Vector2(static_cast<float>(window->GetWidth()), static_cast<float>(window->GetHeight()));
-    }
-
-    const Vector2 desiredSize = Vector2(spriteFont->MeasureString(_text.c_str(), false)) / windowSize;
-
-    SetDesiredSize(desiredSize);
+    InvalidateLayout();
 }
 
 bool TextBox::Initialize()
@@ -162,6 +144,24 @@ bool TextBox::Initialize()
     }
 
     return true;
+}
+
+void TextBox::RebuildLayoutInternal()
+{
+    UpdateTextOrigin();
+}
+
+void TextBox::UpdateDesiredSizeInternal()
+{
+    const std::shared_ptr<Font>& font = GetFont();
+    if (font == nullptr)
+    {
+        SetDesiredSize(Vector2::Zero);
+        return;
+    }
+
+    const Vector2 desiredSize = Vector2(font->MeasureString(_text.c_str(), GetFontType())) * GetFontSize() * static_cast<float>(GetParentWindow()->GetHeight()) / 1080.0f;
+    SetDesiredSize(desiredSize);
 }
 
 bool TextBox::InitializeRenderingProxy()
@@ -181,40 +181,12 @@ void TextBox::OnTransformChanged()
 {
     Widget::OnTransformChanged();
 
-    const std::shared_ptr<Font>& font = GetFont();
-    if (font == nullptr)
-    {
-        return;
-    }
-
-    switch (GetFormatting())
-    {
-        case ETextFormatting::Center:
-        {
-            _textOrigin = GetFont()->MeasureString(GetText().c_str(), GetFontType());
-            _textOrigin /= 2.0f;
-            break;
-        }
-        case ETextFormatting::Left:
-        {
-            // todo
-            break;
-        }
-        case ETextFormatting::Right:
-        {
-            // todo
-            _textOrigin = GetFont()->MeasureString(GetText().c_str(), GetFontType());
-            _textOrigin.x *= -1.0f;
-            break;
-        }
-    }
-
     if (const std::shared_ptr<Window> parentWindow = GetParentWindow())
     {
         const Transform2D transformWS = GetTransformWS();
 
         const Vector2 position = UIStatics::ToScreenSpace(transformWS.GetPosition(), parentWindow);
-        const Vector2 scale = Vector2(GetFontSize());
+        const Vector2 scale = Vector2(GetFontSize() * parentWindow->GetHeight() / 1080.0f);
         const float rotation = transformWS.GetRotation();
 
         _textTransform.SetPosition(position);
@@ -238,4 +210,29 @@ void TextBox::OnHoverStartedInternal()
 void TextBox::OnHoverEndedInternal()
 {
     InputSubsystem::Get().SetCursorIcon(ECursorIcon::Arrow);
+}
+
+void TextBox::UpdateTextOrigin()
+{
+    switch (GetFormatting())
+    {
+    case ETextFormatting::Center:
+        {
+            _textOrigin = GetFont()->MeasureString(GetText().c_str(), GetFontType()) /* * GetFontSize() * static_cast<float>(GetParentWindow()->GetHeight()) / 1080.0f */;  // todo
+            _textOrigin /= 2.0f;
+            break;
+        }
+    case ETextFormatting::Left:
+        {
+            // todo
+            break;
+        }
+    case ETextFormatting::Right:
+        {
+            // todo
+            _textOrigin = GetFont()->MeasureString(GetText().c_str(), GetFontType()) /* * GetFontSize() * static_cast<float>(GetParentWindow()->GetHeight()) / 1080.0f */;
+            _textOrigin.x *= -1.0f;
+            break;
+        }
+    }
 }

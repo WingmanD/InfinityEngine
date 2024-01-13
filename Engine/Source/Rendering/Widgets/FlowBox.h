@@ -11,6 +11,15 @@ enum class EFlowBoxDirection : uint8
 };
 
 REFLECTED()
+enum class EFlowBoxAlignment : uint8
+{
+    Start,
+    Center,
+    Justify,
+    End
+};
+
+REFLECTED()
 class FlowBox : public Widget
 {
     GENERATED()
@@ -23,18 +32,20 @@ public:
     void SetDirection(EFlowBoxDirection direction);
     EFlowBoxDirection GetDirection() const;
 
+    void SetAlignment(EFlowBoxAlignment alignment);
+    EFlowBoxAlignment GetAlignment() const;
+
     // Widget
 protected:
-    virtual void OnChildAdded(const std::shared_ptr<Widget>& child) override;
-    virtual void OnChildRemoved(const std::shared_ptr<Widget>& child) override;
-    
-    virtual void OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child) override;
+    void RebuildLayoutInternal() override;
+    void UpdateDesiredSizeInternal() override;
 
-private:
-    void UpdateDesiredSize();
-    void UpdateLayout();
+    void OnChildAdded(const std::shared_ptr<Widget>& child) override;
 
 private:
     PROPERTY(Edit, DisplayName = "Direction")
     EFlowBoxDirection _direction = EFlowBoxDirection::Vertical;
+
+    PROPERTY(Edit, DisplayName = "Alignment")
+    EFlowBoxAlignment _alignment = EFlowBoxAlignment::Center;
 };

@@ -50,8 +50,6 @@ bool DropdownMenu::Initialize()
         return false;
     }
 
-    SetCollisionEnabled(false);
-
     std::shared_ptr<Widget> choicesWidget = std::make_shared<Widget>();
     if (!choicesWidget->Initialize())
     {
@@ -95,13 +93,14 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
     selectedWidget->Initialize();
 
     _selectedWidget = selectedWidget;
-    AddChild(selectedWidget);
+    AddChild(selectedWidget, false);
 
     selectedWidget->SetVisibility(true);
     selectedWidget->SetCollisionEnabled(true);
 
     selectedWidget->SetAnchor(EWidgetAnchor::Center);
     selectedWidget->SetPosition(Vector2::Zero);
+    selectedWidget->SetSize({1.0f, 1.0f});
 
     if (_choiceReleasedHandle.IsValid())
     {
@@ -126,42 +125,39 @@ const std::vector<std::shared_ptr<Widget>>& DropdownMenu::GetChoices() const
     return _choicesWidget.lock()->GetChildren()[0]->GetChildren();
 }
 
-void DropdownMenu::OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child)
+void DropdownMenu::RebuildLayoutInternal()
 {
-    if (child == nullptr)
+    const std::shared_ptr<Widget> selectedWidget = _selectedWidget.lock();
+    selectedWidget->SetPosition(Vector2::Zero);
+    selectedWidget->SetSize({1.0f, 1.0f});
+    
+    UpdateChoicesWidgetTransform();
+}
+
+void DropdownMenu::UpdateDesiredSizeInternal()
+{
+    const std::shared_ptr<Widget> selectedWidget = _selectedWidget.lock();
+    if (selectedWidget == nullptr)
     {
         return;
     }
+    const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
+    if (choicesWidget == nullptr)
+    {
+        return;
+    }
+
+    const Vector2 newDesiredSize = Vector2(
+        std::max(selectedWidget->GetPaddedDesiredSize().x, choicesWidget->GetPaddedDesiredSize().x),
+        selectedWidget->GetPaddedDesiredSize().y
+    );
     
-    if (child == _choicesWidget.lock())
-    {
-        Vector2 newSize = child->GetPaddedDesiredSize() / GetScreenRelativeSize();
-        if (const std::shared_ptr<Widget>& selected = _selectedWidget.lock())
-        {
-            newSize.x = selected->GetSize().x;
-        }
-        child->SetSize(newSize);
-
-        if (const std::shared_ptr<Widget>& selected = _selectedWidget.lock())
-        {
-            selected->SetDesiredSize({child->GetDesiredSize().x, selected->GetDesiredSize().y});
-        }
-
-        UpdateChoicesWidgetTransform();
-    }
-    else if (child == _selectedWidget.lock())
-    {
-        const float newDesiredWidth = std::max(child->GetPaddedDesiredSize().x,
-                                               _choicesWidget.lock()->GetPaddedDesiredSize().x);
-        SetDesiredSize({newDesiredWidth, child->GetPaddedDesiredSize().y});
-    }
+    SetDesiredSize(newDesiredSize);
 }
 
 void DropdownMenu::UpdateChoicesWidgetTransform() const
 {
     const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
-
-    //choicesWidget->SetPosition({0.0f, -choicesWidget->GetSize().y / 4.0f});
     choicesWidget->SetPosition({0.0f, -0.5f});
 }
 
@@ -190,6 +186,6 @@ void DropdownMenu::SetChoicesWidgetEnabled(bool value) const
     for (const std::shared_ptr<Widget>& widget : flowBox->GetChildren())
     {
         widget->SetVisibility(value, true);
-        widget->SetCollisionEnabled(value); // todo this doesn't work - collision is disabled in state flags, but hittest grid still has references to the widget
+        widget->SetCollisionEnabled(value);
     }
 }

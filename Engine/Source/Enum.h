@@ -161,3 +161,10 @@ std::enable_if_t<EnableBitMaskOperators<Enum>::Enable, Enum> operator ~(Enum rhs
         ~static_cast<underlying>(rhs)
     );
 }
+
+template <typename Enum>
+bool HasFlags(Enum value, Enum flags)
+{
+    using underlying = std::underlying_type_t<Enum>;
+    return (static_cast<underlying>(value) & static_cast<underlying>(flags)) == static_cast<underlying>(flags);
+}

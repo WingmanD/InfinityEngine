@@ -64,6 +64,11 @@ std::shared_ptr<TypePicker> TypePicker::CreateForType(Type* baseType)
     }
 
     const std::shared_ptr<TypePicker> typePicker = std::make_shared<TypePicker>();
+    if (!typePicker->Initialize())
+    {
+        return nullptr;
+    }
+    
     typePicker->InitializeFromType(baseType);
 
     return typePicker;

@@ -54,6 +54,9 @@ protected:
 public:
     virtual bool Initialize() override;
 
+    void RebuildLayoutInternal() override;
+    void UpdateDesiredSizeInternal() override;
+
     // Widget
 protected:
     virtual bool InitializeRenderingProxy() override;
@@ -89,4 +92,7 @@ private:
 
     Transform2D _textTransform{};
     Vector2 _textOrigin = Vector2::Zero;
+
+private:
+    void UpdateTextOrigin();
 };

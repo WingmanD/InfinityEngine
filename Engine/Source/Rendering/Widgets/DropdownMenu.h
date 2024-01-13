@@ -45,7 +45,8 @@ protected:
 
     // Widget
 protected:
-    virtual void OnChildDesiredSizeChangedInternal(const std::shared_ptr<Widget>& child) override;
+    void RebuildLayoutInternal() override;
+    void UpdateDesiredSizeInternal() override;
 
 private:
     PROPERTY(Edit, DisplayName = "Choice Widget Type")

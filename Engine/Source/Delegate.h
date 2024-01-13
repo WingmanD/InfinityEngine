@@ -2,17 +2,20 @@
 
 #include "Core.h"
 #include <functional>
+#include <map>
 #include <vector>
+
+#include "IDGenerator.h"
 
 struct DelegateHandle
 {
 public:
-    uint64 Index = 0;
+    uint64 ID = 0;
 
 public:
     bool IsValid() const
     {
-        return Index != 0;
+        return ID != 0;
     }
 };
 
@@ -20,23 +23,36 @@ template <typename... Args>
 class Delegate
 {
 public:
-    DelegateHandle Add(std::function<void(Args&&...)>&& function)
+    DelegateHandle Add(std::function<void(Args...)>&& function)
     {
-        _functions.push_back(function);
+        const uint64 id = _idGenerator.GenerateID();
+        _functions.push_back({function, id});
 
-        return {_functions.size() - 1};
+        return {id};
     }
 
     void Remove(const DelegateHandle& handle)
     {
-        _functions.erase(_functions.begin() + handle.Index);
+        const auto it = _handleIDToIndex.find(handle.ID);
+        if (it == _handleIDToIndex.end())
+        {
+            return;
+        }
+
+        size_t index = it->second;
+        _handleIDToIndex.erase(handle.ID);
+
+        _functions[index] = _functions.back();
+        _functions.pop_back();
+
+        _handleIDToIndex[_functions[index].ID] = index;
     }
 
     void Broadcast(Args... args)
     {
         for (auto& function : _functions)
         {
-            function(std::forward<Args>(args)...);
+            function.Function(std::forward<Args>(args)...);
         }
     }
 
@@ -46,5 +62,14 @@ public:
     }
 
 private:
-    std::vector<std::function<void(Args...)>> _functions;
+    struct FunctionWrapper
+    {
+        std::function<void(Args...)> Function;
+        uint64 ID = 0;
+    };
+
+    std::vector<FunctionWrapper> _functions;
+    std::map<uint64, size_t> _handleIDToIndex;
+
+    IDGenerator _idGenerator;
 };

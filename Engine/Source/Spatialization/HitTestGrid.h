@@ -19,6 +19,11 @@ public:
 
     void InsertElement(T element, const BoundingBox2D& aabb, const std::function<bool(const T& lhs, const T& rhs)>& comparator)
     {
+        if (_elementToCell.contains(element))
+        {
+            RemoveElement(element);  
+        }
+        
         _grid.ForEachCellInBox(aabb,
        [&](GridCell& cell)
        {
@@ -31,25 +36,8 @@ public:
        });
     }
 
-    bool RemoveElement(T element, const BoundingBox2D& aabb, const std::function<bool(const T& lhs, const T& rhs)>& comparator)
+    bool RemoveElement(T element)
     {
-        // _grid.ForEachCellInBox(aabb,
-        // [&](GridCell& cell)
-        // {
-        //     auto index = std::lower_bound(cell.Elements.begin(), cell.Elements.end(), element, comparator);
-        //     if (index != cell.Elements.end() && *index == element)
-        //     {
-        //         cell.Elements.erase(index);
-        //         return true;
-        //     }
-        //     
-        //     // todo this is expensive, we should iteratively find the element around the index
-        //     auto [start, end] = std::ranges::remove(cell.Elements, element);
-        //     cell.Elements.erase(start, end);
-        //     
-        //     return removed;
-        // });
-
         auto cellIt = _elementToCell.find(element);
         if (cellIt == _elementToCell.end())
         {
@@ -61,7 +49,7 @@ public:
             if (cell->Elements.empty())
             {
                 continue;
-            }
+            } 
             
             for (int64 i = static_cast<int64>(cell->Elements.size()) - 1; i >= 0; --i)
             {

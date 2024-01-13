@@ -371,6 +371,11 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
 {
     GetEventQueue().ProcessEvents();
 
+    for (std::shared_ptr<DX12Window>& window : _windows)
+    {
+        window->Tick(deltaTime);
+    }
+
     HandleCopyLists();
 
     // todo multiple descriptor heaps

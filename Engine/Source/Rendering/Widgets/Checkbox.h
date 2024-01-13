@@ -25,6 +25,7 @@ public:
     virtual bool Initialize() override;
 
 protected:
+    void UpdateDesiredSizeInternal() override;
     virtual void OnReleasedInternal() override;
     
 private:

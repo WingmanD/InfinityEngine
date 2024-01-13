@@ -7,6 +7,7 @@
 class Caret;
 
 REFLECTED()
+
 class EditableTextBox : public TextBox
 {
     GENERATED()
@@ -35,10 +36,11 @@ public:
 
     // TextBox
 protected:
-    virtual void OnTextChanged() override;
+    void OnTextChanged() override;
 
     // Widget
 protected:
+    void UpdateDesiredSizeInternal() override;
     virtual void OnFocusChanged(bool focused) override;
 
 private:

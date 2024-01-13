@@ -15,6 +15,8 @@ public:
 
     void SetText(const std::wstring& text) const;
     const std::wstring& GetText() const;
+
+    std::shared_ptr<TextBox> GetTextBox() const;
     
     // Widget
 public:
