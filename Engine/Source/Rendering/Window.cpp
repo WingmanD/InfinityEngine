@@ -17,6 +17,9 @@
 #include "Widgets/TextBox.h"
 #include "Widgets/EditableTextBox.h"
 #include "Widgets/TypePicker.h"
+#include "Widgets/TabSwitcher.h"
+
+class TabSwitcher;
 
 Window::Window(uint32 width, uint32 height, std::wstring title) :
     _width(width),
@@ -100,9 +103,22 @@ bool Window::Initialize()
     //     return false;
     // }
 
-    auto material  = AssetManager::Get().FindAssetByName<Material>(L"DefaultMaterial");
-    material->Load();
-    _rootWidget->AddChild(material->GetType()->CreatePropertiesWidget(material));
+    // auto material  = AssetManager::Get().FindAssetByName<Material>(L"DefaultMaterial");
+    // material->Load();
+    // _rootWidget->AddChild(material->GetType()->CreatePropertiesWidget(material));
+
+    auto tabSwitcher = _rootWidget->AddChild<TabSwitcher>();
+    if (tabSwitcher == nullptr)
+    {
+        return false;
+    }
+    tabSwitcher->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+    
+    tabSwitcher->AddTab<AssetBrowser>(L"Asset Browser");
+    tabSwitcher->AddTab<AssetCreatorMenu>(L"Asset Creator");
+    auto button = tabSwitcher->AddTab<Button>(L"Random");
+    button->SetText(L"Button");
+    
     
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});

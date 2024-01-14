@@ -183,7 +183,7 @@ void TableWidget::UpdateDesiredSizeInternal()
     }
     _columnRatios.resize(numColumns);
 
-    static std::vector<float> maxWidths(numColumns);
+    std::vector<float> maxWidths(numColumns);
     for (const std::shared_ptr<Widget>& row : verticalBox->GetChildren())
     {
         const std::vector<std::shared_ptr<Widget>>& children = row->GetChildren();

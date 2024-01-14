@@ -51,6 +51,8 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
         }
     });
 
+    _asset = asset;
+
     return true;
 }
 

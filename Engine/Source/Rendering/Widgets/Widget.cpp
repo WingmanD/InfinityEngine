@@ -119,7 +119,7 @@ bool Widget::IsEnabled() const
 
 void Widget::SetVisibility(bool value, bool recursive /*= false*/)
 {
-    if (value != IsVisible())
+    if (value != HasFlags(_state, EWidgetState::Visible))
     {
         _state = value ? _state | EWidgetState::Visible : _state & ~EWidgetState::Visible;
 
@@ -137,26 +137,29 @@ void Widget::SetVisibility(bool value, bool recursive /*= false*/)
 
 bool Widget::IsVisible() const
 {
-    return (_state & EWidgetState::Visible) != EWidgetState::None && (_state & EWidgetState::Collapsed) ==
-        EWidgetState::None;
+    return (_state & EWidgetState::Visible) != EWidgetState::None && !IsCollapsed();
 }
 
 void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
 {
-    if (value != IsCollisionEnabled())
+    if (value != HasFlags(_state, EWidgetState::CollisionEnabled))
     {
         _state = value ? _state | EWidgetState::CollisionEnabled : _state & ~EWidgetState::CollisionEnabled;
 
-        if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
+        if (!IsLayoutDirty())
         {
-            HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGrid();
-            if (value)
+            // If layout is dirty, we will update the hit test grid when rebuilding the layout
+            if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
             {
-                hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
-            }
-            else
-            {
-                hitTestGrid.RemoveElement(this);
+                HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGrid();
+                if (value)
+                {
+                    hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+                }
+                else
+                {
+                    hitTestGrid.RemoveElement(this);
+                }
             }
         }
     }
@@ -172,45 +175,40 @@ void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
 
 bool Widget::IsCollisionEnabled() const
 {
-    return (_state & EWidgetState::CollisionEnabled) != EWidgetState::None;
+    return (_state & EWidgetState::CollisionEnabled) != EWidgetState::None && !IsCollapsed();
 }
 
 void Widget::SetCollapsed(bool value)
 {
-    if (value == IsCollapsed())
+    if (value == ((_state & EWidgetState::Collapsed) != EWidgetState::None))
     {
         return;
     }
 
     _state = value ? _state | EWidgetState::Collapsed : _state & ~EWidgetState::Collapsed;
 
+    InvalidateTree();
+
     if (value)
     {
-        _storedCollapsedSize = _size;
-        SetSize({0.0f, 0.0f});
+        DisableCollisionForTree();
     }
     else
     {
-        SetSize(_storedCollapsedSize);
-    }
-
-    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
-    {
-        HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGrid();
-        if (value)
-        {
-            hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
-        }
-        else
-        {
-            hitTestGrid.RemoveElement(this);
-        }
+        EnableCollisionForTree();
     }
 }
 
 bool Widget::IsCollapsed() const
 {
-    return (_state & EWidgetState::Collapsed) != EWidgetState::None;
+    const bool isCollapsed = (_state & EWidgetState::Collapsed) != EWidgetState::None;
+
+    if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        return isCollapsed || parentWidget->IsCollapsed();
+    }
+
+    return isCollapsed;
 }
 
 void Widget::SetFocused(bool value)
@@ -304,6 +302,11 @@ void Widget::SetSize(const Vector2& size)
 {
     _size = size;
 
+    if (isinf(size.x) || isinf(size.y))
+    {
+        DEBUG_BREAK();
+    }
+
     if (const std::shared_ptr<Widget> widget = GetParentWidget())
     {
         _quadTransform.SetScale(_size * widget->GetSizeWS());
@@ -365,11 +368,21 @@ void Widget::SetDesiredSize(const Vector2& size)
 
 const Vector2& Widget::GetDesiredSize() const
 {
+    if (IsCollapsed())
+    {
+        return Vector2::Zero;
+    }
+
     return _desiredSize;
 }
 
 Vector2 Widget::GetPaddedDesiredSize() const
 {
+    if (IsCollapsed())
+    {
+        return Vector2::Zero;
+    }
+
     return _desiredSize + Vector2(_padding.x + _padding.y, _padding.z + _padding.w);
 }
 
@@ -377,9 +390,7 @@ void Widget::SetPadding(const Vector4& padding)
 {
     _padding = padding;
 
-    SetDesiredSize(GetDesiredSize());
-
-    // todo update position, position getter also needs to take in account padding offset
+    InvalidateLayout();
 }
 
 const Vector4& Widget::GetPadding() const
@@ -448,6 +459,11 @@ std::shared_ptr<Material> Widget::GetMaterial() const
 
 void Widget::AddChild(const std::shared_ptr<Widget>& widget, bool invalidateLayout /*= true*/)
 {
+    InsertChild(widget, _children.size(), invalidateLayout);
+}
+
+void Widget::InsertChild(const std::shared_ptr<Widget>& widget, size_t index, bool invalidateLayout)
+{
     if (widget == nullptr)
     {
         DEBUG_BREAK();
@@ -462,7 +478,7 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget, bool invalidateLayo
 
     assert(widget.get() != this);
 
-    _children.push_back(widget);
+    _children.insert(_children.begin() + index, widget);
 
     OnChildAdded(widget);
 
@@ -472,8 +488,6 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget, bool invalidateLayo
     {
         InvalidateLayout();
     }
-
-    // todo what about state flags and propagation?
 }
 
 void Widget::RemoveChild(const std::shared_ptr<Widget>& widget)
@@ -481,6 +495,13 @@ void Widget::RemoveChild(const std::shared_ptr<Widget>& widget)
     OnChildRemoved(widget);
 
     std::erase(_children, widget);
+}
+
+void Widget::RemoveChildAt(size_t index)
+{
+    assert(index >= _children.size());
+
+    RemoveChild(_children[index]);
 }
 
 const std::vector<std::shared_ptr<Widget>>& Widget::GetChildren() const
@@ -511,6 +532,16 @@ void Widget::InvalidateLayout()
     }
 }
 
+void Widget::InvalidateTree()
+{
+    InvalidateLayout();
+
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->InvalidateTree();
+    }
+}
+
 bool Widget::IsLayoutDirty() const
 {
     return _isLayoutDirty;
@@ -523,23 +554,26 @@ void Widget::RebuildLayout()
         return;
     }
 
-    for (const std::shared_ptr<Widget>& widget : _children)
+    if (!IsCollapsed())
     {
-        widget->UpdateDesiredSize();
-    }
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->UpdateDesiredSize();
+        }
 
-    RebuildLayoutInternal();
+        RebuildLayoutInternal();
+
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->RebuildLayout();
+        }
+    }
 
     if (IsCollisionEnabled())
     {
         HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGrid();
         hitTestGrid.RemoveElement(this);
         hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
-    }
-
-    for (const std::shared_ptr<Widget>& widget : _children)
-    {
-        widget->RebuildLayout();
     }
 
     _isLayoutDirty = false;
@@ -820,12 +854,17 @@ void Widget::RebuildLayoutInternal()
     {
         size.y = 1.0f;
     }
-    
+
     firstChild->SetSize(size);
 }
 
 void Widget::UpdateDesiredSize()
 {
+    if (IsCollapsed())
+    {
+        return;
+    }
+
     if (!IsLayoutDirty())
     {
         return;
@@ -911,6 +950,35 @@ Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
     }
 
     return anchorPosition;
+}
+
+void Widget::EnableCollisionForTree()
+{
+    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
+    {
+        if (HasFlags(_state, EWidgetState::CollisionEnabled) && !HasFlags(_state, EWidgetState::Collapsed))
+        {
+            parentWindow->GetHitTestGrid().InsertElement(this, _boundingBox, GWidgetComparator);
+        }
+
+        for (const std::shared_ptr<Widget>& child : GetChildren())
+        {
+            child->EnableCollisionForTree();
+        }
+    }
+}
+
+void Widget::DisableCollisionForTree()
+{
+    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
+    {
+        parentWindow->GetHitTestGrid().RemoveElement(this);
+
+        for (const std::shared_ptr<Widget>& child : GetChildren())
+        {
+            child->DisableCollisionForTree();
+        }
+    }
 }
 
 void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow)

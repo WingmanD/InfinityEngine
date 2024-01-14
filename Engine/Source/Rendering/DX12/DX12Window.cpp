@@ -251,7 +251,7 @@ void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
 
     const CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
-    if (_depthStencilBuffer != nullptr)
+    if (_depthStencilView.ptr != 0)
     {
         _depthStencilBuffer.Reset();
         renderingSubsystem.GetDSVHeap().FreeHeapResourceHandle(_depthStencilView);

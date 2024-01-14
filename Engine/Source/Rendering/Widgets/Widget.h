@@ -160,11 +160,31 @@ public:
         return widget;
     }
 
+    void InsertChild(const std::shared_ptr<Widget>& widget, size_t index, bool invalidateLayout = true);
+    
+    template <typename T> requires std::is_base_of_v<Widget, T>
+    std::shared_ptr<T> InsertChild(size_t index, bool invalidateLayout = true)
+    {
+        std::shared_ptr<T> widget = std::make_shared<T>();
+        if (!widget->Initialize())
+        {
+            return nullptr;
+        }
+
+        InsertChild(widget, index, invalidateLayout);
+
+        return widget;
+    }
+
     void RemoveChild(const std::shared_ptr<Widget>& widget);
+
+    void RemoveChildAt(size_t index);
+    
     const std::vector<std::shared_ptr<Widget>>& GetChildren() const;
     void RemoveFromParent();
 
     void InvalidateLayout();
+    void InvalidateTree();
     bool IsLayoutDirty() const;
     void RebuildLayout();
     void ForceRebuildLayout(bool recursive = false);
@@ -223,6 +243,9 @@ protected:
     virtual void OnTransformChanged();
 
     Vector2 GetAnchorPosition(EWidgetAnchor anchor) const;
+
+    void EnableCollisionForTree();
+    void DisableCollisionForTree();
 
     virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow);
 
@@ -285,9 +308,7 @@ private:
 
     PROPERTY(Edit, DisplayName = "Padding [pixel]")
     Vector4 _padding = Vector4::Zero;
-
-    Vector2 _storedCollapsedSize;
-
+    
     Transform2D _quadTransform;
 
     BoundingBox2D _boundingBox;

@@ -1,15 +1,30 @@
 ﻿#include "CanvasPanel.h"
+
 void CanvasPanel::RebuildLayoutInternal()
 {
     const Vector2 screenSize = GetScreenSize();
+    if (screenSize.LengthSquared() <= 0.0f)
+    {
+        return;
+    }
+
     for (const std::shared_ptr<Widget>& child : GetChildren())
     {
-        if (screenSize.LengthSquared() <= 0.0f)
-        {
-            return;
-        }
-
         Vector2 newSize = child->GetDesiredSize() / screenSize;
+        if (HasFlags(child->GetFillMode(), EWidgetFillMode::FillY))
+        {
+            newSize.y = 1.0f;
+
+            if (HasFlags(child->GetFillMode(), EWidgetFillMode::RetainAspectRatio))
+            {
+                newSize.x = newSize.y * child->GetDesiredSize().x / child->GetDesiredSize().y;
+            }
+        }
+        
+        if (HasFlags(child->GetFillMode(), EWidgetFillMode::FillX))
+        {
+            newSize.x = 1.0f;
+        }
 
         child->SetSize(newSize);
     }
