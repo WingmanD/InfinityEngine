@@ -4,28 +4,66 @@
 #include "TextBox.h"
 #include "WidgetSwitcher.h"
 
-void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>& widget)
+void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>& widget, bool closeable /*= true*/)
 {
     if (widget == nullptr)
     {
         return;
     }
-    
+
     _tabNames.push_back(name);
 
-    const std::shared_ptr<Button> tabButton = _tabHorizontalBox.lock()->AddChild<Button>();
+    const std::shared_ptr<FlowBox> tab = _tabHorizontalBox.lock()->AddChild<FlowBox>();
+    if (!tab)
+    {
+        return;
+    }
+    tab->SetDirection(EFlowBoxDirection::Horizontal);
+    tab->SetVisibility(true);
+    tab->SetFillMode(EWidgetFillMode::FillY);
+    tab->SetPadding({0.0f, 2.0f, 1.0f, 1.0f});
+
+    constexpr Vector4 textPadding = {4.0f, 4.0f, 1.0f, 1.0f};
+
+    const int32 index = static_cast<int32>(_tabNames.size() - 1);
+
+    const std::shared_ptr<Button> tabButton = tab->AddChild<Button>();
     if (!tabButton)
     {
         return;
     }
     tabButton->SetFillMode(EWidgetFillMode::FillY);
-    tabButton->SetPadding({ 0.0f, 2.0f, 1.0f, 1.0f});
     tabButton->SetText(name);
-    tabButton->GetTextBox()->SetPadding({ 4.0f, 4.0f, 1.0f, 1.0f});
-    tabButton->OnReleased.Add([this, index = static_cast<int32>(_tabNames.size() - 1)]()
+    tabButton->GetTextBox()->SetPadding(textPadding);
+    tabButton->OnReleased.Add([this, index]()
     {
         SetTabIndex(index);
     });
+
+    if (closeable)
+    {
+        tabButton->OnMiddleClickReleased.Add([this, name]()
+        {
+            RemoveTab(name);
+        });
+        
+        const std::shared_ptr<Button> closeButton = tab->AddChild<Button>();
+        if (!closeButton)
+        {
+            return;
+        }
+        closeButton->SetFillMode(EWidgetFillMode::FillY);
+        closeButton->SetText(L"x");
+        closeButton->GetTextBox()->SetPadding(textPadding);
+        closeButton->OnReleased.Add([this, name]()
+        {
+            RemoveTab(name);
+        });
+        closeButton->OnMiddleClickReleased.Add([this, name]()
+        {
+            RemoveTab(name);
+        });
+    }
 
     const std::shared_ptr<Widget> tabContent = _switcher.lock()->AddChild<Widget>();
     if (!tabContent)
@@ -46,12 +84,11 @@ void TabSwitcher::RemoveTab(const std::wstring& name)
     }
 
     const int32 index = static_cast<int32>(it - _tabNames.begin());
-
-    _tabNames.erase(it);
+    _tabNames.erase(_tabNames.begin() + index);
 
     _tabHorizontalBox.lock()->RemoveChildAt(index);
 
-    std::shared_ptr<WidgetSwitcher> switcher = _switcher.lock();
+    const std::shared_ptr<WidgetSwitcher> switcher = _switcher.lock();
     switcher->SetSelectedIndex(switcher->GetSelectedIndex() - 1);
     switcher->RemoveChildAt(index);
 }

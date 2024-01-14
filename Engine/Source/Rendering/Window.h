@@ -89,6 +89,8 @@ private:
 
     DelegateHandle _onLMBDownHandle{};
     DelegateHandle _onLMBUpHandle{};
+    DelegateHandle _onMMBUpHandle{};
+    DelegateHandle _onMMBDownHandle{};
     DelegateHandle _onMouseMovedHandle{};
 
     HWND _hwnd = nullptr;

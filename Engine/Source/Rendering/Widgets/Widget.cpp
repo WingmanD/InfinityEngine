@@ -237,11 +237,11 @@ void Widget::SetPosition(const Vector2& position)
 {
     if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
     {
-        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position * parentWidget->GetSizeWS());
+        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position * parentWidget->GetSizeWS() - GetAnchorPosition(GetSelfAnchor()) * GetSize());
     }
     else
     {
-        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position);
+        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position - GetAnchorPosition(GetSelfAnchor()) * GetSize());
     }
 
     _relativePosition = position;
@@ -251,7 +251,7 @@ void Widget::SetPosition(const Vector2& position)
 
 Vector2 Widget::GetPosition() const
 {
-    return _transform.GetPosition() - GetAnchorPosition(GetAnchor());
+    return _transform.GetPosition() - GetAnchorPosition(GetAnchor()) + GetAnchorPosition(GetSelfAnchor()) * GetSize();
 }
 
 Vector2 Widget::GetRelativePosition() const
@@ -499,7 +499,7 @@ void Widget::RemoveChild(const std::shared_ptr<Widget>& widget)
 
 void Widget::RemoveChildAt(size_t index)
 {
-    assert(index >= _children.size());
+    assert(index < _children.size());
 
     RemoveChild(_children[index]);
 }
@@ -655,6 +655,21 @@ void Widget::SetAnchor(EWidgetAnchor anchor)
 EWidgetAnchor Widget::GetAnchor() const
 {
     return _anchor;
+}
+
+void Widget::SetSelfAnchor(EWidgetAnchor anchor)
+{
+    if (anchor == _selfAnchor)
+    {
+        return;
+    }
+
+    _selfAnchor = anchor;
+}
+
+EWidgetAnchor Widget::GetSelfAnchor() const
+{
+    return _selfAnchor;
 }
 
 void Widget::SetFillMode(EWidgetFillMode fillMode)

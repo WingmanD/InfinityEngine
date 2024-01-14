@@ -2,6 +2,7 @@
 
 #include "AssetCreatorMenu.h"
 #include "Button.h"
+#include "EditorWidget.h"
 #include "FlowBox.h"
 #include "TextBox.h"
 #include "Engine/Subsystems/AssetManager.h"
@@ -14,12 +15,15 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
         return false;
     }
 
+    constexpr Vector4 textPadding = {4.0f, 4.0f, 1.0f, 1.0f};
+
     const std::shared_ptr<TextBox> textBox = AddChild<TextBox>();
     if (textBox == nullptr)
     {
         return false;
     }
     textBox->SetText(asset->GetName());
+    textBox->SetPadding({4.0f, 10.0f, 1.0f, 1.0f});
     textBox->SetCollisionEnabled(true);
 
     const std::shared_ptr<Button> editButton = AddChild<Button>();
@@ -28,12 +32,26 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
         return false;
     }
     editButton->SetText(L"Edit");
+    editButton->GetTextBox()->SetPadding(textPadding);
     editButton->OnReleased.Add([asset, this]()
     {
-        // todo once the rest of editor UI is completed, here we should open a new tab with the asset properties widget
         if (const std::shared_ptr<Window> window = GetParentWindow())
         {
-            window->GetRootWidget()->AddChild(asset->GetType()->CreatePropertiesWidget(asset));
+            if (const std::shared_ptr<EditorWidget> editorWidget = std::dynamic_pointer_cast<EditorWidget>(
+                window->GetRootWidget()->GetChildren()[0]))
+            {
+                const std::shared_ptr<Widget> propertiesWidget = asset->GetType()->CreatePropertiesWidget(asset);
+                if (propertiesWidget == nullptr)
+                {
+                    DEBUG_BREAK();
+                    return;
+                }
+
+                propertiesWidget->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+                
+                editorWidget->AddTab(asset->GetName(), propertiesWidget);
+                editorWidget->SetTabIndex(editorWidget->GetTabIndex() + 1);
+            }
         }
     });
 
@@ -43,6 +61,7 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
         return false;
     }
     deleteButton->SetText(L"Delete");
+    deleteButton->GetTextBox()->SetPadding(textPadding);
     deleteButton->OnReleased.Add([asset, this]()
     {
         if (asset != nullptr)
@@ -68,6 +87,8 @@ bool AssetBrowser::Initialize()
         return false;
     }
 
+    constexpr Vector4 textPadding = {4.0f, 4.0f, 1.0f, 1.0f};
+    
     const auto verticalBox = AddChild<FlowBox>();
     if (verticalBox == nullptr)
     {
@@ -84,6 +105,7 @@ bool AssetBrowser::Initialize()
 
     auto newAssetButton = horizontalButtonBox->AddChild<Button>();
     newAssetButton->SetText(L"New Asset");
+    newAssetButton->GetTextBox()->SetPadding(textPadding);
     newAssetButton->OnReleased.Add([this, newAssetButton]()
     {
         if (const std::shared_ptr<Window> window = GetParentWindow())
@@ -109,6 +131,7 @@ bool AssetBrowser::Initialize()
 
     const auto importAssetButton = horizontalButtonBox->AddChild<Button>();
     importAssetButton->SetText(L"Import");
+    importAssetButton->GetTextBox()->SetPadding(textPadding);
     importAssetButton->OnReleased.Add([this]()
     {
         if (const std::shared_ptr<Window> window = GetParentWindow())
@@ -164,6 +187,6 @@ void AssetBrowser::AddEntry(const std::shared_ptr<Asset>& asset) const
 {
     std::shared_ptr<AssetBrowserEntry> row = std::make_shared<AssetBrowserEntry>();
     row->InitializeFromAsset(asset);
-    
+
     _table.lock()->AddRow(row);
 }

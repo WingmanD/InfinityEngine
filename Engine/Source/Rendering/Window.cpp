@@ -16,6 +16,7 @@
 #include "Widgets/TableWidget.h"
 #include "Widgets/TextBox.h"
 #include "Widgets/EditableTextBox.h"
+#include "Widgets/EditorWidget.h"
 #include "Widgets/TypePicker.h"
 #include "Widgets/TabSwitcher.h"
 
@@ -95,7 +96,7 @@ bool Window::Initialize()
     _rootWidget->SetVisibility(false);
     _rootWidget->SetWindow(shared_from_this());
     _rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
-    _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});  // todo reimport QuadMesh with 2x size to avoid this 2x scaling
+    _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f}); // todo reimport QuadMesh with 2x size to avoid this 2x scaling
 
     // const std::shared_ptr<AssetBrowser> assetBrowser = _rootWidget->AddChild<AssetBrowser>();
     // if (assetBrowser == nullptr)
@@ -107,19 +108,25 @@ bool Window::Initialize()
     // material->Load();
     // _rootWidget->AddChild(material->GetType()->CreatePropertiesWidget(material));
 
-    auto tabSwitcher = _rootWidget->AddChild<TabSwitcher>();
-    if (tabSwitcher == nullptr)
+    const auto editorWidget = _rootWidget->AddChild<EditorWidget>();
+    if (editorWidget == nullptr)
     {
         return false;
     }
-    tabSwitcher->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-    
-    tabSwitcher->AddTab<AssetBrowser>(L"Asset Browser");
-    tabSwitcher->AddTab<AssetCreatorMenu>(L"Asset Creator");
-    auto button = tabSwitcher->AddTab<Button>(L"Random");
-    button->SetText(L"Button");
-    
-    
+
+    // auto tabSwitcher = _rootWidget->AddChild<TabSwitcher>();
+    // if (tabSwitcher == nullptr)
+    // {
+    //     return false;
+    // }
+    // tabSwitcher->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+    //
+    // tabSwitcher->AddTab<AssetBrowser>(L"Asset Browser");
+    // tabSwitcher->AddTab<AssetCreatorMenu>(L"Asset Creator");
+    // auto button = tabSwitcher->AddTab<Button>(L"Random");
+    // button->SetText(L"Button");
+
+
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});
 
@@ -166,12 +173,30 @@ bool Window::Initialize()
         }
     });
 
+    _onMMBDownHandle = inputSubsystem.OnMouseMiddleButtonDown.Add([this]()
+    {
+        Widget* hitWidget = GetWidgetUnderCursor();
+        if (hitWidget != nullptr)
+        {
+            hitWidget->MiddleClickPressed({});
+        }
+    });
+
+    _onMMBUpHandle = inputSubsystem.OnMouseMiddleButtonUp.Add([this]()
+    {
+        if (Widget* hitWidget = GetWidgetUnderCursor())
+        {
+            hitWidget->MiddleClickReleased({});
+        }
+    });
+
     _onMouseMovedHandle = inputSubsystem.OnMouseMoved.Add([this](const Vector2 mousePosition)
     {
         const std::shared_ptr<Widget> previousHoveredWidget = _hoveredWidget.lock();
 
         Widget* hitWidget = GetWidgetUnderCursor();
-        if (previousHoveredWidget != nullptr && hitWidget != previousHoveredWidget.get() || hitWidget == nullptr && previousHoveredWidget != nullptr)
+        if (previousHoveredWidget != nullptr && hitWidget != previousHoveredWidget.get() || hitWidget == nullptr &&
+            previousHoveredWidget != nullptr)
         {
             previousHoveredWidget->HoverEnded({});
             _hoveredWidget.reset();
@@ -311,7 +336,8 @@ void Window::OnResized()
     _windowGlobals->AspectRatio = _aspectRatio;
     _windowGlobals->MarkAsDirty();
 
-    _hitTestGrid = HitTestGrid<Widget*>(0.1f * _height / 1080.0f, _aspectRatio * 2.0f, 2.0f, Vector2(_aspectRatio, 1.0f));
+    _hitTestGrid = HitTestGrid<Widget*>(0.1f * _height / 1080.0f, _aspectRatio * 2.0f, 2.0f,
+                                        Vector2(_aspectRatio, 1.0f));
 
     if (_rootWidget != nullptr)
     {
@@ -360,13 +386,13 @@ void Window::OnStateChanged()
 
     switch (_state)
     {
-        case WindowState::BeingResized:
+    case WindowState::BeingResized:
         {
             SetIsFocused(false);
             break;
         }
-        default:
-            break;
+    default:
+        break;
     }
 }
 
@@ -385,32 +411,32 @@ LRESULT Window::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 {
     switch (msg)
     {
-        case WM_CREATE:
+    case WM_CREATE:
         {
             const auto pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
             SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
             return 0;
         }
-        case WM_ACTIVATE:
+    case WM_ACTIVATE:
         {
             SetIsFocused(LOWORD(wParam) != WA_INACTIVE);
 
             return 0;
         }
 
-        case WM_ENTERSIZEMOVE:
+    case WM_ENTERSIZEMOVE:
         {
             SetState(WindowState::BeingResized);
 
             return 0;
         }
-        case WM_EXITSIZEMOVE:
+    case WM_EXITSIZEMOVE:
         {
             SetState(WindowState::Windowed);
 
             return 0;
         }
-        case WM_SIZE:
+    case WM_SIZE:
         {
             const WindowState previousState = GetState();
 
@@ -441,14 +467,14 @@ LRESULT Window::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
             return 0;
         }
-        case WM_CLOSE:
-            [[fallthrough]];
-        case WM_DESTROY:
+    case WM_CLOSE:
+        [[fallthrough]];
+    case WM_DESTROY:
         {
             Destroy();
             return 0;
         }
-        default:
+    default:
         {
             return InputSubsystem::Get().ProcessWindowMessages(hwnd, msg, wParam, lParam, shared_from_this(), {});
         }

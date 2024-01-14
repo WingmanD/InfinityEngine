@@ -204,6 +204,9 @@ public:
     void SetAnchor(EWidgetAnchor anchor);
     EWidgetAnchor GetAnchor() const;
 
+    void SetSelfAnchor(EWidgetAnchor anchor);
+    EWidgetAnchor GetSelfAnchor() const;
+
     void SetFillMode(EWidgetFillMode fillMode);
     EWidgetFillMode GetFillMode() const;
     
@@ -275,8 +278,11 @@ private:
 
     EWidgetState _state = EWidgetState::Visible | EWidgetState::Enabled;
 
-    PROPERTY(Edit, DisplayName = "Size")
+    PROPERTY(Edit, DisplayName = "Anchor")
     EWidgetAnchor _anchor = EWidgetAnchor::Center;
+
+    PROPERTY(Edit, DisplayName = "Self Anchor")
+    EWidgetAnchor _selfAnchor = EWidgetAnchor::Center;
 
     PROPERTY(Edit, DisplayName = "Fill Mode")
     EWidgetFillMode _fillMode = EWidgetFillMode::None;

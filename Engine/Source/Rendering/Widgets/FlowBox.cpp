@@ -36,6 +36,42 @@ void FlowBox::RebuildLayoutInternal()
 
     int32 index = 0;
 
+    int32 numFillX = 0;
+    int32 numFillY = 0;
+    Vector2 totalDesiredSize;
+    if (_direction == EFlowBoxDirection::Horizontal)
+    {
+        for (const std::shared_ptr<Widget>& widget : GetChildren())
+        {
+            if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
+            {
+                ++numFillX;
+                continue;
+            }
+
+            const Vector2 paddedDesiredSize = widget->GetPaddedDesiredSize();
+            totalDesiredSize.x += paddedDesiredSize.x;
+            totalDesiredSize.y = std::max(totalDesiredSize.y, paddedDesiredSize.y);
+        }
+    }
+    else
+    {
+        for (const std::shared_ptr<Widget>& widget : GetChildren())
+        {
+            if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillY))
+            {
+                ++numFillY;
+                continue;
+            }
+
+            const Vector2 paddedDesiredSize = widget->GetPaddedDesiredSize();
+            totalDesiredSize.y += paddedDesiredSize.y;
+            totalDesiredSize.x = std::max(totalDesiredSize.x, paddedDesiredSize.x);
+        }
+    }
+
+    const Vector2 fillSize = screenSize - totalDesiredSize;
+
     Vector2 offset;
     for (const std::shared_ptr<Widget>& widget : GetChildren())
     {
@@ -68,17 +104,27 @@ void FlowBox::RebuildLayoutInternal()
                                        childDesiredSize.y * (GetDesiredSize().x / childPaddedDesiredSize.x) / screenSize
                                        .y);
             }
-            else if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
-            {
-                newChildSize = Vector2(1.0f, childDesiredSize.y / screenSize.y);
-            }
             else
             {
                 newChildSize = childDesiredSize / screenSize;
+
+                if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
+                {
+                    newChildSize.x = 1.0f;
+                }
+
+                if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillY))
+                {
+                    newChildSize.y = (fillSize.y / numFillY) / screenSize.y;
+                }
             }
         }
 
-        const Vector2 newChildPaddedSize = newChildSize * widget->GetPaddedDesiredSize() / childDesiredSize;
+        Vector2 newChildPaddedSize = newChildSize;
+        if (childDesiredSize.LengthSquared() > 0.0f)
+        {
+            newChildPaddedSize *= widget->GetPaddedDesiredSize() / childDesiredSize;
+        }
 
         widget->SetSize(newChildSize);
 

@@ -27,6 +27,8 @@ void CanvasPanel::RebuildLayoutInternal()
         }
 
         child->SetSize(newSize);
+
+        child->SetPosition(child->GetRelativePosition());
     }
 
     // todo fix this, desired size is related to 1080p, but we are not taking that into account currently
