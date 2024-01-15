@@ -7,6 +7,7 @@
 
 DropdownEnumChoice::DropdownEnumChoice(const DropdownEnumChoice& other) : DropdownTextChoice(other)
 {
+    _enumType = other._enumType;
     _value = other._value;
 }
 
@@ -17,6 +18,7 @@ DropdownEnumChoice& DropdownEnumChoice::operator=(const DropdownEnumChoice& othe
         return *this;
     }
 
+    _enumType = other._enumType;
     _value = other._value;
 
     return *this;
@@ -48,6 +50,21 @@ uint32 DropdownEnumChoice::GetSelectedEnumValue() const
     return _value;
 }
 
+bool DropdownEnumChoice::Initialize()
+{
+    if (!DropdownTextChoice::Initialize())
+    {
+        return false;
+    }
+
+    if (_enumType)
+    {
+        InitializeFromEnumInternal(_enumType, _value);
+    }
+
+    return true;
+}
+
 bool DropdownEnumChoice::InitializeFromEnumInternal(const Enum* enumType, uint32 value)
 {
     if (enumType == nullptr)
@@ -73,14 +90,26 @@ std::shared_ptr<EnumDropdown> EnumDropdown::CreateForEnum(const Enum* enumType)
         return nullptr;
     }
 
-    const std::shared_ptr<EnumDropdown> typePicker = std::make_shared<EnumDropdown>();
-    typePicker->InitializeFromEnum(enumType);
+    const std::shared_ptr<EnumDropdown> dropdown = std::make_shared<EnumDropdown>();
+    if (!dropdown->Initialize())
+    {
+        return nullptr;
+    }
+    dropdown->InitializeFromEnum(enumType);
 
-    return typePicker;
+    return dropdown;
 }
 
 void EnumDropdown::InitializeFromEnum(const Enum* enumType)
 {
+    if (enumType == nullptr)
+    {
+        DEBUG_BREAK();
+        return;
+    }
+
+    _enumType = enumType;
+
     for (const auto& value : enumType->GetEntries() | std::views::values)
     {
         std::shared_ptr<DropdownEnumChoice> choice = std::make_shared<DropdownEnumChoice>();

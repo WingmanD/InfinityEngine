@@ -20,6 +20,10 @@ public:
     const std::string& GetSelectedEnumName() const;
     uint32 GetSelectedEnumValue() const;
 
+    // DropdownTextChoice
+public:
+    bool Initialize() override;
+
 private:
     const Enum* _enumType = nullptr;
     uint32 _value = 0;

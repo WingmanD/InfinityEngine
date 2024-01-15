@@ -11,12 +11,14 @@
 
 #include "Widgets/AssetBrowser.h"
 #include "Widgets/AssetCreatorMenu.h"
+#include "Widgets/AssetPicker.h"
 #include "Widgets/Button.h"
 #include "Widgets/FlowBox.h"
 #include "Widgets/TableWidget.h"
 #include "Widgets/TextBox.h"
 #include "Widgets/EditableTextBox.h"
 #include "Widgets/EditorWidget.h"
+#include "Widgets/EnumDropdown.h"
 #include "Widgets/TypePicker.h"
 #include "Widgets/TabSwitcher.h"
 
@@ -97,35 +99,12 @@ bool Window::Initialize()
     _rootWidget->SetWindow(shared_from_this());
     _rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
     _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f}); // todo reimport QuadMesh with 2x size to avoid this 2x scaling
-
-    // const std::shared_ptr<AssetBrowser> assetBrowser = _rootWidget->AddChild<AssetBrowser>();
-    // if (assetBrowser == nullptr)
-    // {
-    //     return false;
-    // }
-
-    // auto material  = AssetManager::Get().FindAssetByName<Material>(L"DefaultMaterial");
-    // material->Load();
-    // _rootWidget->AddChild(material->GetType()->CreatePropertiesWidget(material));
-
+    
     const auto editorWidget = _rootWidget->AddChild<EditorWidget>();
     if (editorWidget == nullptr)
     {
         return false;
     }
-
-    // auto tabSwitcher = _rootWidget->AddChild<TabSwitcher>();
-    // if (tabSwitcher == nullptr)
-    // {
-    //     return false;
-    // }
-    // tabSwitcher->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-    //
-    // tabSwitcher->AddTab<AssetBrowser>(L"Asset Browser");
-    // tabSwitcher->AddTab<AssetCreatorMenu>(L"Asset Creator");
-    // auto button = tabSwitcher->AddTab<Button>(L"Random");
-    // button->SetText(L"Button");
-
 
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});
