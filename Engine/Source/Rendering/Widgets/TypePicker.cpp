@@ -55,7 +55,7 @@ bool DropdownTypeChoice::Initialize()
     return true;
 }
 
-std::shared_ptr<TypePicker> TypePicker::CreateForType(Type* baseType)
+std::shared_ptr<TypePicker> TypePicker::CreateForType(Type* baseType, const std::function<bool(const Type*)>& callback /*= nullptr*/)
 {
     if (baseType == nullptr)
     {
@@ -69,12 +69,12 @@ std::shared_ptr<TypePicker> TypePicker::CreateForType(Type* baseType)
         return nullptr;
     }
     
-    typePicker->InitializeFromType(baseType);
+    typePicker->InitializeFromType(baseType, callback);
 
     return typePicker;
 }
 
-void TypePicker::InitializeFromType(Type* baseType)
+void TypePicker::InitializeFromType(Type* baseType, const std::function<bool(const Type*)>& callback /*= nullptr*/)
 {
     if (baseType == nullptr || _baseType != nullptr)
     {
@@ -84,8 +84,12 @@ void TypePicker::InitializeFromType(Type* baseType)
 
     _baseType = baseType;
 
-    baseType->ForEachSubtype([this](Type* type)
+    baseType->ForEachSubtype([this, &callback](Type* type)
                              {
+                                 if (!callback(type))
+                                 {
+                                     return true;
+                                 } 
                                  const std::shared_ptr<DropdownTypeChoice> choice = std::make_shared<
                                      DropdownTypeChoice>();
                                  if (!choice->Initialize())

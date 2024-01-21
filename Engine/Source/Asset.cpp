@@ -3,7 +3,11 @@
 #include <fstream>
 
 #include "AssetPtrBase.h"
+#include "Importer.h"
 #include "Engine/Subsystems/AssetManager.h"
+#include "Rendering/Widgets/Button.h"
+#include "Rendering/Widgets/FlowBox.h"
+#include "Rendering/Widgets/TextBox.h"
 
 Asset::Asset(std::wstring name) : _name(std::move(name))
 {
@@ -91,7 +95,7 @@ bool Asset::Load()
     }
 
     LOG(L"Loading asset {}...", _name);
-    
+
     std::ifstream file(_assetPath, std::ios::binary);
     if (!file.is_open())
     {
@@ -120,7 +124,7 @@ bool Asset::Load()
         {
             return true;
         }
-        
+
         valueRef->Load();
 
         return true;
@@ -144,7 +148,7 @@ bool Asset::Save() const
     {
         return false;
     }
-    
+
     if (_assetPath.empty())
     {
         LOG(L"Asset {} has no asset path!", _name);
@@ -192,6 +196,95 @@ const std::filesystem::path& Asset::GetImportPath() const
     return _importPath;
 }
 
+const Type* Asset::GetImporterType() const
+{
+    return _importerType;
+}
+
+std::shared_ptr<Widget> Asset::CreateImportWidget() const
+{
+    if (_importerType == nullptr)
+    {
+        DEBUG_BREAK();
+        return nullptr;
+    }
+
+    const std::shared_ptr<FlowBox> verticalBox = std::make_shared<FlowBox>();
+    if (!verticalBox->Initialize())
+    {
+        return nullptr;
+    }
+
+    verticalBox->SetDirection(EFlowBoxDirection::Vertical);
+
+    {
+        const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+        if (horizontalBox == nullptr)
+        {
+            return nullptr;
+        }
+        horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
+        horizontalBox->SetFillMode(EWidgetFillMode::FillX);
+
+        const std::shared_ptr<TextBox> title = horizontalBox->AddChild<TextBox>();
+        if (title == nullptr)
+        {
+            return nullptr;
+        }
+
+        title->SetText(std::format(L"Import {}", Util::ToWString(GetType()->GetName())));
+        title->SetFillMode(EWidgetFillMode::FillX);
+        title->SetPadding({0.0f, 50.0f, 0.0f, 0.0f});
+
+        const std::shared_ptr<Button> closeButton = horizontalBox->AddChild<Button>();
+        if (closeButton == nullptr)
+        {
+            return nullptr;
+        }
+        closeButton->SetText(L"x");
+        closeButton->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
+        closeButton->SetFillMode(EWidgetFillMode::FillY);
+        closeButton->OnReleased.Add([verticalBox]()
+        {
+            verticalBox->Destroy();
+        });
+    }
+
+    const std::shared_ptr<Importer> importer = _importerType->NewObject<Importer>();
+    const std::shared_ptr<Widget> widget = _importerType->CreatePropertiesWidget(importer);
+    verticalBox->AddChild(widget);
+
+    const std::shared_ptr<Button> importButton = verticalBox->AddChild<Button>();
+    if (importButton == nullptr)
+    {
+        return nullptr;
+    }
+
+    importButton->SetText(L"Import");
+    importButton->SetFillMode(EWidgetFillMode::FillX);
+
+    const Type* assetType = GetType();
+    importButton->OnReleased.Add([assetType, importer, verticalBox]()
+    {
+        const std::vector<std::shared_ptr<Asset>> importedAssets = assetType->GetCDO<Asset>()->Import(importer);
+        // todo notification
+        LOG(L"Imported assets: ");
+        for (const std::shared_ptr<Asset>& asset : importedAssets)
+        {
+            LOG(L"{}", asset->GetName());
+        }
+
+        verticalBox->Destroy();
+    });
+
+    return verticalBox;
+}
+
+std::vector<std::shared_ptr<Asset>> Asset::Import(const std::shared_ptr<Importer>& importer) const
+{
+    return {};
+}
+
 void Asset::SetIsLoaded(bool value)
 {
     _isLoaded = value;
@@ -201,4 +294,9 @@ void Asset::MarkDirtyForAutosave() const
 {
     // todo put this under if EDITOR and not during play
     AssetManager::Get().MarkDirtyForAutosave(std::dynamic_pointer_cast<const Asset>(shared_from_this()));
+}
+
+void Asset::SetImporterType(const Type* type)
+{
+    _importerType = type;
 }

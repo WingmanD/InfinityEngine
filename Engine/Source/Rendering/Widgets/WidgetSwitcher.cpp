@@ -17,6 +17,8 @@ void WidgetSwitcher::SetSelectedIndex(int32 index)
     children[index]->SetCollapsed(false);
 
     _selectedIndex = index;
+
+    children[_selectedIndex]->InvalidateTree();
 }
 
 int32 WidgetSwitcher::GetSelectedIndex() const
@@ -50,4 +52,23 @@ void WidgetSwitcher::OnChildAdded(const std::shared_ptr<Widget>& child)
     {
         child->SetCollapsed(true);
     }
+}
+
+void WidgetSwitcher::OnChildRemoved(const std::shared_ptr<Widget>& child)
+{
+    const auto it = std::ranges::find(GetChildren(), child);
+    if (it != GetChildren().end())
+    {
+        const int32 index = static_cast<int32>(it - GetChildren().begin());
+        if (index == _selectedIndex)
+        {
+            SetSelectedIndex(0);
+        }
+        else if (index < _selectedIndex)
+        {
+            --_selectedIndex;
+        }
+    }
+    
+    Widget::OnChildRemoved(child);
 }

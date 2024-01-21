@@ -104,8 +104,6 @@ private:
 
     std::vector<std::shared_ptr<DX12Window>> _windows;
 
-    ThreadPool _asyncThreadPool{100};
-
     ComPtr<IDXGIFactory> _dxgiFactory = nullptr;
     ComPtr<ID3D12Device> _device;
 

@@ -2,12 +2,14 @@
 #include "AssetPtrBase.h"
 #include "ReflectionWidgetTemplates.h"
 #include "Rendering/Widgets/AssetPicker.h"
+#include "Rendering/Widgets/Button.h"
 #include "Rendering/Widgets/Checkbox.h"
 #include "Rendering/Widgets/EditableTextBox.h"
 #include "Rendering/Widgets/EnumDropdown.h"
 #include "Rendering/Widgets/FlowBox.h"
 #include "Rendering/Widgets/TextBox.h"
 #include "Rendering/Widgets/TypePicker.h"
+#include "Rendering/Widgets/UIStatics.h"
 
 std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property,
                                         const std::wstring* value)
@@ -95,7 +97,7 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     {
         return nullptr;
     }
-    
+
     textBox->SetCollisionEnabled(true);
     textBox->SetText(Util::ToWString(*value));
 
@@ -208,13 +210,21 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
 std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property,
                                                 std::filesystem::path* value)
 {
-    std::shared_ptr<EditableTextBox> textBox = std::make_shared<EditableTextBox>();
-    if (!textBox->Initialize())
+    const std::shared_ptr<FlowBox> horizontalBox = std::make_shared<FlowBox>();
+    if (!horizontalBox->Initialize())
+    {
+        return nullptr;
+    }
+    horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
+
+    std::shared_ptr<EditableTextBox> textBox = horizontalBox->AddChild<EditableTextBox>();
+    if (textBox == nullptr)
     {
         return nullptr;
     }
 
     textBox->SetText(value->wstring());
+    textBox->SetFillMode(EWidgetFillMode::FillX);
 
     DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
     {
@@ -240,9 +250,41 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         }
     });
 
+    const std::shared_ptr<Button> button = horizontalBox->AddChild<Button>();
+    if (button == nullptr)
+    {
+        return nullptr;
+    }
+
+    button->SetText(L"Open");
+    button->SetFillMode(EWidgetFillMode::FillY);
+    button->OnReleased.Add([value, weakObject = std::weak_ptr(object), textBox]()
+    {
+        if (weakObject.expired())
+        {
+            return;
+        }
+        
+        UIStatics::OpenFileDialog(*value, [value, weakObject, textBox](const std::filesystem::path& selectedPath)
+        {
+            if (weakObject.expired())
+            {
+                return;
+            }
+
+            if (selectedPath.empty())
+            {
+                return;
+            }
+
+            *value = selectedPath;
+            textBox->SetText(selectedPath.wstring());
+        });
+    });
+
     // todo call property setter when text is changed
 
-    return textBox;
+    return horizontalBox;
 }
 
 std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property,

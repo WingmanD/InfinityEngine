@@ -8,6 +8,7 @@
 #include <string>
 #include "Asset.reflection.h"
 
+class Importer;
 class AssetManager;
 
 REFLECTED()
@@ -45,9 +46,17 @@ public:
     void SetImportPath(const std::filesystem::path& path);
     [[nodiscard]] const std::filesystem::path& GetImportPath() const;
 
+    const Type* GetImporterType() const;
+
+    std::shared_ptr<Widget> CreateImportWidget() const;
+
+    virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const;
+
 protected:
     void SetIsLoaded(bool value);
     void MarkDirtyForAutosave() const;
+
+    void SetImporterType(const Type* type);
 
 private:
     uint64 _id = 0;
@@ -62,4 +71,7 @@ private:
     std::filesystem::path _assetPath;
 
     bool _isLoaded = false;
+
+    // todo this should be in ImportableAsset, but right now we don't have asset reparenting
+    const Type* _importerType = nullptr;
 };

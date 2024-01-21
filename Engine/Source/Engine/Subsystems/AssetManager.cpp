@@ -1,10 +1,7 @@
 #include "AssetManager.h"
 #include "Engine/Engine.h"
-#include "Util.h"
 #include "Rendering/StaticMesh.h"
 #include "Rendering/Widgets/UIStatics.h"
-#include <shobjidl.h>
-#include <Windows.h>
 
 AssetManager& AssetManager::Get()
 {
@@ -256,72 +253,6 @@ void AssetManager::RediscoverAssets()
                 LOG(L"Failed to register asset from file {}!", dirEntry.path().wstring());
                 continue;
             }
-        }
-    }
-}
-
-void AssetManager::ImportFromDialog(const Type* type)
-{
-    if (type == nullptr)
-    {
-        return;
-    }
-
-    std::filesystem::path path;
-
-    HRESULT hr = CoInitializeEx(nullptr,
-                                COINIT_APARTMENTTHREADED |
-                                COINIT_DISABLE_OLE1DDE);
-    if (SUCCEEDED(hr))
-    {
-        IFileOpenDialog* pFileOpen;
-
-        hr = CoCreateInstance(CLSID_FileOpenDialog,
-                              nullptr,
-                              CLSCTX_ALL,
-                              IID_IFileOpenDialog,
-                              reinterpret_cast<void**>(&pFileOpen));
-
-        if (SUCCEEDED(hr))
-        {
-            hr = pFileOpen->Show(nullptr);
-
-            if (SUCCEEDED(hr))
-            {
-                IShellItem* pItem;
-                hr = pFileOpen->GetResult(&pItem);
-                if (SUCCEEDED(hr))
-                {
-                    PWSTR pszFilePath;
-                    hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-                    if (SUCCEEDED(hr))
-                    {
-                        const std::wstring ws(pszFilePath);
-                        path = ws;
-
-                        CoTaskMemFree(pszFilePath);
-                    }
-
-                    pItem->Release();
-                }
-            }
-            pFileOpen->Release();
-        }
-        CoUninitialize();
-
-        const Asset* asset = type->GetCDO<Asset>();
-        if (asset == nullptr)
-        {
-            LOG(L"Failed to import asset - type {} is not an asset!", Util::ToWString(type->GetName()));
-            return;
-        }
-
-        // todo link BatchImport and Import to ImportFromDialog somehow - probably using virtual methods that return static function result
-
-        // todo temporary
-        if (type->IsA(StaticMesh::StaticType()))
-        {
-            std::vector<std::shared_ptr<StaticMesh>> meshes = StaticMesh::BatchImport(path);
         }
     }
 }

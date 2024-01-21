@@ -249,7 +249,7 @@ void DX12RenderingSubsystem::AsyncOnGPUFenceEvent(std::function<void()>&& callba
 
     ThrowIfFailed(_mainFence->SetEventOnCompletion(_mainFenceValue, eventHandle));
 
-    _asyncThreadPool.EnqueueTask([eventHandle, callback]()
+    Engine::Get().GetWaitThreadPool().EnqueueTask([eventHandle, callback]()
     {
         WaitForSingleObjectEx(eventHandle, INFINITE, FALSE);
         CloseHandle(eventHandle);
@@ -267,7 +267,7 @@ void DX12RenderingSubsystem::AsyncOnGPUCopyFenceEvent(std::function<void()>&& ca
 
     ThrowIfFailed(_copyFence->SetEventOnCompletion(_copyFenceValue, eventHandle));
 
-    _asyncThreadPool.EnqueueTask([eventHandle, callback]()
+    Engine::Get().GetWaitThreadPool().EnqueueTask([eventHandle, callback]()
     {
         WaitForSingleObjectEx(eventHandle, INFINITE, FALSE);
         CloseHandle(eventHandle);

@@ -6,6 +6,11 @@
 #include "assimp/scene.h"
 #include "Engine/Engine.h"
 
+StaticMesh::StaticMesh()
+{
+    SetImporterType(StaticMeshImporter::StaticType());
+}
+
 StaticMesh::StaticMesh(const StaticMesh& other) : Asset(other)
 {
     _vertices = other._vertices;
@@ -86,10 +91,51 @@ bool StaticMesh::Deserialize(MemoryReader& reader)
     return true;
 }
 
-std::vector<std::shared_ptr<StaticMesh>> StaticMesh::BatchImport(const std::filesystem::path& path)
+const std::vector<Vertex>& StaticMesh::GetVertices() const
 {
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path.string(),
+    return _vertices;
+}
+
+const std::vector<uint32_t>& StaticMesh::GetIndices() const
+{
+    return _indices;
+}
+
+void StaticMesh::SetMaterial(const std::shared_ptr<Material>& material)
+{
+    if (_material == material)
+    {
+        return;
+    }
+
+    _material = material;
+
+    MarkDirtyForAutosave();
+}
+
+std::shared_ptr<Material> StaticMesh::GetMaterial() const
+{
+    return _material;
+}
+
+StaticMeshRenderingData* StaticMesh::GetRenderingData() const
+{
+    return _renderingData.get();
+}
+
+std::vector<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Importer>& importer) const
+{
+    const std::shared_ptr<StaticMeshImporter> smImporter = std::dynamic_pointer_cast<StaticMeshImporter>(importer);
+    if (smImporter == nullptr)
+    {
+        DEBUG_BREAK();
+        return {};
+    }
+
+    const std::filesystem::path& path = smImporter->Path;
+    
+    Assimp::Importer assimpImporter;
+    const aiScene* scene = assimpImporter.ReadFile(path.string(),
                                              aiProcess_CalcTangentSpace |
                                              aiProcess_Triangulate |
                                              aiProcess_JoinIdenticalVertices |
@@ -98,7 +144,7 @@ std::vector<std::shared_ptr<StaticMesh>> StaticMesh::BatchImport(const std::file
 
     if (scene == nullptr)
     {
-        LOG(L"Failed to import static meshes: {}", Util::ToWString(importer.GetErrorString()));
+        LOG(L"Failed to import static meshes: {}", Util::ToWString(assimpImporter.GetErrorString()));
         return {};
     }
 
@@ -107,7 +153,7 @@ std::vector<std::shared_ptr<StaticMesh>> StaticMesh::BatchImport(const std::file
         return {};
     }
 
-    std::vector<std::shared_ptr<StaticMesh>> meshes;
+    std::vector<std::shared_ptr<Asset>> meshes;
     for (uint32 i = 0; i < scene->mNumMeshes; ++i)
     {
         std::wstring meshName = Util::ToWString(scene->mMeshes[i]->mName.C_Str());
@@ -141,38 +187,6 @@ std::vector<std::shared_ptr<StaticMesh>> StaticMesh::BatchImport(const std::file
     }
 
     return meshes;
-}
-
-const std::vector<Vertex>& StaticMesh::GetVertices() const
-{
-    return _vertices;
-}
-
-const std::vector<uint32_t>& StaticMesh::GetIndices() const
-{
-    return _indices;
-}
-
-void StaticMesh::SetMaterial(const std::shared_ptr<Material>& material)
-{
-    if (_material == material)
-    {
-        return;
-    }
-
-    _material = material;
-
-    MarkDirtyForAutosave();
-}
-
-std::shared_ptr<Material> StaticMesh::GetMaterial() const
-{
-    return _material;
-}
-
-StaticMeshRenderingData* StaticMesh::GetRenderingData() const
-{
-    return _renderingData.get();
 }
 
 bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)

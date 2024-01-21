@@ -52,8 +52,6 @@ public:
         return asset;
     }
 
-    void ImportFromDialog(const Type* type);
-
     std::shared_ptr<Asset> FindAssetByName(const std::wstring& name) const;
 
     template <typename T>

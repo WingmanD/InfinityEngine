@@ -1,11 +1,12 @@
 ﻿#pragma once
 
+#include "PassKey.h"
+#include "Rendering/Shader.h"
+#include "Importer.h"
 #include <d3d12.h>
 #include <d3d12shader.h>
 #include <set>
 #include <wrl/client.h>
-#include "PassKey.h"
-#include "Rendering/Shader.h"
 #include "DX12Shader.reflection.h"
 
 struct MaterialParameterDescriptor;
@@ -15,12 +16,22 @@ class RenderingSubsystem;
 class DX12RenderingSubsystem;
 
 REFLECTED()
+class DX12ShaderImporter : public Importer
+{
+    GENERATED()
+    
+public:
+    PROPERTY(Edit)
+    std::filesystem::path Path;
+};
+
+REFLECTED()
 class DX12Shader : public Shader
 {
     GENERATED()
 
 public:
-    DX12Shader() = default;
+    DX12Shader();
     DX12Shader(const std::wstring& name);
 
     DX12Shader(const DX12Shader& other);
@@ -29,14 +40,17 @@ public:
     //void Apply(ID3D12GraphicsCommandList* commandList, PassKey<DX12RenderingSubsystem>);
     void Apply(ID3D12GraphicsCommandList* commandList) const;
 
-    static std::shared_ptr<DX12Shader> Import(AssetManager& assetManager, const std::filesystem::path& path);
-
-    virtual bool Serialize(MemoryWriter& writer) const override;
-    virtual bool Deserialize(MemoryReader& reader) override;
-
     const D3D12_ROOT_SIGNATURE_DESC& GetRootSignatureDesc(PassKey<DX12RenderingSubsystem>) const;
     
     virtual bool Recompile(bool immediate = false) override;
+
+    // Asset
+public:
+    virtual bool Serialize(MemoryWriter& writer) const override;
+    virtual bool Deserialize(MemoryReader& reader) override;
+    
+    virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
+
     
 protected:
     static ComPtr<ID3DBlob> CompileShader(const std::filesystem::path& shaderPath,

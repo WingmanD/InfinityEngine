@@ -151,7 +151,7 @@ void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
             // If layout is dirty, we will update the hit test grid when rebuilding the layout
             if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
             {
-                HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGrid();
+                HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGridFor(SharedFromThis()).value();
                 if (value)
                 {
                     hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
@@ -571,7 +571,7 @@ void Widget::RebuildLayout()
 
     if (IsCollisionEnabled())
     {
-        HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGrid();
+        HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGridFor(SharedFromThis()).value();
         hitTestGrid.RemoveElement(this);
         hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
     }
@@ -582,6 +582,16 @@ void Widget::RebuildLayout()
 std::shared_ptr<Widget> Widget::GetParentWidget() const
 {
     return _parentWidget.lock();
+}
+
+std::shared_ptr<Widget> Widget::GetRootWidget()
+{
+    if (const std::shared_ptr<Widget> parent = GetParentWidget())
+    {
+        return parent->GetRootWidget();
+    }
+
+    return SharedFromThis();
 }
 
 const RECT& Widget::GetRect() const
@@ -623,7 +633,7 @@ void Widget::Destroy()
     {
         if (const std::shared_ptr<Window> window = GetParentWindow())
         {
-            window->GetHitTestGrid().RemoveElement(this);
+            window->GetHitTestGridFor(SharedFromThis()).value().get().RemoveElement(this);
         }
     }
 
@@ -826,7 +836,7 @@ void Widget::ForceRebuildLayout(bool recursive /*= false*/)
 
     if (IsCollisionEnabled())
     {
-        HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGrid();
+        HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGridFor(SharedFromThis()).value().get();
         hitTestGrid.RemoveElement(this);
         hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
     }
@@ -973,7 +983,7 @@ void Widget::EnableCollisionForTree()
     {
         if (HasFlags(_state, EWidgetState::CollisionEnabled) && !HasFlags(_state, EWidgetState::Collapsed))
         {
-            parentWindow->GetHitTestGrid().InsertElement(this, _boundingBox, GWidgetComparator);
+            parentWindow->GetHitTestGridFor(SharedFromThis()).value().get().InsertElement(this, _boundingBox, GWidgetComparator);
         }
 
         for (const std::shared_ptr<Widget>& child : GetChildren())
@@ -987,7 +997,7 @@ void Widget::DisableCollisionForTree()
 {
     if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
     {
-        parentWindow->GetHitTestGrid().RemoveElement(this);
+        parentWindow->GetHitTestGridFor(SharedFromThis()).value().get().RemoveElement(this);
 
         for (const std::shared_ptr<Widget>& child : GetChildren())
         {
@@ -1009,7 +1019,11 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
     {
         if (IsCollisionEnabled())
         {
-            oldWindow->GetHitTestGrid().RemoveElement(this);
+            const auto hitTestGrid = oldWindow->GetHitTestGridFor(SharedFromThis());
+            if (hitTestGrid.has_value())
+            {
+                hitTestGrid.value().get().RemoveElement(this);
+            }
         }
     }
 
@@ -1041,8 +1055,8 @@ void Widget::OnAddedToParent(const std::shared_ptr<Widget>& parent)
 
 void Widget::OnRemovedFromParent(const std::shared_ptr<Widget>& parent)
 {
-    _parentWidget.reset();
     SetWindow(nullptr);
+    _parentWidget.reset();
 }
 
 void Widget::OnPressedInternal()

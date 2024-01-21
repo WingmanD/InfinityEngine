@@ -16,6 +16,11 @@ std::vector<D3D12_INPUT_ELEMENT_DESC> DX12Shader::_inputLayout = {
     {"UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 };
 
+DX12Shader::DX12Shader()
+{
+    SetImporterType(DX12ShaderImporter::StaticType());
+}
+
 DX12Shader::DX12Shader(const std::wstring& name) : Shader(name)
 {
 }
@@ -41,189 +46,6 @@ void DX12Shader::Apply(ID3D12GraphicsCommandList* commandList) const
 {
     commandList->SetPipelineState(_pso.Get());
     commandList->SetGraphicsRootSignature(_rootSignature.Get());
-}
-
-std::shared_ptr<DX12Shader> DX12Shader::Import(AssetManager& assetManager, const std::filesystem::path& path)
-{
-    if (path.empty())
-    {
-        return nullptr;
-    }
-
-    if (!exists(path))
-    {
-        return nullptr;
-    }
-
-    std::shared_ptr<DX12Shader> shader = assetManager.NewAsset<DX12Shader>(path.stem().wstring());
-    shader->SetImportPath(path);
-
-    if (!shader->Recompile(true))
-    {
-        assetManager.DeleteAsset(shader);
-        return nullptr;
-    }
-
-    shader->MarkDirtyForAutosave();
-
-    return shader;
-}
-
-bool DX12Shader::Serialize(MemoryWriter& writer) const
-{
-    if (!Shader::Serialize(writer))
-    {
-        return false;
-    }
-
-    writer << _lastCompileTime;
-
-    if (_serializedRootSignature != nullptr)
-    {
-        writer << static_cast<uint64>(_serializedRootSignature->GetBufferSize());
-    }
-    else
-    {
-        writer << static_cast<uint64>(0ull);
-    }
-
-    if (_vertexShader != nullptr)
-    {
-        writer << static_cast<uint64>(_vertexShader->GetBufferSize());
-    }
-    else
-    {
-        writer << static_cast<uint64>(0ull);
-    }
-
-    if (_pixelShader != nullptr)
-    {
-        writer << static_cast<uint64>(_pixelShader->GetBufferSize());
-    }
-    else
-    {
-        writer << static_cast<uint64>(0ull);
-    }
-
-    // todo we need to store information about what was serialized - if something is missing, we will try to read too much data
-    if (_serializedRootSignature != nullptr)
-    {
-        writer.Write(static_cast<const std::byte*>(_serializedRootSignature->GetBufferPointer()), _serializedRootSignature->GetBufferSize());
-    }
-    if (_vertexShader != nullptr)
-    {
-        writer.Write(static_cast<const std::byte*>(_vertexShader->GetBufferPointer()), _vertexShader->GetBufferSize());
-    }
-    if (_pixelShader != nullptr)
-    {
-        writer.Write(static_cast<const std::byte*>(_pixelShader->GetBufferPointer()), _pixelShader->GetBufferSize());
-    }
-
-    if (ParameterMap != nullptr)
-    {
-        ParameterMap->Serialize(writer);
-    }
-
-    return true;
-}
-
-bool DX12Shader::Deserialize(MemoryReader& reader)
-{
-    if (!Shader::Deserialize(reader))
-    {
-        return false;
-    }
-
-    std::filesystem::file_time_type lastWriteTime;
-    reader >> lastWriteTime;
-
-    uint64 serializedRootSignatureSize;
-    reader >> serializedRootSignatureSize;
-
-    uint64 vertexShaderSize;
-    reader >> vertexShaderSize;
-
-    uint64 pixelShaderSize;
-    reader >> pixelShaderSize;
-
-    if (lastWriteTime < last_write_time(GetImportPath()))
-    {
-        LOG(L"Shader {} is out of date!", GetName());
-        return Recompile(true);
-    }
-
-    bool success = true;
-    if (serializedRootSignatureSize > 0ull)
-    {
-        const HRESULT result = D3DCreateBlob(serializedRootSignatureSize, _serializedRootSignature.GetAddressOf());
-        if (FAILED(result))
-        {
-            LOG(L"Failed to create serialized root signature blob for shader {}!", GetName());
-            success = false;
-        }
-        else
-        {
-            reader.Read(static_cast<std::byte*>(_serializedRootSignature->GetBufferPointer()), serializedRootSignatureSize);
-        }
-    }
-
-    if (vertexShaderSize > 0ull)
-    {
-        const HRESULT result = D3DCreateBlob(vertexShaderSize, _vertexShader.GetAddressOf());
-        if (FAILED(result))
-        {
-            LOG(L"Failed to create vertex shader blob for shader {}!", GetName());
-            success = false;
-        }
-        else
-        {
-            reader.Read(static_cast<std::byte*>(_vertexShader->GetBufferPointer()), vertexShaderSize);
-        }
-    }
-
-    if (pixelShaderSize > 0)
-    {
-        const HRESULT result = D3DCreateBlob(pixelShaderSize, _pixelShader.GetAddressOf());
-        if (FAILED(result))
-        {
-            LOG(L"Failed to create pixel shader blob for shader {}!", GetName());
-            success = false;
-        }
-        else
-        {
-            reader.Read(static_cast<std::byte*>(_pixelShader->GetBufferPointer()), pixelShaderSize);
-        }
-    }
-
-    ParameterMap = std::make_unique<DX12MaterialParameterMap>();
-    if (!ParameterMap->Deserialize(reader))
-    {
-        success = false;
-        ParameterMap = nullptr;
-    }
-
-    if (success)
-    {
-        if (!Initialize())
-        {
-            LOG(L"Failed to deserialize shader {}!", GetName());
-            return false;
-        }
-
-        const DX12RenderingSubsystem& renderingSubsystem = static_cast<DX12RenderingSubsystem&>(RenderingSubsystem::Get());
-        if (!InitializeRootSignature(renderingSubsystem))
-        {
-            return false;
-        }
-
-        InitializePSO(renderingSubsystem);
-    }
-    else
-    {
-        return Recompile(true);
-    }
-
-    return true;
 }
 
 const D3D12_ROOT_SIGNATURE_DESC& DX12Shader::GetRootSignatureDesc(PassKey<DX12RenderingSubsystem>) const
@@ -405,6 +227,202 @@ bool DX12Shader::Recompile(bool immediate)
     return true;
 }
 
+bool DX12Shader::Serialize(MemoryWriter& writer) const
+{
+    if (!Shader::Serialize(writer))
+    {
+        return false;
+    }
+
+    writer << _lastCompileTime;
+
+    if (_serializedRootSignature != nullptr)
+    {
+        writer << static_cast<uint64>(_serializedRootSignature->GetBufferSize());
+    }
+    else
+    {
+        writer << static_cast<uint64>(0ull);
+    }
+
+    if (_vertexShader != nullptr)
+    {
+        writer << static_cast<uint64>(_vertexShader->GetBufferSize());
+    }
+    else
+    {
+        writer << static_cast<uint64>(0ull);
+    }
+
+    if (_pixelShader != nullptr)
+    {
+        writer << static_cast<uint64>(_pixelShader->GetBufferSize());
+    }
+    else
+    {
+        writer << static_cast<uint64>(0ull);
+    }
+
+    // todo we need to store information about what was serialized - if something is missing, we will try to read too much data
+    if (_serializedRootSignature != nullptr)
+    {
+        writer.Write(static_cast<const std::byte*>(_serializedRootSignature->GetBufferPointer()),
+                     _serializedRootSignature->GetBufferSize());
+    }
+    if (_vertexShader != nullptr)
+    {
+        writer.Write(static_cast<const std::byte*>(_vertexShader->GetBufferPointer()), _vertexShader->GetBufferSize());
+    }
+    if (_pixelShader != nullptr)
+    {
+        writer.Write(static_cast<const std::byte*>(_pixelShader->GetBufferPointer()), _pixelShader->GetBufferSize());
+    }
+
+    if (ParameterMap != nullptr)
+    {
+        ParameterMap->Serialize(writer);
+    }
+
+    return true;
+}
+
+bool DX12Shader::Deserialize(MemoryReader& reader)
+{
+    if (!Shader::Deserialize(reader))
+    {
+        return false;
+    }
+
+    std::filesystem::file_time_type lastWriteTime;
+    reader >> lastWriteTime;
+
+    uint64 serializedRootSignatureSize;
+    reader >> serializedRootSignatureSize;
+
+    uint64 vertexShaderSize;
+    reader >> vertexShaderSize;
+
+    uint64 pixelShaderSize;
+    reader >> pixelShaderSize;
+
+    if (lastWriteTime < last_write_time(GetImportPath()))
+    {
+        LOG(L"Shader {} is out of date!", GetName());
+        return Recompile(true);
+    }
+
+    bool success = true;
+    if (serializedRootSignatureSize > 0ull)
+    {
+        const HRESULT result = D3DCreateBlob(serializedRootSignatureSize, _serializedRootSignature.GetAddressOf());
+        if (FAILED(result))
+        {
+            LOG(L"Failed to create serialized root signature blob for shader {}!", GetName());
+            success = false;
+        }
+        else
+        {
+            reader.Read(static_cast<std::byte*>(_serializedRootSignature->GetBufferPointer()),
+                        serializedRootSignatureSize);
+        }
+    }
+
+    if (vertexShaderSize > 0ull)
+    {
+        const HRESULT result = D3DCreateBlob(vertexShaderSize, _vertexShader.GetAddressOf());
+        if (FAILED(result))
+        {
+            LOG(L"Failed to create vertex shader blob for shader {}!", GetName());
+            success = false;
+        }
+        else
+        {
+            reader.Read(static_cast<std::byte*>(_vertexShader->GetBufferPointer()), vertexShaderSize);
+        }
+    }
+
+    if (pixelShaderSize > 0)
+    {
+        const HRESULT result = D3DCreateBlob(pixelShaderSize, _pixelShader.GetAddressOf());
+        if (FAILED(result))
+        {
+            LOG(L"Failed to create pixel shader blob for shader {}!", GetName());
+            success = false;
+        }
+        else
+        {
+            reader.Read(static_cast<std::byte*>(_pixelShader->GetBufferPointer()), pixelShaderSize);
+        }
+    }
+
+    ParameterMap = std::make_unique<DX12MaterialParameterMap>();
+    if (!ParameterMap->Deserialize(reader))
+    {
+        success = false;
+        ParameterMap = nullptr;
+    }
+
+    if (success)
+    {
+        if (!Initialize())
+        {
+            LOG(L"Failed to deserialize shader {}!", GetName());
+            return false;
+        }
+
+        const DX12RenderingSubsystem& renderingSubsystem = static_cast<DX12RenderingSubsystem&>(
+            RenderingSubsystem::Get());
+        if (!InitializeRootSignature(renderingSubsystem))
+        {
+            return false;
+        }
+
+        InitializePSO(renderingSubsystem);
+    }
+    else
+    {
+        return Recompile(true);
+    }
+
+    return true;
+}
+
+std::vector<std::shared_ptr<Asset>> DX12Shader::Import(const std::shared_ptr<Importer>& importer) const
+{
+    const std::shared_ptr<DX12ShaderImporter> shaderImporter = std::dynamic_pointer_cast<DX12ShaderImporter>(importer);
+    if (shaderImporter == nullptr)
+    {
+        return {};
+    }
+
+    const std::filesystem::path& path = shaderImporter->Path;
+
+    AssetManager& assetManager = AssetManager::Get();
+
+    if (path.empty())
+    {
+        return {};
+    }
+
+    if (!exists(path))
+    {
+        return {};
+    }
+
+    std::shared_ptr<DX12Shader> shader = assetManager.NewAsset<DX12Shader>(path.stem().wstring());
+    shader->SetImportPath(path);
+
+    if (!shader->Recompile(true))
+    {
+        assetManager.DeleteAsset(shader);
+        return {};
+    }
+
+    shader->MarkDirtyForAutosave();
+
+    return {shader};
+}
+
 ComPtr<ID3DBlob> DX12Shader::CompileShader(const std::filesystem::path& shaderPath,
                                            const D3D_SHADER_MACRO* defines,
                                            const std::string& entryPoint,
@@ -507,10 +525,12 @@ bool DX12Shader::InitializePSO(const DX12RenderingSubsystem& renderingSubsystem)
     return true;
 }
 
-bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes)
+bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
+                                         std::set<MaterialParameterDescriptor>& constantBufferParameterTypes)
 {
     ID3D12ShaderReflection* shaderReflection = nullptr;
-    D3DReflect(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), IID_ID3D12ShaderReflection, reinterpret_cast<void**>(&shaderReflection));
+    D3DReflect(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), IID_ID3D12ShaderReflection,
+               reinterpret_cast<void**>(&shaderReflection));
 
     if (shaderReflection == nullptr)
     {
@@ -528,7 +548,7 @@ bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12
 
         switch (bindDesc.Type)
         {
-            case D3D_SIT_CBUFFER:
+        case D3D_SIT_CBUFFER:
             {
                 if (!ReflectConstantBuffer(shaderReflection, bindDesc, rootParameters, constantBufferParameterTypes))
                 {
@@ -537,19 +557,19 @@ bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12
 
                 break;
             }
-            case D3D_SIT_TEXTURE:
+        case D3D_SIT_TEXTURE:
             {
                 // todo
                 LOG(L"Texture '{}' found in shader {}!", Util::ToWString(bindDesc.Name), GetName());
                 break;
             }
-            case D3D_SIT_SAMPLER:
+        case D3D_SIT_SAMPLER:
             {
                 // todo
                 LOG(L"Sampler '{}' found in shader {}!", Util::ToWString(bindDesc.Name), GetName());
                 break;
             }
-            default:
+        default:
             {
                 LOG(L"Unsupported shader resource type '{}' in shader {}!", Util::ToWString(bindDesc.Name), GetName());
                 break;
@@ -560,7 +580,10 @@ bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12
     return true;
 }
 
-bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const
+bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
+                                       const D3D12_SHADER_INPUT_BIND_DESC& bindDesc,
+                                       std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
+                                       std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const
 {
     ID3D12ShaderReflectionConstantBuffer* cbReflection = shaderReflection->GetConstantBufferByIndex(bindDesc.BindPoint);
     if (cbReflection == nullptr)
@@ -577,7 +600,8 @@ bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
         ID3D12ShaderReflectionVariable* varReflection = cbReflection->GetVariableByIndex(i);
         if (varReflection == nullptr)
         {
-            LOG(L"Failed to reflect variable {} in constant buffer {} in shader {}!", i, Util::ToWString(bindDesc.Name), GetName());
+            LOG(L"Failed to reflect variable {} in constant buffer {} in shader {}!", i, Util::ToWString(bindDesc.Name),
+                GetName());
             return false;
         }
 

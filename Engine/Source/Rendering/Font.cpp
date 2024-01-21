@@ -5,109 +5,44 @@
 #include "Engine/Engine.h"
 #include "Engine/Subsystems/AssetManager.h"
 
+Font::Font()
+{
+    SetImporterType(FontImporter::StaticType());
+}
+
 Font::Font(std::wstring name) : Asset(std::move(name))
 {
 }
 
-Font::Font(const Font& other)
+Font::Font(const Font& other) : Asset(other)
 {
-    // todo deep copy
-}
-
-Font& Font::operator=(const Font& other)
-{
-    return *this;
-}
-
-std::shared_ptr<Font> Font::Import(AssetManager& assetManager, const std::filesystem::path& path, const std::string& name)
-{
-    const std::filesystem::path exePath = assetManager.GetProjectRootPath() / "ThirdParty/DirectXTK12Fonts/MakeSpriteFont";
-
-    std::string legalName = name;
-    std::ranges::replace(legalName, ' ', '_');
-
-    const std::filesystem::path fontPath = assetManager.GetProjectRootPath() / "Engine/Content/Fonts" / legalName / "";
-
-    create_directories(fontPath);
-
-    std::string command = std::format("{} {} {}{}.spritefont /FontSize:32", exePath.string(), name, fontPath.string(), legalName);
-    int result = system(command.c_str());
-    if (result != 0)
-    {
-        LOG(L"Failed to import regular font {}!", Util::ToWString(name));
-        return nullptr;
-    }
-
-    command = std::format("{} {} {}{}{}.spritefont /FontSize:32 /FontStyle:{}", exePath.string(), name, fontPath.string(), legalName, "Bold", "Bold");
-    result = system(command.c_str());
-    if (result != 0)
-    {
-        LOG(L"Failed to import bold font {}!", Util::ToWString(name));
-        return nullptr;
-    }
-
-    command = std::format("{} {} {}{}{}.spritefont /FontSize:32 /FontStyle:{}", exePath.string(), name, fontPath.string(), legalName, "Italic", "Italic");
-    result = system(command.c_str());
-    if (result != 0)
-    {
-        LOG(L"Failed to import italic font {}!", Util::ToWString(name));
-        return nullptr;
-    }
-
-    command = std::format("{} {} {}{}{}.spritefont /FontSize:32 /FontStyle:{}", exePath.string(), name, fontPath.string(), legalName, "Strikeout", "Strikeout");
-    result = system(command.c_str());
-    if (result != 0)
-    {
-        LOG(L"Failed to import strikeout font {}!", Util::ToWString(name));
-        return nullptr;
-    }
-
-    command = std::format("{} {} {}{}{}.spritefont /FontSize:32 /FontStyle:{}", exePath.string(), name, fontPath.string(), legalName, "Underline", "Underline");
-    result = system(command.c_str());
-    if (result != 0)
-    {
-        LOG(L"Failed to import underline font {}!", Util::ToWString(name));
-        return nullptr;
-    }
-
-    std::shared_ptr<Font> font = assetManager.NewAsset<Font>(Util::ToWString(name));
-    font->_bitmapPathBase = fontPath / legalName;
-    if (!font->Initialize())
-    {
-        assetManager.DeleteAsset(font);
-        return nullptr;
-    }
-
-    font->SetName(Util::ToWString(name));
-
-    return font;
 }
 
 DirectX::SpriteFont* Font::GetSpriteFont(EType fontType) const
 {
     switch (fontType)
     {
-        case EType::Regular:
+    case EType::Regular:
         {
             return _fontRegular.get();
         }
-        case EType::Bold:
+    case EType::Bold:
         {
             return _fontBold.get();
         }
-        case EType::Italic:
+    case EType::Italic:
         {
             return _fontItalic.get();
         }
-        case EType::Strikethrough:
+    case EType::Strikethrough:
         {
             return _fontStrikethrough.get();
         }
-        case EType::Underline:
+    case EType::Underline:
         {
             return _fontUnderline.get();
         }
-        default:
+    default:
         {
             LOG(L"Invalid font type!");
             return nullptr;
@@ -145,7 +80,8 @@ bool Font::Initialize()
 
     fontPath += ".spritefont";
     auto heapHandle = descriptorHeap->RequestHeapResourceHandle();
-    _fontRegular = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(), heapHandle, descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
+    _fontRegular = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(), heapHandle,
+                                                         descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontRegular == nullptr)
     {
         LOG(L"Failed to load regular font {}!", GetName());
@@ -155,7 +91,9 @@ bool Font::Initialize()
     fontPath = _bitmapPathBase;
     fontPath += "Bold.spritefont";
     heapHandle = descriptorHeap->RequestHeapResourceHandle();
-    _fontBold = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(), descriptorHeap->RequestHeapResourceHandle(), descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
+    _fontBold = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(),
+                                                      descriptorHeap->RequestHeapResourceHandle(),
+                                                      descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontBold == nullptr)
     {
         LOG(L"Failed to load bold font {}!", GetName());
@@ -165,7 +103,9 @@ bool Font::Initialize()
     fontPath = _bitmapPathBase;
     fontPath += "Italic.spritefont";
     heapHandle = descriptorHeap->RequestHeapResourceHandle();
-    _fontItalic = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(), descriptorHeap->RequestHeapResourceHandle(), descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
+    _fontItalic = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(),
+                                                        descriptorHeap->RequestHeapResourceHandle(),
+                                                        descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontItalic == nullptr)
     {
         LOG(L"Failed to load italic font {}!", GetName());
@@ -175,7 +115,9 @@ bool Font::Initialize()
     fontPath = _bitmapPathBase;
     fontPath += "Strikeout.spritefont";
     heapHandle = descriptorHeap->RequestHeapResourceHandle();
-    _fontStrikethrough = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(), descriptorHeap->RequestHeapResourceHandle(), descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
+    _fontStrikethrough = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(),
+                                                               descriptorHeap->RequestHeapResourceHandle(),
+                                                               descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontStrikethrough == nullptr)
     {
         LOG(L"Failed to load strikethrough font {}!", GetName());
@@ -185,7 +127,9 @@ bool Font::Initialize()
     fontPath = _bitmapPathBase;
     fontPath += "Underline.spritefont";
     heapHandle = descriptorHeap->RequestHeapResourceHandle();
-    _fontUnderline = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(), descriptorHeap->RequestHeapResourceHandle(), descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
+    _fontUnderline = std::make_unique<DirectX::SpriteFont>(device, uploadBatch, fontPath.wstring().c_str(),
+                                                           descriptorHeap->RequestHeapResourceHandle(),
+                                                           descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontUnderline == nullptr)
     {
         LOG(L"Failed to load underline font {}!", GetName());
@@ -222,4 +166,84 @@ bool Font::Deserialize(MemoryReader& reader)
 
     reader >> _bitmapPathBase;
     return true;
+}
+
+std::vector<std::shared_ptr<Asset>> Font::Import(const std::shared_ptr<Importer>& importer) const
+{
+    const std::shared_ptr<FontImporter> fontImporter = std::dynamic_pointer_cast<FontImporter>(importer);
+    if (fontImporter == nullptr)
+    {
+        LOG(L"Invalid importer type!");
+        return {};
+    }
+    std::string name = fontImporter->FontName;
+    
+    AssetManager& assetManager = AssetManager::Get();
+    
+    const std::filesystem::path exePath = assetManager.GetProjectRootPath() /
+        "ThirdParty/DirectXTK12Fonts/MakeSpriteFont";
+
+    std::string legalName = name;
+    std::ranges::replace(legalName, ' ', '_');
+
+    const std::filesystem::path fontPath = assetManager.GetProjectRootPath() / "Engine/Content/Fonts" / legalName / "";
+
+    create_directories(fontPath);
+
+    std::string command = std::format("{} {} {}{}.spritefont /FontSize:32", exePath.string(), name, fontPath.string(),
+                                      legalName);
+    int result = system(command.c_str());
+    if (result != 0)
+    {
+        LOG(L"Failed to import regular font {}!", Util::ToWString(name));
+        return {};
+    }
+
+    command = std::format("{} {} {}{}{}.spritefont /FontSize:32 /FontStyle:{}", exePath.string(), name,
+                          fontPath.string(), legalName, "Bold", "Bold");
+    result = system(command.c_str());
+    if (result != 0)
+    {
+        LOG(L"Failed to import bold font {}!", Util::ToWString(name));
+        return {};
+    }
+
+    command = std::format("{} {} {}{}{}.spritefont /FontSize:32 /FontStyle:{}", exePath.string(), name,
+                          fontPath.string(), legalName, "Italic", "Italic");
+    result = system(command.c_str());
+    if (result != 0)
+    {
+        LOG(L"Failed to import italic font {}!", Util::ToWString(name));
+        return {};
+    }
+
+    command = std::format("{} {} {}{}{}.spritefont /FontSize:32 /FontStyle:{}", exePath.string(), name,
+                          fontPath.string(), legalName, "Strikeout", "Strikeout");
+    result = system(command.c_str());
+    if (result != 0)
+    {
+        LOG(L"Failed to import strikeout font {}!", Util::ToWString(name));
+        return {};
+    }
+
+    command = std::format("{} {} {}{}{}.spritefont /FontSize:32 /FontStyle:{}", exePath.string(), name,
+                          fontPath.string(), legalName, "Underline", "Underline");
+    result = system(command.c_str());
+    if (result != 0)
+    {
+        LOG(L"Failed to import underline font {}!", Util::ToWString(name));
+        return {};
+    }
+
+    std::shared_ptr<Font> font = assetManager.NewAsset<Font>(Util::ToWString(name));
+    font->_bitmapPathBase = fontPath / legalName;
+    if (!font->Initialize())
+    {
+        assetManager.DeleteAsset(font);
+        return {};
+    }
+
+    font->SetName(Util::ToWString(name));
+
+    return {font};
 }

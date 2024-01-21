@@ -190,6 +190,7 @@ public:
     void ForceRebuildLayout(bool recursive = false);
 
     [[nodiscard]] std::shared_ptr<Widget> GetParentWidget() const;
+    std::shared_ptr<Widget> GetRootWidget();
     const RECT& GetRect() const;
 
     void SetWindow(const std::shared_ptr<Window>& window);

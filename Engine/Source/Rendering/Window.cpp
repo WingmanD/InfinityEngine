@@ -88,24 +88,6 @@ bool Window::Initialize()
         return false;
     }
 
-    _rootWidget = std::make_shared<CanvasPanel>();
-    if (!_rootWidget->Initialize())
-    {
-        return false;
-    }
-
-    _rootWidget->SetCollisionEnabled(false);
-    _rootWidget->SetVisibility(false);
-    _rootWidget->SetWindow(shared_from_this());
-    _rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
-    _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f}); // todo reimport QuadMesh with 2x size to avoid this 2x scaling
-    
-    const auto editorWidget = _rootWidget->AddChild<EditorWidget>();
-    if (editorWidget == nullptr)
-    {
-        return false;
-    }
-
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});
 
@@ -193,7 +175,10 @@ bool Window::Initialize()
 
 void Window::Tick(double deltaTime)
 {
-    _rootWidget->RebuildLayout();
+    for (const std::shared_ptr<Layer>& layer : _layers)
+    {
+        layer->RootWidget->RebuildLayout();
+    }
 }
 
 uint32 Window::GetWidth() const
@@ -259,9 +244,25 @@ std::shared_ptr<WindowGlobals>& Window::GetWindowGlobals()
     return _windowGlobals;
 }
 
-HitTestGrid<Widget*>& Window::GetHitTestGrid()
+std::optional<std::reference_wrapper<HitTestGrid<Widget*>>> Window::GetHitTestGridFor(
+    const std::shared_ptr<Widget>& widget)
 {
-    return _hitTestGrid;
+    // todo this is inefficient
+    auto rootWidget = widget->GetRootWidget();
+
+    const auto it = std::ranges::find_if(_layers, [rootWidget](const std::shared_ptr<Layer>& layer)
+    {
+        return layer->RootWidget == rootWidget;
+    });
+
+    if (it == _layers.end())
+    {
+        return std::nullopt;
+    }
+
+    const std::shared_ptr<Layer> layer = *it;
+
+    return layer->HitTestGrid;
 }
 
 void Window::RequestResize(uint32 width, uint32 height)
@@ -271,18 +272,89 @@ void Window::RequestResize(uint32 width, uint32 height)
     _pendingResize.IsValid = true;
 }
 
-Widget* Window::GetRootWidget() const
+std::shared_ptr<Window::Layer> Window::GetTopLayer() const
 {
-    return _rootWidget.get();
+    return _layers.empty() ? nullptr : _layers.back();
+}
+
+const std::vector<std::shared_ptr<Window::Layer>>& Window::GetLayers() const
+{
+    return _layers;
+}
+
+std::shared_ptr<Window::Layer> Window::AddLayer()
+{
+    const std::shared_ptr<CanvasPanel> rootWidget = std::make_shared<CanvasPanel>();
+    if (!rootWidget->Initialize())
+    {
+        return nullptr;
+    }
+
+    rootWidget->SetCollisionEnabled(false);
+    rootWidget->SetVisibility(false);
+    rootWidget->SetWindow(shared_from_this());
+    rootWidget->SetDesiredSize({_aspectRatio * 2.0f, 2.0f});
+    rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f}); // todo reimport QuadMesh with 2x size to avoid this 2x scaling
+
+    std::shared_ptr<Layer> newLayer = std::make_shared<Layer>();
+    newLayer->RootWidget = rootWidget;
+    newLayer->HitTestGrid = HitTestGrid<Widget*>(0.1f * static_cast<float>(_height) / 1080.0f, _aspectRatio * 2.0f,
+                                                 2.0f,
+                                                 Vector2(_aspectRatio, 1.0f));
+    _layers.push_back(newLayer);
+
+    rootWidget->OnDestroyed.Add([this, weakLayer = std::weak_ptr(newLayer)]()
+    {
+        auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
+        {
+            return layer == weakLayer.lock();
+        });
+    });
+
+    return newLayer;
+}
+
+bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
+{
+    if (popup == nullptr)
+    {
+        DEBUG_BREAK();
+        return false;
+    }
+
+    auto layer = AddLayer();
+    if (layer == nullptr)
+    {
+        return false;
+    }
+
+    layer->RootWidget->AddChild(popup);
+
+    popup->OnDestroyed.Add([this, weakLayer = std::weak_ptr(layer)]()
+    {
+        auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
+        {
+            return layer == weakLayer.lock();
+        });
+
+        if (it != _layers.end())
+        {
+            _layers.erase(it);
+        }
+    });
+
+    return true;
 }
 
 Widget* Window::GetWidgetAt(const Vector2& positionWS)
 {
-    Widget** hitWidgetPtr = _hitTestGrid.FindAtByPredicate(positionWS,
-                                                           [](const Vector2& position, const Widget* widget)
-                                                           {
-                                                               return widget->GetBoundingBox().Contains(position);
-                                                           });
+    Widget** hitWidgetPtr = GetTopLayer()->HitTestGrid.FindAtByPredicate(positionWS,
+                                                                         [](const Vector2& position,
+                                                                            const Widget* widget)
+                                                                         {
+                                                                             return widget->GetBoundingBox().Contains(
+                                                                                 position);
+                                                                         });
     if (hitWidgetPtr != nullptr)
     {
         return *hitWidgetPtr;
@@ -315,14 +387,16 @@ void Window::OnResized()
     _windowGlobals->AspectRatio = _aspectRatio;
     _windowGlobals->MarkAsDirty();
 
-    _hitTestGrid = HitTestGrid<Widget*>(0.1f * _height / 1080.0f, _aspectRatio * 2.0f, 2.0f,
-                                        Vector2(_aspectRatio, 1.0f));
-
-    if (_rootWidget != nullptr)
+    for (const std::shared_ptr<Layer>& layer : _layers)
     {
-        _rootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
+        if (layer != nullptr)
+        {
+            layer->RootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
 
-        _rootWidget->ForceRebuildLayout(true);
+            layer->HitTestGrid = HitTestGrid<Widget*>(0.1f * _height / 1080.0f, _aspectRatio * 2.0f, 2.0f,
+                                                      Vector2(_aspectRatio, 1.0f));
+            layer->RootWidget->ForceRebuildLayout(true);
+        }
     }
 }
 

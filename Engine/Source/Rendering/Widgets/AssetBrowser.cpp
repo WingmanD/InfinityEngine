@@ -1,6 +1,7 @@
 ﻿#include "AssetBrowser.h"
 
 #include "AssetCreatorMenu.h"
+#include "AssetImportMenu.h"
 #include "Button.h"
 #include "EditorWidget.h"
 #include "FlowBox.h"
@@ -38,7 +39,7 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
         if (const std::shared_ptr<Window> window = GetParentWindow())
         {
             if (const std::shared_ptr<EditorWidget> editorWidget = std::dynamic_pointer_cast<EditorWidget>(
-                window->GetRootWidget()->GetChildren()[0]))
+                GetRootWidget()->GetChildren()[0]))
             {
                 const std::shared_ptr<Widget> propertiesWidget = asset->GetType()->CreatePropertiesWidget(asset);
                 if (propertiesWidget == nullptr)
@@ -48,9 +49,9 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
                 }
 
                 propertiesWidget->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-                
+
                 editorWidget->AddTab(asset->GetName(), propertiesWidget);
-                editorWidget->SetTabIndex(editorWidget->GetTabIndex() + 1);
+                editorWidget->SetTabIndex(editorWidget->GetTabCount());
             }
         }
     });
@@ -88,7 +89,7 @@ bool AssetBrowser::Initialize()
     }
 
     constexpr Vector4 textPadding = {4.0f, 4.0f, 1.0f, 1.0f};
-    
+
     const auto verticalBox = AddChild<FlowBox>();
     if (verticalBox == nullptr)
     {
@@ -110,8 +111,7 @@ bool AssetBrowser::Initialize()
     {
         if (const std::shared_ptr<Window> window = GetParentWindow())
         {
-            // todo layout adding to button for now because rendering order depends on tree depth
-            auto assetCreator = newAssetButton->GetTextBox()->AddChild<AssetCreatorMenu>();
+            const std::shared_ptr<Widget> assetCreator = window->AddPopup<AssetCreatorMenu>();
             if (assetCreator != nullptr)
             {
                 newAssetButton->SetEnabled(false);
@@ -132,12 +132,25 @@ bool AssetBrowser::Initialize()
     const auto importAssetButton = horizontalButtonBox->AddChild<Button>();
     importAssetButton->SetText(L"Import");
     importAssetButton->GetTextBox()->SetPadding(textPadding);
-    importAssetButton->OnReleased.Add([this]()
+    importAssetButton->OnReleased.Add([this, importAssetButton]()
     {
         if (const std::shared_ptr<Window> window = GetParentWindow())
         {
-            // todo layout
-            //window->GetRootWidget()->AddChild<AssetImportMenu>();
+            const std::shared_ptr<Widget> importer = window->AddPopup<AssetImportMenu>();
+            if (importer != nullptr)
+            {
+                importAssetButton->SetEnabled(false);
+                importAssetButton->SetCollisionEnabled(false);
+
+                importer->OnDestroyed.Add([importAssetButton]()
+                {
+                    if (importAssetButton != nullptr)
+                    {
+                        importAssetButton->SetEnabled(true);
+                        importAssetButton->SetCollisionEnabled(true);
+                    }
+                });
+            }
         }
     });
 
@@ -163,8 +176,8 @@ bool AssetBrowser::Initialize()
 
     assetManager.OnAssetDeleted.Add([this](const std::shared_ptr<Asset>& asset)
     {
-        const std::shared_ptr<TableWidget> verticalBox = _table.lock();
-        for (const std::shared_ptr<Widget>& widget : verticalBox->GetChildren())
+        const std::shared_ptr<TableWidget> table = _table.lock();
+        for (const std::shared_ptr<Widget>& widget : table->GetChildren()[0]->GetChildren())
         {
             std::shared_ptr<AssetBrowserEntry> entry = std::dynamic_pointer_cast<AssetBrowserEntry>(widget);
             if (entry == nullptr)
@@ -174,7 +187,7 @@ bool AssetBrowser::Initialize()
 
             if (entry->GetAsset() == asset)
             {
-                verticalBox->RemoveChild(entry);
+                entry->Destroy();
                 break;
             }
         }

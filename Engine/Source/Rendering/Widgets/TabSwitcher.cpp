@@ -24,9 +24,7 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
     tab->SetPadding({0.0f, 2.0f, 1.0f, 1.0f});
 
     constexpr Vector4 textPadding = {4.0f, 4.0f, 1.0f, 1.0f};
-
-    const int32 index = static_cast<int32>(_tabNames.size() - 1);
-
+    
     const std::shared_ptr<Button> tabButton = tab->AddChild<Button>();
     if (!tabButton)
     {
@@ -35,9 +33,9 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
     tabButton->SetFillMode(EWidgetFillMode::FillY);
     tabButton->SetText(name);
     tabButton->GetTextBox()->SetPadding(textPadding);
-    tabButton->OnReleased.Add([this, index]()
+    tabButton->OnReleased.Add([this, name]()
     {
-        SetTabIndex(index);
+        SetTabIndex(GetTabIndex(name));
     });
 
     if (closeable)
@@ -46,7 +44,7 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
         {
             RemoveTab(name);
         });
-        
+
         const std::shared_ptr<Button> closeButton = tab->AddChild<Button>();
         if (!closeButton)
         {
@@ -77,20 +75,15 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
 
 void TabSwitcher::RemoveTab(const std::wstring& name)
 {
-    const auto it = std::ranges::find(_tabNames, name);
-    if (it == _tabNames.end())
-    {
-        return;
-    }
-
-    const int32 index = static_cast<int32>(it - _tabNames.begin());
+    const int32 index = GetTabIndex(name);
     _tabNames.erase(_tabNames.begin() + index);
 
     _tabHorizontalBox.lock()->RemoveChildAt(index);
 
     const std::shared_ptr<WidgetSwitcher> switcher = _switcher.lock();
-    switcher->SetSelectedIndex(switcher->GetSelectedIndex() - 1);
     switcher->RemoveChildAt(index);
+
+    SetTabIndex(GetCurrentTabIndex() - 1);
 }
 
 void TabSwitcher::SetTabIndex(int32 index)
@@ -98,9 +91,25 @@ void TabSwitcher::SetTabIndex(int32 index)
     _switcher.lock()->SetSelectedIndex(index);
 }
 
-int32 TabSwitcher::GetTabIndex() const
+int32 TabSwitcher::GetCurrentTabIndex() const
 {
     return _switcher.lock()->GetSelectedIndex();
+}
+
+int32 TabSwitcher::GetTabIndex(const std::wstring& name) const
+{
+    const auto it = std::ranges::find(_tabNames, name);
+    if (it == _tabNames.end())
+    {
+        return -1;
+    }
+
+    return static_cast<int32>(it - _tabNames.begin());
+}
+
+int32 TabSwitcher::GetTabCount() const
+{
+    return static_cast<int32>(_switcher.lock()->GetChildren().size());
 }
 
 bool TabSwitcher::Initialize()

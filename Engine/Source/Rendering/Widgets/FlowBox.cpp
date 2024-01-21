@@ -76,6 +76,7 @@ void FlowBox::RebuildLayoutInternal()
     for (const std::shared_ptr<Widget>& widget : GetChildren())
     {
         const Vector2& childDesiredSize = widget->GetDesiredSize();
+        const Vector4& childPadding = widget->GetPadding();
         const Vector2& childPaddedDesiredSize = widget->GetPaddedDesiredSize();
 
         Vector2 newChildSize;
@@ -121,9 +122,12 @@ void FlowBox::RebuildLayoutInternal()
         }
 
         Vector2 newChildPaddedSize = newChildSize;
+        Vector2 newChildPaddedPositionSize = newChildSize;
         if (childDesiredSize.LengthSquared() > 0.0f)
         {
-            newChildPaddedSize *= widget->GetPaddedDesiredSize() / childDesiredSize;
+            newChildPaddedSize *= childPaddedDesiredSize / childDesiredSize;
+            newChildPaddedPositionSize *= (childDesiredSize + Vector2(childPadding.x, childPadding.z)) /
+                childDesiredSize;
         }
 
         widget->SetSize(newChildSize);
@@ -131,12 +135,12 @@ void FlowBox::RebuildLayoutInternal()
         Vector2 childPosition;
         if (_direction == EFlowBoxDirection::Horizontal)
         {
-            childPosition.x = offset.x + newChildPaddedSize.x * 0.5f;
+            childPosition.x = offset.x + newChildPaddedPositionSize.x * 0.5f;
             offset.x += newChildPaddedSize.x;
         }
         else
         {
-            childPosition.y = -offset.y - newChildPaddedSize.y * 0.5f;
+            childPosition.y = -offset.y - newChildPaddedPositionSize.y * 0.5f;
             offset.y += newChildPaddedSize.y;
         }
 

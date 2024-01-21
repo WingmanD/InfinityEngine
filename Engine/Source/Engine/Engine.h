@@ -22,6 +22,9 @@ public:
     HINSTANCE GetHandle() const;
 
     ThreadPool& GetThreadPool();
+    ThreadPool& GetWaitThreadPool();
+
+    EventQueue<Engine>& GetMainEventQueue();
 
     InputSubsystem& GetInputSubsystem();
     AssetManager& GetAssetManager();
@@ -35,8 +38,11 @@ private:
     bool _exitRequested = false;
 
     ThreadPool _threadPool;
+    ThreadPool _waitThreadPool{100};
 
-    InputSubsystem _inputSubsystem;
+    EventQueue<Engine> _eventQueue;
+
+    InputSubsystem _inputSubsystem{};
     AssetManager _assetManagerSubsystem;
     std::unique_ptr<RenderingSubsystem> _renderingSubsystem;
 

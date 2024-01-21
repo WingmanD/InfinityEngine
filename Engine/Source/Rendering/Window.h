@@ -23,6 +23,14 @@ public:
         FullscreenBorderless
     };
 
+    struct Layer : public NonCopyable<Layer>
+    {
+        std::shared_ptr<Widget> RootWidget;
+        HitTestGrid<Widget*> HitTestGrid{
+            0.1f * 1080.0f, 1920.0f / 1080.0f * 2.0f, 2.0f, Vector2(1920.0f / 1080.0f, 1.0f)
+        };
+    };
+
     Window(uint32 width, uint32 height, std::wstring title);
     virtual ~Window() = default;
 
@@ -42,11 +50,43 @@ public:
 
     std::shared_ptr<WindowGlobals>& GetWindowGlobals();
 
-    HitTestGrid<Widget*>& GetHitTestGrid();
+    std::optional<std::reference_wrapper<HitTestGrid<Widget*>>>
+    GetHitTestGridFor(const std::shared_ptr<Widget>& widget);
 
     void RequestResize(uint32 width, uint32 height);
 
-    Widget* GetRootWidget() const;
+    std::shared_ptr<Layer> GetTopLayer() const;
+    const std::vector<std::shared_ptr<Layer>>& GetLayers() const;
+
+    std::shared_ptr<Layer> AddLayer();
+    bool AddPopup(const std::shared_ptr<Widget>& popup);
+
+    template <typename T>
+    std::shared_ptr<Widget> AddPopup()
+    {
+        const std::shared_ptr<Layer> newLayer = AddLayer();
+        std::shared_ptr<Widget> popup = newLayer->RootWidget->AddChild<T>();
+        if (popup == nullptr)
+        {
+            return nullptr;
+        }
+
+        popup->OnDestroyed.Add([this, weakLayer = std::weak_ptr(newLayer)]()
+        {
+            auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
+            {
+                return layer == weakLayer.lock();
+            });
+
+            if (it != _layers.end())
+            {
+                _layers.erase(it);
+            }
+        });
+
+        return popup;
+    }
+
     Widget* GetWidgetAt(const Vector2& positionWS);
     Widget* GetWidgetUnderCursor();
 
@@ -80,9 +120,8 @@ protected:
 private:
     PendingResize _pendingResize{};
 
-    std::shared_ptr<Widget> _rootWidget = nullptr;
-    HitTestGrid<Widget*> _hitTestGrid{0.1f * 1080.0f, 1920.0f / 1080.0f * 2.0f, 2.0f, Vector2(1920.0f / 1080.0f, 1.0f)};
-    
+    std::vector<std::shared_ptr<Layer>> _layers;
+
     std::weak_ptr<Widget> _pressedWidget;
     std::weak_ptr<Widget> _hoveredWidget;
     std::weak_ptr<Widget> _focusedWidget;

@@ -34,7 +34,11 @@ public:
     void RemoveTab(const std::wstring& name);
 
     void SetTabIndex(int32 index);
-    int32 GetTabIndex() const;
+    int32 GetCurrentTabIndex() const;
+
+    int32 GetTabIndex(const std::wstring& name) const;
+    
+    int32 GetTabCount() const;
 
     // Widget
 public:

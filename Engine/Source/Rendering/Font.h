@@ -1,9 +1,19 @@
 ﻿#pragma once
 
 #include "Asset.h"
+#include "Importer.h"
 #include "SpriteFont.h"
-#include "NonCopyable.h"
 #include "Font.reflection.h"
+
+REFLECTED()
+class FontImporter : public Importer
+{
+    GENERATED()
+
+public:
+    PROPERTY(Edit)
+    std::string FontName;
+};
 
 // todo this class is not RHI-agnostic
 REFLECTED()
@@ -22,15 +32,10 @@ public:
     };
 
 public:
-    explicit Font() = default;
+    explicit Font();
     explicit Font(std::wstring name);
 
     Font(const Font& other);
-    Font& operator=(const Font& other);
-
-    // todo rework importing, Type needs to know how to import itself
-    //static std::shared_ptr<Font> Import(AssetManager& assetManager, const std::filesystem::path& ttf2Path);
-    static std::shared_ptr<Font> Import(AssetManager& assetManager, const std::filesystem::path& path, const std::string& name);
 
     DirectX::SpriteFont* GetSpriteFont(EType fontType) const;
 
@@ -42,6 +47,8 @@ public:
 
     virtual bool Serialize(MemoryWriter& writer) const override;
     virtual bool Deserialize(MemoryReader& reader) override;
+
+    std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
 
 private:
     std::filesystem::path _bitmapPathBase;

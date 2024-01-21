@@ -2,10 +2,11 @@
 
 #include "Rendering/Window.h"
 #include "Rendering/DX12/DX12RenderingSubsystem.h"
+#include "Rendering/Widgets/EditorWidget.h"
 
 Engine Engine::_mainInstance;
 
-Engine::Engine()
+Engine::Engine() : _eventQueue(this)
 {
     _renderingSubsystem = std::make_unique<DX12RenderingSubsystem>();
 }
@@ -39,9 +40,17 @@ bool Engine::Initialize(HINSTANCE hInstance)
 
     _assetManagerSubsystem.LoadAlwaysLoadedAssets();
 
-    if (_renderingSubsystem->ConstructWindow(L"Infinity Engine") == nullptr)
+    const std::shared_ptr<Window> window = _renderingSubsystem->ConstructWindow(L"Infinity Engine");
+    if (window == nullptr)
     {
         LOG(L"Failed to construct main window!");
+        return false;
+    }
+
+    const std::shared_ptr<Window::Layer> layer = window->AddLayer();
+    const std::shared_ptr<EditorWidget> editorWidget = layer->RootWidget->AddChild<EditorWidget>();
+    if (editorWidget == nullptr)
+    {
         return false;
     }
 
@@ -62,7 +71,7 @@ void Engine::Run()
                 TranslateMessage(&msg);
                 DispatchMessage(&msg);
             }
-            
+
             return true;
         });
 
@@ -70,6 +79,8 @@ void Engine::Run()
         const double deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
+        _eventQueue.ProcessEvents();
+        
         _inputSubsystem.Tick(deltaTime);
         // todo gameplay subsystem tick
         _renderingSubsystem->Tick(deltaTime);
@@ -97,6 +108,16 @@ HINSTANCE Engine::GetHandle() const
 ThreadPool& Engine::GetThreadPool()
 {
     return _threadPool;
+}
+
+ThreadPool& Engine::GetWaitThreadPool()
+{
+    return _waitThreadPool;
+}
+
+EventQueue<Engine>& Engine::GetMainEventQueue()
+{
+    return _eventQueue;
 }
 
 InputSubsystem& Engine::GetInputSubsystem()

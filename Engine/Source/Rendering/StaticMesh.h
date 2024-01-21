@@ -2,6 +2,7 @@
 
 #include "Asset.h"
 #include "AssetPtr.h"
+#include "Importer.h"
 #include "Material.h"
 #include "StaticMeshRenderingData.h"
 #include "StaticMesh.reflection.h"
@@ -17,13 +18,25 @@ struct Vertex
 };
 
 REFLECTED()
+class StaticMeshImporter : public Importer
+{
+    GENERATED()
 
+public:
+    PROPERTY(Edit)
+    std::filesystem::path Path;
+
+public:
+    StaticMeshImporter() = default;
+};
+
+REFLECTED()
 class StaticMesh : public Asset
 {
     GENERATED()
 
 public:
-    StaticMesh() = default;
+    StaticMesh();
 
     StaticMesh(const StaticMesh& other);
     StaticMesh& operator=(const StaticMesh& other);
@@ -36,8 +49,6 @@ public:
 
     virtual bool Deserialize(MemoryReader& reader) override;
 
-    static std::vector<std::shared_ptr<StaticMesh>> BatchImport(const std::filesystem::path& path);
-
     [[nodiscard]] const std::vector<Vertex>& GetVertices() const;
 
     [[nodiscard]] const std::vector<uint32_t>& GetIndices() const;
@@ -47,6 +58,10 @@ public:
     [[nodiscard]] std::shared_ptr<Material> GetMaterial() const;
 
     StaticMeshRenderingData* GetRenderingData() const;
+
+    // Asset
+public:
+    virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
 
 private:
     bool ImportInternal(const aiMesh* assimpMesh);

@@ -58,7 +58,7 @@ bool DX12Window::Initialize()
     {
         _staticMeshTest->Load();
     }
-    
+
     return true;
 }
 
@@ -105,18 +105,19 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
         if (_staticMeshTest != nullptr)
         {
             using namespace DirectX;
-        
+
             Vector3 pos = Vector3(5.0f, 1.0f, 2.0f);
             Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
             Vector3 up = Vector3(0.0f, 0.0f, 1.0f);
-        
+
             Matrix view = XMMatrixLookAtLH(pos, target, up);
             Matrix world = Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
             const float aspectRatio = static_cast<float>(GetWidth()) / static_cast<float>(GetHeight());
-            Matrix proj = XMMatrixPerspectiveFovLH(0.25f * static_cast<float>(std::numbers::pi), aspectRatio, 1.0f, 1000.0f);
-        
+            Matrix proj = XMMatrixPerspectiveFovLH(0.25f * static_cast<float>(std::numbers::pi), aspectRatio, 1.0f,
+                                                   1000.0f);
+
             Material* material = _staticMeshTest->GetMaterial().get();
-        
+
             PerPassConstants* perPassConstants = material->GetParameter<PerPassConstants>("GPerPassConstants");
             perPassConstants->Time += 0.008f;
             XMStoreFloat4x4(&perPassConstants->World, XMMatrixTranspose(world));
@@ -124,28 +125,32 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
             perPassConstants->CameraPosition = pos;
             perPassConstants->CameraDirection = target - pos;
             perPassConstants->CameraDirection.Normalize();
-        
+
             if (_staticMeshTest->GetRenderingData()->IsUploaded())
             {
-                static_cast<DX12StaticMeshRenderingData*>(_staticMeshTest->GetRenderingData())->SetupDrawing(commandList, _staticMeshTest->GetMaterial());
+                static_cast<DX12StaticMeshRenderingData*>(_staticMeshTest->GetRenderingData())->SetupDrawing(
+                    commandList, _staticMeshTest->GetMaterial());
             }
         }
     }
-    
+
     // when we come to a viewport, we need to give it this command list, and it will take more command lists, after that,
     // we must request a new command list to render other UI elements to maintain order - UI elements are overlayed
     // todo think about layers - in that case, if current layer has a viewport, the next layer must have a new command list
     // note that even like this, we can record viewport commands and the whole UI commands in parallel, but we must maintain order of releasing
     // command lists
-    if (GetRootWidget() != nullptr)
+    for (const std::shared_ptr<Layer>& layer : GetLayers())
     {
-        commandList->ClearDepthStencilView(_depthStencilView,
-                                   D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                                   1.0f,
-                                   0,
-                                   0,
-                                   nullptr);
-        dynamic_cast<DX12WidgetRenderingProxy&>(GetRootWidget()->GetRenderingProxy()).SetupDrawing(commandList);
+        if (layer->RootWidget != nullptr)
+        {
+            commandList->ClearDepthStencilView(_depthStencilView,
+                                               D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                                               1.0f,
+                                               0,
+                                               0,
+                                               nullptr);
+            dynamic_cast<DX12WidgetRenderingProxy&>(layer->RootWidget->GetRenderingProxy()).SetupDrawing(commandList);
+        }
     }
 
     const CD3DX12_RESOURCE_BARRIER transitionTargetToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -289,6 +294,6 @@ void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
     OnViewportChanged.Broadcast(_fullWindowViewport);
 
     _fullWindowRect = {0, 0, static_cast<LONG>(width), static_cast<LONG>(height)};
-    
+
     OnResized();
 }
