@@ -14,16 +14,42 @@ void WidgetSwitcher::SetSelectedIndex(int32 index)
 
     const std::vector<std::shared_ptr<Widget>>& children = GetChildren();
     children[_selectedIndex]->SetCollapsed(true);
+    
     children[index]->SetCollapsed(false);
+    children[index]->InvalidateTree();
+    TRACE_LOG("Invalidating tree of child {} ({})", index, children[index]->GetType()->GetName());
 
     _selectedIndex = index;
-
-    children[_selectedIndex]->InvalidateTree();
 }
 
 int32 WidgetSwitcher::GetSelectedIndex() const
 {
     return _selectedIndex;
+}
+
+void WidgetSwitcher::RebuildLayoutInternal()
+{
+    const std::vector<std::shared_ptr<Widget>>& children = GetChildren();
+    if (children.empty())
+    {
+        return;
+    }
+
+    const std::shared_ptr<Widget> selectedChild = children[_selectedIndex];
+
+    selectedChild->SetPosition({0.0f, 0.0f});
+
+    Vector2 size = selectedChild->GetDesiredSize() / GetScreenSize();
+    if (HasFlags(selectedChild->GetFillMode(), EWidgetFillMode::FillX))
+    {
+        size.x = 1.0f;
+    }
+    if (HasFlags(selectedChild->GetFillMode(), EWidgetFillMode::FillY))
+    {
+        size.y = 1.0f;
+    }
+
+    selectedChild->SetSize(size);
 }
 
 void WidgetSwitcher::UpdateDesiredSizeInternal()

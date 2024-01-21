@@ -302,7 +302,7 @@ void Widget::SetSize(const Vector2& size)
 {
     _size = size;
 
-    if (isinf(size.x) || isinf(size.y))
+    if (isinf(size.x) || isinf(size.y) || isnan(size.x) || isnan(size.y))
     {
         DEBUG_BREAK();
     }
@@ -826,12 +826,17 @@ void Widget::MiddleClickReleased(PassKey<Window>)
 
 void Widget::ForceRebuildLayout(bool recursive /*= false*/)
 {
+    if (IsCollapsed())
+    {
+        return;
+    }
+    
     // todo resizing window does not trigger update of desired size because 
     for (const std::shared_ptr<Widget>& widget : _children)
     {
         widget->ForceUpdateDesiredSize(recursive);
     }
-
+    
     RebuildLayoutInternal();
 
     if (IsCollisionEnabled())

@@ -16,6 +16,7 @@ public:
 
     // Widget
 protected:
+    void RebuildLayoutInternal() override;
     void UpdateDesiredSizeInternal() override;
     
     void OnChildAdded(const std::shared_ptr<Widget>& child) override;

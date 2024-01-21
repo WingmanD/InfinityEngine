@@ -182,6 +182,7 @@ std::vector<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Imp
         defaultMaterial->Load();
 
         newMesh->SetMaterial(defaultMaterial);
+        newMesh->SetImportPath(path);
 
         meshes.emplace_back(newMesh);
     }
