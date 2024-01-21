@@ -2,6 +2,7 @@
 #include "Button.h"
 #include "EditableTextBox.h"
 #include "FlowBox.h"
+#include "MaterialParameterTypes.h"
 #include "TableWidget.h"
 #include "TypePicker.h"
 #include "TextBox.h"
@@ -20,32 +21,37 @@ bool AssetCreatorMenu::Initialize()
         return false;
     }
 
-    const auto horizontalBox = verticalBox->AddChild<FlowBox>();
-    if (horizontalBox == nullptr)
     {
-        return false;
-    }
-    horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
-    horizontalBox->SetAlignment(EFlowBoxAlignment::End);
+        const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+        if (horizontalBox == nullptr)
+        {
+            return false;
+        }
+        horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
+        horizontalBox->SetFillMode(EWidgetFillMode::FillX);
 
-    const auto closeButton = horizontalBox->AddChild<Button>();
-    if (closeButton == nullptr)
-    {
-        return false;
-    }
-    closeButton->SetText(L"x");
-    closeButton->OnReleased.Add([this]()
-    {
-        Destroy();
-    });
-    // todo align right
+        const std::shared_ptr<TextBox> title = horizontalBox->AddChild<TextBox>();
+        if (title == nullptr)
+        {
+            return false;
+        }
+        title->SetText(L"Create New Asset");
+        title->SetPadding({0.0f, 50.0f, 0.0f, 0.0f});
+        title->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
-    const std::shared_ptr<TextBox> title = verticalBox->AddChild<TextBox>();
-    if (title == nullptr)
-    {
-        return false;
+        const std::shared_ptr<Button> closeButton = horizontalBox->AddChild<Button>();
+        if (closeButton == nullptr)
+        {
+            return false;
+        }
+        closeButton->SetText(L"x");
+        closeButton->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
+        closeButton->SetFillMode(EWidgetFillMode::FillY);
+        closeButton->OnReleased.Add([this]()
+        {
+            Destroy();
+        });
     }
-    title->SetText(L"Create New Asset");
 
     const std::shared_ptr<TableWidget> table = verticalBox->AddChild<TableWidget>();
     if (table == nullptr)

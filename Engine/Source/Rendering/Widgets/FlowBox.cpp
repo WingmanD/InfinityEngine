@@ -88,13 +88,19 @@ void FlowBox::RebuildLayoutInternal()
                     childDesiredSize.x * (GetDesiredSize().y / childPaddedDesiredSize.y) / screenSize.x,
                     childDesiredSize.y / childPaddedDesiredSize.y);
             }
-            else if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillY))
-            {
-                newChildSize = Vector2(childDesiredSize.x / screenSize.x, 1.0f);
-            }
             else
             {
                 newChildSize = childDesiredSize / screenSize;
+
+                if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillY))
+                {
+                    newChildSize.y = 1.0f;
+                }
+
+                if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
+                {
+                    newChildSize.x = (fillSize.x / numFillX) / screenSize.x;
+                }
             }
         }
         else
@@ -122,12 +128,17 @@ void FlowBox::RebuildLayoutInternal()
         }
 
         Vector2 newChildPaddedSize = newChildSize;
-        Vector2 newChildPaddedPositionSize = newChildSize;
         if (childDesiredSize.LengthSquared() > 0.0f)
         {
-            newChildPaddedSize *= childPaddedDesiredSize / childDesiredSize;
-            newChildPaddedPositionSize *= (childDesiredSize + Vector2(childPadding.x, childPadding.z)) /
-                childDesiredSize;
+            if (!HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
+            {
+                newChildPaddedSize.x *= childPaddedDesiredSize.x / childDesiredSize.x;
+            }
+
+            if (!HasFlags(widget->GetFillMode(), EWidgetFillMode::FillY))
+            {
+                newChildPaddedSize.y *= childPaddedDesiredSize.y / childDesiredSize.y;
+            }
         }
 
         widget->SetSize(newChildSize);
@@ -135,12 +146,12 @@ void FlowBox::RebuildLayoutInternal()
         Vector2 childPosition;
         if (_direction == EFlowBoxDirection::Horizontal)
         {
-            childPosition.x = offset.x + newChildPaddedPositionSize.x * 0.5f;
+            childPosition.x = offset.x + childPadding.x / screenSize.x;
             offset.x += newChildPaddedSize.x;
         }
         else
         {
-            childPosition.y = -offset.y - newChildPaddedPositionSize.y * 0.5f;
+            childPosition.y = -offset.y - childPadding.y / screenSize.y;
             offset.y += newChildPaddedSize.y;
         }
 
@@ -211,10 +222,12 @@ void FlowBox::OnChildAdded(const std::shared_ptr<Widget>& child)
     if (GetDirection() == EFlowBoxDirection::Horizontal)
     {
         child->SetAnchor(EWidgetAnchor::CenterLeft);
+        child->SetSelfAnchor(EWidgetAnchor::CenterLeft);
     }
     else
     {
         child->SetAnchor(EWidgetAnchor::TopCenter);
+        child->SetSelfAnchor(EWidgetAnchor::TopCenter);
     }
 
     // todo the only reason we need to invalidate tree here is that transform changes are not propagated to children

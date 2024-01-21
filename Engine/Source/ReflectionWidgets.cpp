@@ -257,6 +257,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     }
 
     button->SetText(L"Open");
+    button->GetTextBox()->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
     button->SetFillMode(EWidgetFillMode::FillY);
     button->OnReleased.Add([value, weakObject = std::weak_ptr(object), textBox]()
     {
@@ -264,7 +265,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         {
             return;
         }
-        
+
         UIStatics::OpenFileDialog(*value, [value, weakObject, textBox](const std::filesystem::path& selectedPath)
         {
             if (weakObject.expired())

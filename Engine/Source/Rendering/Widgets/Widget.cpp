@@ -905,7 +905,14 @@ void Widget::UpdateDesiredSize()
         child->UpdateDesiredSize();
     }
 
+    const Vector2 oldDesiredSize = GetDesiredSize();
+    
     UpdateDesiredSizeInternal();
+    
+    if (oldDesiredSize != GetDesiredSize())
+    {
+        InvalidateTree();
+    }
 }
 
 void Widget::ForceUpdateDesiredSize(bool recursive)
@@ -969,6 +976,11 @@ void Widget::OnTransformChanged()
     UpdateWidgetRect();
 
     GetRenderingProxy().OnTransformChanged();
+
+    for (const std::shared_ptr<Widget>& widget : GetChildren())
+    {
+        widget->OnTransformChanged();
+    } 
 }
 
 Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const

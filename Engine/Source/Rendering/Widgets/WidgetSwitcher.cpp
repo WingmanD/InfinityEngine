@@ -17,7 +17,6 @@ void WidgetSwitcher::SetSelectedIndex(int32 index)
     
     children[index]->SetCollapsed(false);
     children[index]->InvalidateTree();
-    TRACE_LOG("Invalidating tree of child {} ({})", index, children[index]->GetType()->GetName());
 
     _selectedIndex = index;
 }
