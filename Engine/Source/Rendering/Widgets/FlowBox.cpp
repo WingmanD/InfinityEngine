@@ -216,4 +216,15 @@ void FlowBox::OnChildAdded(const std::shared_ptr<Widget>& child)
     {
         child->SetAnchor(EWidgetAnchor::TopCenter);
     }
+
+    // todo the only reason we need to invalidate tree here is that transform changes are not propagated to children
+    // todo this is a problem for all widgets, not just flow box - Transform2D needs to handle parent-child relationships
+    InvalidateTree();
+}
+
+void FlowBox::OnChildRemoved(const std::shared_ptr<Widget>& child)
+{
+    Widget::OnChildRemoved(child);
+
+    InvalidateTree();
 }
