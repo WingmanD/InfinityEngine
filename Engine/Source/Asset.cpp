@@ -285,6 +285,11 @@ std::vector<std::shared_ptr<Asset>> Asset::Import(const std::shared_ptr<Importer
     return {};
 }
 
+void Asset::OnPropertyChanged(const std::wstring& propertyName)
+{
+    MarkDirtyForAutosave();
+}
+
 void Asset::SetIsLoaded(bool value)
 {
     _isLoaded = value;

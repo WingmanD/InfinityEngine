@@ -52,6 +52,10 @@ public:
 
     virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const;
 
+    // Object
+public:
+    void OnPropertyChanged(const std::wstring& propertyName) override;
+
 protected:
     void SetIsLoaded(bool value);
     void MarkDirtyForAutosave() const;

@@ -37,5 +37,7 @@ public:
      */
     virtual Object* DuplicateAt(void* ptr) const;
 
+    virtual void OnPropertyChanged(const std::wstring& propertyName);
+
     virtual ~Object() = default;
 };

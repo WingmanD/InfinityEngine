@@ -47,6 +47,10 @@ public:
     virtual bool Serialize(MemoryWriter& writer) const override;
     virtual bool Deserialize(MemoryReader& reader) override;
 
+    // Object
+public:
+    void OnPropertyChanged(const std::wstring& propertyName) override;
+
 private:
     PROPERTY(Edit, Load, DisplayName = "Shader")
     AssetPtr<Shader> _shader;
@@ -57,5 +61,5 @@ private:
     std::unique_ptr<MaterialRenderingData> _renderingData;
 
 private:
-    void OnShaderChanged();
+    void OnShaderChanged(const std::shared_ptr<Shader>& oldShader = nullptr);
 };

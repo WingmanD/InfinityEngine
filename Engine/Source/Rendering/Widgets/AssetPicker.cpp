@@ -19,12 +19,6 @@ DropdownAssetChoice& DropdownAssetChoice::operator=(const DropdownAssetChoice& o
 
 bool DropdownAssetChoice::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
 {
-    if (asset == nullptr)
-    {
-        DEBUG_BREAK();
-        return false;
-    }
-
     if (!Initialize())
     {
         return false;
@@ -44,11 +38,8 @@ bool DropdownAssetChoice::Initialize()
     {
         return false;
     }
-
-    if (!_asset.expired())
-    {
-        InitializeFromAssetInternal(_asset.lock());
-    }
+    
+    InitializeFromAssetInternal(_asset.lock());
 
     return true;
 }
@@ -58,7 +49,15 @@ bool DropdownAssetChoice::InitializeFromAssetInternal(const std::shared_ptr<Asse
     _asset = asset;
 
     const std::shared_ptr<TextBox> textWidget = GetTextBox();
-    textWidget->SetText(asset->GetName());
+
+    if (asset != nullptr)
+    {
+        textWidget->SetText(asset->GetName());
+    }
+    else
+    {
+        textWidget->SetText(L"None");
+    }
 
     return true;
 }
@@ -93,6 +92,10 @@ void AssetPicker::InitializeFromAssetType(Type* assetType)
 
     AssetManager& assetManager = AssetManager::Get();
 
+    const std::shared_ptr<DropdownAssetChoice> nullChoice = std::make_shared<DropdownAssetChoice>();
+    nullChoice->InitializeFromAsset(nullptr);
+    AddChoice(nullChoice);
+
     assetManager.ForEachAssetOfType(assetType,
                                     [this](const std::shared_ptr<Asset>& asset)
                                     {
@@ -124,12 +127,6 @@ std::shared_ptr<Asset> AssetPicker::GetSelectedAsset() const
 
 void AssetPicker::SetSelectedAsset(const std::shared_ptr<Asset>& asset)
 {
-    if (asset == nullptr)
-    {
-        DEBUG_BREAK();
-        return;
-    }
-
     for (const std::shared_ptr<Widget>& widget : GetChoices())
     {
         const std::shared_ptr<DropdownAssetChoice> choice = std::dynamic_pointer_cast<DropdownAssetChoice>(widget);

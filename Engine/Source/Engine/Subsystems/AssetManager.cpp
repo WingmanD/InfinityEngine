@@ -33,6 +33,12 @@ std::shared_ptr<Asset> AssetManager::NewAsset(const Type* type, const std::wstri
     asset->SetName(name);
     asset->SetAssetID(_idGenerator.GenerateID(), {});
 
+    if (!asset->Initialize())
+    {
+        LOG(L"Failed to initialize asset {}!", name);
+        return nullptr;
+    }
+
     if (!RegisterAsset(asset))
     {
         LOG(L"Failed to register asset {}!", name);
@@ -49,7 +55,7 @@ std::shared_ptr<Asset> AssetManager::NewAsset(const Type* type, const std::wstri
     file.close();
     asset->SetAssetPath(assetPath);
     asset->SetIsLoaded(true, {});
-
+    
     MarkDirtyForAutosave(asset);
 
     OnAssetCreated.Broadcast(asset);

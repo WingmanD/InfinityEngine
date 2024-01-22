@@ -20,3 +20,7 @@ Object* Object::DuplicateAt(void* ptr) const
 {
     return new(ptr) Object(*this);
 }
+
+void Object::OnPropertyChanged(const std::wstring& propertyName)
+{
+}

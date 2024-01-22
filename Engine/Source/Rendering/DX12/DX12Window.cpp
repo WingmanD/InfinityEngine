@@ -117,19 +117,24 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
                                                    1000.0f);
 
             Material* material = _staticMeshTest->GetMaterial().get();
-
-            PerPassConstants* perPassConstants = material->GetParameter<PerPassConstants>("GPerPassConstants");
-            perPassConstants->Time += 0.008f;
-            XMStoreFloat4x4(&perPassConstants->World, XMMatrixTranspose(world));
-            XMStoreFloat4x4(&perPassConstants->ViewProjection, XMMatrixTranspose(view * proj));
-            perPassConstants->CameraPosition = pos;
-            perPassConstants->CameraDirection = target - pos;
-            perPassConstants->CameraDirection.Normalize();
-
-            if (_staticMeshTest->GetRenderingData()->IsUploaded())
+            if (material != nullptr)
             {
-                static_cast<DX12StaticMeshRenderingData*>(_staticMeshTest->GetRenderingData())->SetupDrawing(
-                    commandList, _staticMeshTest->GetMaterial());
+                PerPassConstants* perPassConstants = material->GetParameter<PerPassConstants>("GPerPassConstants");
+                if (perPassConstants != nullptr)
+                {
+                    perPassConstants->Time += 0.008f;
+                    XMStoreFloat4x4(&perPassConstants->World, XMMatrixTranspose(world));
+                    XMStoreFloat4x4(&perPassConstants->ViewProjection, XMMatrixTranspose(view * proj));
+                    perPassConstants->CameraPosition = pos;
+                    perPassConstants->CameraDirection = target - pos;
+                    perPassConstants->CameraDirection.Normalize();
+                }
+
+                if (_staticMeshTest->GetRenderingData()->IsUploaded())
+                {
+                    static_cast<DX12StaticMeshRenderingData*>(_staticMeshTest->GetRenderingData())->SetupDrawing(
+                        commandList, _staticMeshTest->GetMaterial());
+                }
             }
         }
     }

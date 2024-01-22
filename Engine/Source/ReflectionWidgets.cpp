@@ -23,9 +23,10 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     textBox->SetCollisionEnabled(true);
     textBox->SetText(*value);
 
-    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
+    std::weak_ptr weakObject = object;
+    DelegateHandle handle = property.OnChanged.Add([weakObject, textBox, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -34,9 +35,9 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -61,19 +62,21 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     textBox->SetText(*value);
 
-    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
+    std::weak_ptr weakObject = object;
+    DelegateHandle handle = property.OnChanged.Add([weakObject, textBox, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
 
         textBox->SetText(*value);
     });
+    
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -84,7 +87,15 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         }
     });
 
-    // todo call property setter when text is changed
+    textBox->OnValueChanged.Add([weakObject, propertyPtr](const std::wstring& text)
+    {
+        if (weakObject.expired())
+        {
+            return;
+        }
+
+        weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
+    });
 
     return textBox;
 }
@@ -101,9 +112,10 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     textBox->SetCollisionEnabled(true);
     textBox->SetText(Util::ToWString(*value));
 
-    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
+    std::weak_ptr weakObject = object;
+    DelegateHandle handle = property.OnChanged.Add([weakObject, textBox, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -112,9 +124,9 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -139,9 +151,10 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     textBox->SetText(Util::ToWString(*value));
 
-    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
+    std::weak_ptr weakObject = object;
+    DelegateHandle handle = property.OnChanged.Add([weakObject, textBox, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -150,9 +163,20 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+
+    textBox->OnValueChanged.Add([weakObject, propertyPtr](const std::wstring& text)
     {
-        if (object == nullptr)
+        if (weakObject.expired())
+        {
+            return;
+        }
+
+        weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
+    });
+
+    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    {
+        if (weakObject.expired())
         {
             return;
         }
@@ -162,8 +186,6 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
             propertyPtr->OnChanged.Remove(handle);
         }
     });
-
-    // todo call property setter when text is changed
 
     return textBox;
 }
@@ -180,9 +202,10 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     textBox->SetCollisionEnabled(true);
     textBox->SetText(value->wstring());
 
-    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
+    std::weak_ptr weakObject = object;
+    DelegateHandle handle = property.OnChanged.Add([weakObject, textBox, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -191,9 +214,9 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -226,9 +249,10 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     textBox->SetText(value->wstring());
     textBox->SetFillMode(EWidgetFillMode::FillX);
 
-    DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
+    std::weak_ptr weakObject = object;
+    DelegateHandle handle = property.OnChanged.Add([weakObject, textBox, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -237,9 +261,9 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -259,28 +283,30 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     button->SetText(L"Open");
     button->GetTextBox()->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
     button->SetFillMode(EWidgetFillMode::FillY);
-    button->OnReleased.Add([value, weakObject = std::weak_ptr(object), textBox]()
+    button->OnReleased.Add([value, weakObject = std::weak_ptr(object), textBox, propertyPtr]()
     {
         if (weakObject.expired())
         {
             return;
         }
 
-        UIStatics::OpenFileDialog(*value, [value, weakObject, textBox](const std::filesystem::path& selectedPath)
-        {
-            if (weakObject.expired())
+        UIStatics::OpenFileDialog(
+            *value, [value, weakObject, textBox, propertyPtr](const std::filesystem::path& selectedPath)
             {
-                return;
-            }
+                if (weakObject.expired())
+                {
+                    return;
+                }
 
-            if (selectedPath.empty())
-            {
-                return;
-            }
+                if (selectedPath.empty())
+                {
+                    return;
+                }
 
-            *value = selectedPath;
-            textBox->SetText(selectedPath.wstring());
-        });
+                *value = selectedPath;
+                textBox->SetText(selectedPath.wstring());
+                weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
+            });
     });
 
     // todo call property setter when text is changed
@@ -312,9 +338,10 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     checkbox->SetChecked(*value);
 
-    DelegateHandle handle = property.OnChanged.Add([object, checkbox, value]()
+    std::weak_ptr weakObject = object;
+    DelegateHandle handle = property.OnChanged.Add([weakObject, checkbox, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -323,9 +350,9 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     });
 
     PropertyBase* propertyPtr = &property;
-    checkbox->OnDestroyed.Add([object, handle, propertyPtr]()
+    checkbox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -336,14 +363,15 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         }
     });
 
-    checkbox->OnCheckedChanged.Add([object, value](bool checked)
+    checkbox->OnCheckedChanged.Add([weakObject, value, propertyPtr](bool checked)
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
 
         *value = checked;
+        weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
     });
 
     return checkbox;
@@ -369,10 +397,11 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
     {
         return nullptr;
     }
-
-    typePicker->OnSelectionChanged.Add([object, value, typePicker](const std::shared_ptr<Widget>& widget)
+    
+    std::weak_ptr weakObject = object;
+    typePicker->OnSelectionChanged.Add([weakObject, value, typePicker](const std::shared_ptr<Widget>& widget)
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -386,20 +415,21 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         *value = type;
     });
 
-    DelegateHandle handle = property.OnChanged.Add([object, typePicker, value]()
+    PropertyBase* propertyPtr = &property;
+    DelegateHandle handle = property.OnChanged.Add([weakObject, typePicker, value, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
 
         typePicker->SetSelectedType(*value);
+        weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
     });
 
-    PropertyBase* propertyPtr = &property;
-    typePicker->OnDestroyed.Add([object, handle, propertyPtr]()
+    typePicker->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -752,19 +782,23 @@ std::shared_ptr<Widget> CreateEditableWidgetForEnum(const std::shared_ptr<Object
         return nullptr;
     }
 
-    enumDropdown->OnSelectionChanged.Add([object, value, enumDropdown](const std::shared_ptr<Widget>& widget)
-    {
-        if (object == nullptr)
+    PropertyBase* propertyPtr = &property;
+    std::weak_ptr weakObject = object;
+    enumDropdown->OnSelectionChanged.Add(
+        [weakObject, value, enumDropdown, propertyPtr](const std::shared_ptr<Widget>& widget)
         {
-            return;
-        }
+            if (weakObject.expired())
+            {
+                return;
+            }
 
-        *value = enumDropdown->GetSelectedEnumValue();
-    });
+            *value = enumDropdown->GetSelectedEnumValue();
+            weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
+        });
 
-    DelegateHandle handle = property.OnChanged.Add([object, enumDropdown, value]()
+    DelegateHandle handle = property.OnChanged.Add([weakObject, enumDropdown, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -772,10 +806,9 @@ std::shared_ptr<Widget> CreateEditableWidgetForEnum(const std::shared_ptr<Object
         enumDropdown->SetSelectedEnumValue(*value);
     });
 
-    PropertyBase* propertyPtr = &property;
-    enumDropdown->OnDestroyed.Add([object, handle, propertyPtr]()
+    enumDropdown->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -813,9 +846,11 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 
     assetPicker->SetSelectedAsset(*value);
 
-    assetPicker->OnSelectionChanged.Add([object, value, assetPicker](const std::shared_ptr<Widget>& widget)
+    PropertyBase* propertyPtr = &property;
+    std::weak_ptr weakObject = object;
+    assetPicker->OnSelectionChanged.Add([weakObject, value, assetPicker, propertyPtr](const std::shared_ptr<Widget>& widget)
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -829,11 +864,12 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         asset->Load();
 
         value->SetAsset(asset);
+        weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
     });
 
-    DelegateHandle handle = property.OnChanged.Add([object, assetPicker, value]()
+    DelegateHandle handle = property.OnChanged.Add([weakObject, assetPicker, value]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }
@@ -841,10 +877,9 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         assetPicker->SetSelectedAsset(*value);
     });
 
-    PropertyBase* propertyPtr = &property;
-    assetPicker->OnDestroyed.Add([object, handle, propertyPtr]()
+    assetPicker->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
-        if (object == nullptr)
+        if (weakObject.expired())
         {
             return;
         }

@@ -80,7 +80,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForNumber(const std::shared_ptr<Obje
         }
     });
 
-    textBox->OnValueChanged.Add([object, value](const std::wstring& newText)
+    textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
     {
         if (object == nullptr)
         {
@@ -95,6 +95,8 @@ std::shared_ptr<Widget> CreateEditableWidgetForNumber(const std::shared_ptr<Obje
         {
             *value = std::stof(newText);
         }
+
+        object->OnPropertyChanged(propertyPtr->GetDisplayName());
     });
 
     return textBox;

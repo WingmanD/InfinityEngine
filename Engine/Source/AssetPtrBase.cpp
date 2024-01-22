@@ -43,6 +43,11 @@ bool AssetPtrBase::operator!=(const AssetPtrBase& other) const
 void AssetPtrBase::SetAsset(const std::shared_ptr<Asset>& asset)
 {
     _asset = asset;
+
+    if (_asset != nullptr)
+    {
+        _asset->Load();
+    }
 }
 
 std::shared_ptr<Asset> AssetPtrBase::GetAsset() const

@@ -24,23 +24,10 @@ void Material::SetShader(const std::shared_ptr<Shader>& shader)
     {
         return;
     }
-
-    if (_shader != nullptr)
-    {
-        _shader->OnRecompiled.Remove(_materialParameterMapChangedHandle);
-    }
-
+    
     _shader = shader;
 
-    if (_shader == nullptr)
-    {
-        _materialParameterMap = nullptr;
-        return;
-    }
-
     OnShaderChanged();
-
-    MarkDirtyForAutosave();
 }
 
 std::shared_ptr<Shader> Material::GetShader() const
@@ -110,20 +97,45 @@ bool Material::Deserialize(MemoryReader& reader)
     return true;
 }
 
-void Material::OnShaderChanged()
+void Material::OnPropertyChanged(const std::wstring& propertyName)
 {
-    std::weak_ptr weakThis = shared_from_this();
-    _materialParameterMapChangedHandle = _shader->OnRecompiled.Add([weakThis](const Shader* shader)
+    Asset::OnPropertyChanged(propertyName);
+
+    if (propertyName == L"Shader")
     {
-        std::shared_ptr<Material> sharedThis = std::static_pointer_cast<Material>(weakThis.lock());
-        if (sharedThis == nullptr)
+        OnShaderChanged();
+    }
+}
+
+void Material::OnShaderChanged(const std::shared_ptr<Shader>& oldShader /*= nullptr*/)
+{
+    if (oldShader != nullptr)
+    {
+        oldShader->OnRecompiled.Remove(_materialParameterMapChangedHandle);
+    }
+
+    if (_shader == nullptr)
+    {
+        _materialParameterMap = nullptr;
+        return;
+    }
+    else
+    {
+        std::weak_ptr weakThis = shared_from_this();
+        _materialParameterMapChangedHandle = _shader->OnRecompiled.Add([weakThis](const Shader* shader)
         {
-            return;
-        }
+            std::shared_ptr<Material> sharedThis = std::static_pointer_cast<Material>(weakThis.lock());
+            if (sharedThis == nullptr)
+            {
+                return;
+            }
 
-        // todo copy over parameters from old map to new map
-        sharedThis->_materialParameterMap = shader->CreateMaterialParameterMap();
-    });
+            // todo copy over parameters from old map to new map
+            sharedThis->_materialParameterMap = shader->CreateMaterialParameterMap();
+        });
 
-    _materialParameterMap = _shader->CreateMaterialParameterMap();
+        _materialParameterMap = _shader->CreateMaterialParameterMap();
+    }
+
+    MarkDirtyForAutosave();
 }

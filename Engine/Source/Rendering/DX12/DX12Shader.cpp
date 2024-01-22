@@ -397,25 +397,26 @@ std::vector<std::shared_ptr<Asset>> DX12Shader::Import(const std::shared_ptr<Imp
 
     const std::filesystem::path& path = shaderImporter->Path;
 
+    if (path.empty() || !exists(path))
+    {
+        LOG(L"Invalid shader path: {}", path.wstring());
+        return {};
+    }
+
+    if (path.extension() != ".hlsl")
+    {
+        LOG(L"Invalid shader extension: {}.", path.wstring());
+        return {};
+    }
+
     AssetManager& assetManager = AssetManager::Get();
-
-    if (path.empty())
-    {
-        return {};
-    }
-
-    if (!exists(path))
-    {
-        return {};
-    }
 
     std::shared_ptr<DX12Shader> shader = assetManager.NewAsset<DX12Shader>(path.stem().wstring());
     shader->SetImportPath(path);
 
     if (!shader->Recompile(true))
     {
-        assetManager.DeleteAsset(shader);
-        return {};
+        LOG(L"Imported shader {} failed to compile!", shader->GetName());
     }
 
     shader->MarkDirtyForAutosave();

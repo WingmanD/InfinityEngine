@@ -49,19 +49,35 @@ bool AssetImportMenu::Initialize()
         {
             Destroy();
         });
-        // todo align right
     }
 
-    const std::shared_ptr<TypePicker> typePicker = TypePicker::CreateForType(Asset::StaticType(), [](const Type* type)
+    const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+    if (horizontalBox == nullptr)
     {
-        return type->GetCDO<Asset>()->GetImporterType() != nullptr;
-    });
+        return false;
+    }
+    horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
+    horizontalBox->SetFillMode(EWidgetFillMode::FillX);
+
+    const std::shared_ptr<TextBox> textBox = horizontalBox->AddChild<TextBox>();
+    if (textBox == nullptr)
+    {
+        return false;
+    }
+    textBox->SetText(L"Type:");
+    textBox->SetPadding({0.0f, 50.0f, 0.0f, 0.0f});
+
+    const std::shared_ptr<TypePicker> typePicker = TypePicker::CreateForType(
+        Asset::StaticType(), [](const Type* type)
+        {
+            return type->GetCDO<Asset>()->GetImporterType() != nullptr;
+        });
 
     if (typePicker == nullptr)
     {
         return false;
     }
-    verticalBox->AddChild(typePicker);
+    horizontalBox->AddChild(typePicker);
 
     const std::shared_ptr<Button> button = verticalBox->AddChild<Button>();
     if (button == nullptr)
