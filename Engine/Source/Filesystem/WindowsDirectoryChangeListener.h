@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "DirectoryChangeListenerBase.h"
+#include <thread>
 #include <windows.h>
 
 class WindowsDirectoryChangeListener : public DirectoryChangeListenerBase
