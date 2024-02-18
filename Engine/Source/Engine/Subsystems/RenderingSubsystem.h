@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Core.h"
-#include "EventQueue.h"
+#include "Containers/EventQueue.h"
 #include "Engine/Subsystems/EngineSubsystem.h"
 #include "Filesystem/ShaderChangeListener.h"
 #include "Rendering/Widgets/WidgetRenderingProxy.h"

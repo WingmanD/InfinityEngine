@@ -4,7 +4,7 @@
 #include "Delegate.h"
 #include "MaterialParameterTypes.h"
 #include "NonCopyable.h"
-#include "Spatialization/HitTestGrid.h"
+#include "Containers/Spatialization/HitTestGrid.h"
 #include "Widgets/Widget.h"
 
 struct CD3DX12_VIEWPORT;
