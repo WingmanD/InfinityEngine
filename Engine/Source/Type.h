@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "PropertyMap.h"
 #include "ReflectionTags.h"
 #include "ReflectionShared.h"
@@ -9,12 +9,13 @@
 #include <memory>
 #include <optional>
 
+class BucketArrayBase;
 class Object;
 
 class Type
 {
 public:
-    Type* WithPropertyMap(PropertyMap&& propertyMap);
+    Type* WithPropertyMap(PropertyMap propertyMap);
 
     Type* WithDataOffset(size_t offset);
 
@@ -43,18 +44,27 @@ public:
 
     std::shared_ptr<Object> NewObject() const;
 
-    /*
-     * Create a new object at the specified memory location.
-     * NOTE: You must allocate memory for the object yourself and keep track of its lifetime.
-     */
-    Object* NewObjectAt(void* ptr) const;
-
     template <typename T>
     std::shared_ptr<T> NewObject() const
     {
         std::shared_ptr<Object> newObject = NewObject();
         return std::dynamic_pointer_cast<T>(newObject);
     }
+
+    SharedObjectPtr<Object> NewObject(BucketArrayBase& bucketArray) const;
+
+    template <typename T>
+    SharedObjectPtr<T> NewObject(BucketArrayBase& bucketArray) const
+    {
+        SharedObjectPtr<Object> newObject = NewObject(bucketArray);
+        return std::dynamic_pointer_cast<T>(newObject);
+    }
+
+    /*
+     * Create a new object at the specified memory location.
+     * NOTE: You must allocate memory for the object yourself and keep track of its lifetime.
+     */
+    Object* NewObjectAt(void* ptr) const;
 
     /*
      * Create a new object at the specified memory location.
@@ -67,13 +77,7 @@ public:
         return dynamic_cast<T*>(newObject);
     }
 
-    template <typename... CompositionTypes>
-    void AddCompositionTypes()
-    {
-        //AddCompositionType(CreateType<CompositionTypes>()...);
-    }
-
-    void AddCompositionType(Type* type);
+    std::unique_ptr<BucketArrayBase> NewBucketArray() const;
 
     bool IsA(const Type* type) const;
 
@@ -82,8 +86,6 @@ public:
     {
         return IsA(T::StaticType());
     }
-
-    bool HasA(const Type* type) const;
 
     [[nodiscard]] const Object* GetCDO() const;
 
@@ -102,7 +104,7 @@ public:
     size_t GetSize() const;
     size_t GetAlignment() const;
     size_t GetDataOffset() const;
-    
+
     const std::vector<Type*>& GetParentTypes() const;
     const std::vector<Type*>& GetSubtypes() const;
 
@@ -161,7 +163,7 @@ protected:
     ~Type() = default;
 
 private:
-    std::unique_ptr<const Object> _cdo = nullptr;
+    std::unique_ptr<const Object> _cdo = nullptr;   // todo create CDO in BucketArray instead of dynamic allocation
 
     size_t _size = 0;
     size_t _alignment = 0;
@@ -176,9 +178,10 @@ private:
     std::vector<Type*> _parentTypes;
     std::vector<Type*> _subtypes;
 
-    std::vector<Type*> _compositionTypes;
-
     PropertyMap _propertyMap;
+
+    std::function<std::unique_ptr<BucketArrayBase>()> _bucketArrayFactory;
+    std::function<Object*(BucketArrayBase&)> _newObjectInBucketArrayFactory;
 
     friend class TypeRegistry;
 
@@ -197,6 +200,4 @@ private:
     [[nodiscard]] static uint64 HashTypeName(const std::string& str);
 
     void UpdateFullName();
-
-    void UpdateFullID();
 };

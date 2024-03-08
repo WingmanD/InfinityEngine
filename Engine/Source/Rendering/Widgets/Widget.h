@@ -17,7 +17,6 @@ class StaticMeshInstance;
 class Window;
 
 REFLECTED(BitField)
-
 enum class EWidgetState : uint8
 {
     None = 0,
@@ -27,11 +26,9 @@ enum class EWidgetState : uint8
     Collapsed = 1 << 3,
     Focused = 1 << 4,
 };
-
 ENABLE_ENUM_OPS(EWidgetState)
 
 REFLECTED()
-
 enum class EWidgetAnchor : uint8
 {
     TopLeft,
@@ -46,7 +43,6 @@ enum class EWidgetAnchor : uint8
 };
 
 REFLECTED(BitField)
-
 enum class EWidgetFillMode : uint8
 {
     None = 0,
@@ -54,11 +50,9 @@ enum class EWidgetFillMode : uint8
     FillY = 1 << 1,
     RetainAspectRatio = 1 << 2,
 };
-
 ENABLE_ENUM_OPS(EWidgetFillMode)
 
 REFLECTED()
-
 class Widget : public Asset
 {
     GENERATED()
@@ -200,7 +194,7 @@ public:
 
     StaticMeshInstance& GetQuadMesh() const;
 
-    void Destroy();
+    void DestroyWidget();
 
     void SetAnchor(EWidgetAnchor anchor);
     EWidgetAnchor GetAnchor() const;

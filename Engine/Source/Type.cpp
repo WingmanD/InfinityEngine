@@ -1,11 +1,10 @@
-#include <sstream>
 #include "Type.h"
 #include "Object.h"
-#include "Rendering/Widgets/FlowBox.h"
 #include "Rendering/Widgets/TableWidget.h"
 #include "Rendering/Widgets/TextBox.h"
+#include <sstream>
 
-Type* Type::WithPropertyMap(PropertyMap&& propertyMap)
+Type* Type::WithPropertyMap(PropertyMap propertyMap)
 {
     _propertyMap = std::move(propertyMap);
     return this;
@@ -27,20 +26,14 @@ Object* Type::NewObjectAt(void* ptr) const
     return GetCDO()->DuplicateAt(ptr);
 }
 
-void Type::AddCompositionType(Type* type)
+SharedObjectPtr<Object> Type::NewObject(BucketArrayBase& bucketArray) const
 {
-    if (type == nullptr)
-    {
-        // todo log and debug break
-        return;
-    }
+    return SharedObjectPtr<Object>(_newObjectInBucketArrayFactory(bucketArray), ObjectDeleter());
+}
 
-    // todo this should be private!
-    // when composition types are added, a new type should be created
-    _compositionTypes.push_back(type);
-
-    UpdateFullID();
-    UpdateFullName();
+std::unique_ptr<BucketArrayBase> Type::NewBucketArray() const
+{
+    return _bucketArrayFactory();
 }
 
 bool Type::IsA(const Type* type) const
@@ -53,24 +46,6 @@ bool Type::IsA(const Type* type) const
     for (const Type* parentType : _parentTypes)
     {
         if (parentType->IsA(type))
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool Type::HasA(const Type* type) const
-{
-    if (_id == type->_id)
-    {
-        return true;
-    }
-
-    for (const Type* compositionType : _compositionTypes)
-    {
-        if (compositionType->IsA(type))
         {
             return true;
         }
@@ -268,30 +243,10 @@ void Type::AddParentType(Type* type)
     type->_subtypes.push_back(this);
 }
 
-void Type::UpdateFullID()
-{
-    _fullID = _familyID;
-
-    for (const Type* compositionType : _compositionTypes)
-    {
-        _fullID ^= compositionType->GetID();
-    }
-}
-
 void Type::UpdateFullName()
 {
     std::stringstream ss;
     ss << GetName();
-
-    if (!_compositionTypes.empty())
-    {
-        ss << "<";
-        for (const Type* compositionType : _compositionTypes)
-        {
-            ss << compositionType->GetName();
-        }
-        ss << ">";
-    }
 
     if (!_parentTypes.empty())
     {

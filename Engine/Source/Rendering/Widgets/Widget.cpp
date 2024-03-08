@@ -53,7 +53,7 @@ Widget& Widget::operator=(const Widget& other)
 
 Widget::~Widget()
 {
-    Destroy();
+    DestroyWidget();
 }
 
 bool Widget::operator==(const Widget& other) const
@@ -627,7 +627,7 @@ StaticMeshInstance& Widget::GetQuadMesh() const
     return *_quadMeshInstance.get();
 }
 
-void Widget::Destroy()
+void Widget::DestroyWidget()
 {
     if (IsCollisionEnabled())
     {
@@ -641,7 +641,7 @@ void Widget::Destroy()
     {
         if (child != nullptr)
         {
-            child->Destroy();
+            child->DestroyWidget();
         }
     }
 

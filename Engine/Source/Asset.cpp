@@ -246,7 +246,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
         closeButton->SetFillMode(EWidgetFillMode::FillY);
         closeButton->OnReleased.Add([verticalBox]()
         {
-            verticalBox->Destroy();
+            verticalBox->DestroyWidget();
         });
     }
 
@@ -274,7 +274,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
             LOG(L"{}", asset->GetName());
         }
 
-        verticalBox->Destroy();
+        verticalBox->DestroyWidget();
     });
 
     return verticalBox;

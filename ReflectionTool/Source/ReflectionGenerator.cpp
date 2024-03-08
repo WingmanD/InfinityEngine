@@ -174,7 +174,7 @@ public: \
     \
     virtual std::shared_ptr<Object> Duplicate() const override \
     {{ \
-        return std::make_shared<{}>(*this); \
+        return std::shared_ptr<{}>(ClassBucketArray.Add(*this), ObjectDeleter());\
     }} \
     \
     virtual Object* DuplicateAt(void* ptr) const override \
@@ -192,6 +192,8 @@ public: \
         return std::static_pointer_cast<const {}>(shared_from_this()); \
     }} \
     \
+private: \
+    inline static BucketArray<{}> ClassBucketArray; \
 private:
 )",
                    headerName,
@@ -199,6 +201,7 @@ private:
                    createTypeFunction,
                    dataOffsetDefinition,
                    propertyMapDefinition.str(),
+                   typeInfo.Name,
                    typeInfo.Name,
                    typeInfo.Name,
                    typeInfo.Name,

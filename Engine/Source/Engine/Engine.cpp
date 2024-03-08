@@ -20,19 +20,25 @@ bool Engine::Initialize(HINSTANCE hInstance)
 {
     _hInstance = hInstance;
 
-    if (!_inputSubsystem.Initialize())
+    if (!_inputSubsystem.CallInitialize({}))
     {
         LOG(L"Failed to initialize Input Subsystem!");
         return false;
     }
 
-    if (!_assetManagerSubsystem.Initialize())
+    if (!_assetManagerSubsystem.CallInitialize({}))
     {
         LOG(L"Failed to initialize Asset Manager Subsystem!");
         return false;
     }
 
-    if (!_renderingSubsystem->Initialize())
+    if (!_gameplaySubsystem.CallInitialize({}))
+    {
+        LOG(L"Failed to initialize Gameplay Subsystem!");
+        return false;
+    }
+
+    if (!_renderingSubsystem->CallInitialize({}))
     {
         LOG(L"Failed to initialize Rendering Subsystem!");
         return false;
@@ -80,10 +86,10 @@ void Engine::Run()
         lastTime = currentTime;
 
         _eventQueue.ProcessEvents();
-        
-        _inputSubsystem.Tick(deltaTime);
-        // todo gameplay subsystem tick
-        _renderingSubsystem->Tick(deltaTime);
+
+        _inputSubsystem.CallTick(deltaTime, {});
+        _gameplaySubsystem.CallTick(deltaTime, {});
+        _renderingSubsystem->CallTick(deltaTime, {});
     }
 
     Shutdown();
@@ -91,8 +97,8 @@ void Engine::Run()
 
 void Engine::Shutdown()
 {
-    _assetManagerSubsystem.Shutdown();
-    _renderingSubsystem->Shutdown();
+    _assetManagerSubsystem.CallShutdown({});
+    _renderingSubsystem->CallShutdown({});
 }
 
 void Engine::RequestExit()
@@ -128,6 +134,11 @@ InputSubsystem& Engine::GetInputSubsystem()
 AssetManager& Engine::GetAssetManager()
 {
     return _assetManagerSubsystem;
+}
+
+GameplaySubsystem& Engine::GetGameplaySubsystem()
+{
+    return _gameplaySubsystem;
 }
 
 RenderingSubsystem* Engine::GetRenderingSubsystem() const

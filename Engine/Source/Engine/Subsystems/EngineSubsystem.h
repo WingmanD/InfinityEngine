@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "PassKey.h"
+
 class Engine;
 
 // todo this can use CRTP to remove cost of virtual functions - we don't store subsystems in a vector or something
@@ -16,9 +18,13 @@ public:
     EngineSubsystem& operator=(EngineSubsystem&&) = default;
     
     virtual ~EngineSubsystem() = default;
+
+    bool CallInitialize(PassKey<Engine>);
+    void CallTick(double deltaTime, PassKey<Engine>);
+    void CallShutdown(PassKey<Engine>);
     
+protected:
     virtual bool Initialize();
     virtual void Shutdown();
-
     virtual void Tick(double deltaTime);
 };

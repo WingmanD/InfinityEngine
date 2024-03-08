@@ -197,7 +197,7 @@ public:
 
     static bool IsAlphaNumeric(EKey key);
 
-public:
+protected:
     virtual bool Initialize() override;
     virtual void Tick(double deltaTime) override;
 

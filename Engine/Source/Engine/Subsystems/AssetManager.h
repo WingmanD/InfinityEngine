@@ -7,9 +7,6 @@
 #include <fstream>
 #include <set>
 
-template <typename Base, typename Derived>
-concept IsA = std::is_base_of_v<Base, Derived>;
-
 class AssetManager : public EngineSubsystem
 {
 public:
@@ -23,8 +20,8 @@ public:
 
     std::shared_ptr<Asset> NewAsset(const Type* type, const std::wstring& name);
 
-    template <typename T> requires IsA<Asset, T>
-    std::shared_ptr<T> NewAsset(const std::wstring& name) requires IsA<Asset, T>
+    template <typename T> requires IsA<T, Asset>
+    std::shared_ptr<T> NewAsset(const std::wstring& name) requires IsA<T, Asset>
     {
         return std::dynamic_pointer_cast<T>(NewAsset(T::StaticType(), name));
     }
@@ -32,7 +29,7 @@ public:
     void DeleteAsset(const std::shared_ptr<Asset>& asset);
 
     template <typename T, typename... Args>
-    std::shared_ptr<T> Import(const std::filesystem::path& path, Args&&... args) requires IsA<Asset, T>
+    std::shared_ptr<T> Import(const std::filesystem::path& path, Args&&... args) requires IsA<T, Asset>
     {
         std::filesystem::path actualPath = path;
         if (path.is_relative())
@@ -55,7 +52,7 @@ public:
     std::shared_ptr<Asset> FindAssetByName(const std::wstring& name) const;
 
     template <typename T>
-    std::shared_ptr<T> FindAssetByName(const std::wstring& name) const requires IsA<Asset, T>
+    std::shared_ptr<T> FindAssetByName(const std::wstring& name) const requires IsA<T, Asset>
     {
         return std::dynamic_pointer_cast<T>(FindAssetByName(name));
     }
@@ -63,7 +60,7 @@ public:
     std::shared_ptr<Asset> FindAsset(uint64 id) const;
 
     template <typename T>
-    std::shared_ptr<T> FindAsset(uint64 id) const requires IsA<Asset, T>
+    std::shared_ptr<T> FindAsset(uint64 id) const requires IsA<T, Asset>
     {
         return std::dynamic_pointer_cast<T>(FindAsset(id));
     }
@@ -82,7 +79,7 @@ public:
 
     void LoadAlwaysLoadedAssets();
 
-public:
+protected:
     virtual bool Initialize() override;
     virtual void Shutdown() override;
 

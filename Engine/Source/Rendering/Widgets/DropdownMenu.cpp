@@ -73,7 +73,7 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
 
     if (const std::shared_ptr<Widget> selectedWidget = _selectedWidget.lock())
     {
-        selectedWidget->Destroy();
+        selectedWidget->DestroyWidget();
     }
 
     const std::shared_ptr<Widget> selectedWidget = std::dynamic_pointer_cast<Widget>(choice->Duplicate());

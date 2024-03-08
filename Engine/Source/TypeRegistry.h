@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Containers/BucketArray.h"
 #include "Singleton.h"
 #include "Type.h"
-#include "Util.h"
 #include "TypeTraits.h"
 #include <cstdint>
 #include <unordered_map>
@@ -79,6 +79,17 @@ private:
         newType->_cdo = std::make_unique<T>();
         newType->_size = sizeof(T);
         newType->_alignment = alignof(T);
+        
+        newType->_bucketArrayFactory = []()
+        {
+            return std::make_unique<BucketArray<T>>();
+        };
+
+        newType->_newObjectInBucketArrayFactory = [](BucketArrayBase& bucketArray)
+        {
+            BucketArray<T>& concreteBucketArray = static_cast<BucketArray<T>&>(bucketArray);
+            return concreteBucketArray.AddDefault();
+        };
 
         return newType;
     }

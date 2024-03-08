@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "ThreadPool.h"
 #include "Subsystems/AssetManager.h"
+#include "Subsystems/GameplaySubsystem.h"
 #include "Subsystems/InputSubsystem.h"
 #include "Subsystems/RenderingSubsystem.h"
 
@@ -28,6 +29,7 @@ public:
 
     InputSubsystem& GetInputSubsystem();
     AssetManager& GetAssetManager();
+    GameplaySubsystem& GetGameplaySubsystem();
     RenderingSubsystem* GetRenderingSubsystem() const;
 
 private:
@@ -44,6 +46,7 @@ private:
 
     InputSubsystem _inputSubsystem{};
     AssetManager _assetManagerSubsystem;
+    GameplaySubsystem _gameplaySubsystem;
     std::unique_ptr<RenderingSubsystem> _renderingSubsystem;
 
 private:

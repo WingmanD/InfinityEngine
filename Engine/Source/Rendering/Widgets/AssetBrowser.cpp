@@ -187,7 +187,7 @@ bool AssetBrowser::Initialize()
 
             if (entry->GetAsset() == asset)
             {
-                entry->Destroy();
+                entry->DestroyWidget();
                 break;
             }
         }

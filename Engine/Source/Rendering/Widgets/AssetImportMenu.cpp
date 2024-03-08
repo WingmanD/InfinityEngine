@@ -47,7 +47,7 @@ bool AssetImportMenu::Initialize()
         closeButton->SetFillMode(EWidgetFillMode::FillY);
         closeButton->OnReleased.Add([this]()
         {
-            Destroy();
+            DestroyWidget();
         });
     }
 
@@ -104,7 +104,7 @@ bool AssetImportMenu::Initialize()
 
         GetParentWindow()->AddPopup(widget);
 
-        Destroy();
+        DestroyWidget();
     });
 
     return true;

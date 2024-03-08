@@ -49,7 +49,7 @@ bool AssetCreatorMenu::Initialize()
         closeButton->SetFillMode(EWidgetFillMode::FillY);
         closeButton->OnReleased.Add([this]()
         {
-            Destroy();
+            DestroyWidget();
         });
     }
 
@@ -125,7 +125,7 @@ bool AssetCreatorMenu::Initialize()
 
         AssetManager::Get().NewAsset(type, name);
 
-        Destroy();
+        DestroyWidget();
     });
 
     nameInput->OnValueChanged.Add([createButton](const std::wstring& text)

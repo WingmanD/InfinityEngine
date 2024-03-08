@@ -1,10 +1,20 @@
 #pragma once
 
+#include "IValidateable.h"
 #include "TypeRegistry.h"
+#include "Containers/BucketArray.h"
 #include <memory>
 
-class Object : public std::enable_shared_from_this<Object>
+struct ObjectDeleter
 {
+    void operator()(Object* object) const;
+};
+
+class Object : public IValidateable, public std::enable_shared_from_this<Object>
+{
+public:
+    friend class IValidateable;
+    
 public:
     Object() = default;
 
@@ -40,4 +50,16 @@ public:
     virtual void OnPropertyChanged(const std::wstring& propertyName);
 
     virtual ~Object() = default;
+
+    void Destroy();
+
+private:
+    inline static BucketArray<Object> ClassBucketArray;
+
+    bool _isValid = false;
+
+    // IValidateable
+private:
+    void SetValidImplementation(bool value);
+    bool IsValidImplementation() const;
 };
