@@ -1,6 +1,11 @@
 ﻿#include "Button.h"
 #include "TextBox.h"
 
+Button::Button()
+{
+    EnableInputCompatibility(EWidgetInputCompatibility::LeftClick);
+}
+
 void Button::SetText(const std::wstring& text) const
 {
     _textBox.lock()->SetText(text);

@@ -23,7 +23,7 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
     {
         return false;
     }
-    textBox->SetText(asset->GetName());
+    textBox->SetText(asset->GetName().ToString());
     textBox->SetPadding({4.0f, 10.0f, 1.0f, 1.0f});
     textBox->SetCollisionEnabled(true);
 
@@ -36,23 +36,26 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
     editButton->GetTextBox()->SetPadding(textPadding);
     editButton->OnReleased.Add([asset, this]()
     {
-        if (const std::shared_ptr<Window> window = GetParentWindow())
+        if (const std::shared_ptr<EditorWidget> editorWidget = std::dynamic_pointer_cast<EditorWidget>(
+            GetRootWidget()->GetChildren()[0]))
         {
-            if (const std::shared_ptr<EditorWidget> editorWidget = std::dynamic_pointer_cast<EditorWidget>(
-                GetRootWidget()->GetChildren()[0]))
+            if (!asset->Load())
             {
-                const std::shared_ptr<Widget> propertiesWidget = asset->GetType()->CreatePropertiesWidget(asset);
-                if (propertiesWidget == nullptr)
-                {
-                    DEBUG_BREAK();
-                    return;
-                }
-
-                propertiesWidget->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-
-                editorWidget->AddTab(asset->GetName(), propertiesWidget);
-                editorWidget->SetTabIndex(editorWidget->GetTabCount());
+                LOG(L"Failed to open asset for editing: {}", asset->GetName().ToString());
+                return;
             }
+            
+            const std::shared_ptr<Widget> propertiesWidget = asset->GetType()->CreatePropertiesWidget(asset);
+            if (propertiesWidget == nullptr)
+            {
+                DEBUG_BREAK();
+                return;
+            }
+
+            propertiesWidget->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+
+            editorWidget->AddTab(asset->GetName().ToString(), propertiesWidget);
+            editorWidget->SetTabIndex(editorWidget->GetTabCount());
         }
     });
 

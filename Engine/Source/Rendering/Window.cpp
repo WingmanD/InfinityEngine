@@ -99,22 +99,19 @@ bool Window::Initialize()
         }
 
         Widget* hitWidget = GetWidgetUnderCursor();
-        if (const std::shared_ptr<Widget> focusedWidget = _focusedWidget.lock())
+        if (const std::shared_ptr<Widget> focusedWidget = GetFocusedWidget())
         {
             if (focusedWidget.get() != hitWidget)
             {
                 focusedWidget->SetFocused(false);
-                _focusedWidget.reset();
             }
         }
 
         if (hitWidget != nullptr)
         {
             _pressedWidget = hitWidget->SharedFromThis();
-            hitWidget->Pressed({});
-
-            _focusedWidget = _pressedWidget;
             hitWidget->SetFocused(true);
+            hitWidget->CallPressed({});
         }
     });
 
@@ -122,7 +119,7 @@ bool Window::Initialize()
     {
         if (const std::shared_ptr<Widget> interactedWidget = _pressedWidget.lock())
         {
-            interactedWidget->Released({});
+            interactedWidget->CallReleased({});
             _pressedWidget.reset();
 
             return;
@@ -130,7 +127,7 @@ bool Window::Initialize()
 
         if (Widget* hitWidget = GetWidgetUnderCursor())
         {
-            hitWidget->Released({});
+            hitWidget->CallReleased({});
         }
     });
 
@@ -139,7 +136,7 @@ bool Window::Initialize()
         Widget* hitWidget = GetWidgetUnderCursor();
         if (hitWidget != nullptr)
         {
-            hitWidget->MiddleClickPressed({});
+            hitWidget->CallMiddleClickPressed({});
         }
     });
 
@@ -147,7 +144,15 @@ bool Window::Initialize()
     {
         if (Widget* hitWidget = GetWidgetUnderCursor())
         {
-            hitWidget->MiddleClickReleased({});
+            hitWidget->CallMiddleClickReleased({});
+        }
+    });
+
+    _onScrollHandle = inputSubsystem.OnMouseWheelScroll.Add([this](int32 value)
+    {
+        if (Widget* hitWidget = GetWidgetUnderCursor())
+        {
+            hitWidget->CallScrolled(value, {});
         }
     });
 
@@ -159,14 +164,14 @@ bool Window::Initialize()
         if (previousHoveredWidget != nullptr && hitWidget != previousHoveredWidget.get() || hitWidget == nullptr &&
             previousHoveredWidget != nullptr)
         {
-            previousHoveredWidget->HoverEnded({});
+            previousHoveredWidget->CallHoverEnded({});
             _hoveredWidget.reset();
         }
 
         if (hitWidget != nullptr && hitWidget != _hoveredWidget.lock().get())
         {
             _hoveredWidget = hitWidget->SharedFromThis();
-            hitWidget->HoverStarted({});
+            hitWidget->CallHoverStarted({});
         }
     });
 
@@ -322,7 +327,7 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
         return false;
     }
 
-    auto layer = AddLayer();
+    const std::shared_ptr<Layer> layer = AddLayer();
     if (layer == nullptr)
     {
         return false;
@@ -330,9 +335,9 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
 
     layer->RootWidget->AddChild(popup);
 
-    popup->OnDestroyed.Add([this, weakLayer = std::weak_ptr(layer)]()
+    auto removeLayer = [this, weakLayer = std::weak_ptr(layer)]()
     {
-        auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
+        const auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
         {
             return layer == weakLayer.lock();
         });
@@ -341,7 +346,19 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
         {
             _layers.erase(it);
         }
+    };
+
+    // todo unsubscribe from events
+    popup->OnCollapsed.Add(removeLayer);
+    popup->OnFocusChanged.Add([removeLayer](bool value)
+    {
+        if (!value)
+        {
+            removeLayer();
+        }
     });
+
+    popup->OnDestroyed.Add(removeLayer);
 
     return true;
 }
@@ -403,6 +420,22 @@ void Window::OnResized()
 bool Window::IsFocused() const
 {
     return _isFocused;
+}
+
+void Window::SetFocusedWidget(const std::shared_ptr<Widget>& widget)
+{
+    const std::shared_ptr<Widget> focusedWidget = _focusedWidget.lock();
+    if (focusedWidget != nullptr)
+    {
+        focusedWidget->SetFocused(false);
+    }
+    
+    _focusedWidget = widget;
+}
+
+std::shared_ptr<Widget> Window::GetFocusedWidget() const
+{
+    return _focusedWidget.lock();
 }
 
 HWND Window::GetHandle() const

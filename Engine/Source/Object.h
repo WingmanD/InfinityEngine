@@ -1,6 +1,10 @@
 #pragma once
 
 #include "IValidateable.h"
+#include "ISerializeable.h"
+#include "MemoryWriter.h"
+#include "MemoryReader.h"
+#include "Name.h"
 #include "TypeRegistry.h"
 #include "Containers/BucketArray.h"
 #include <memory>
@@ -10,7 +14,7 @@ struct ObjectDeleter
     void operator()(Object* object) const;
 };
 
-class Object : public IValidateable, public std::enable_shared_from_this<Object>
+class Object : public IValidateable, public ISerializeable, public std::enable_shared_from_this<Object>
 {
 public:
     friend class IValidateable;
@@ -47,7 +51,10 @@ public:
      */
     virtual Object* DuplicateAt(void* ptr) const;
 
-    virtual void OnPropertyChanged(const std::wstring& propertyName);
+    virtual bool Serialize(MemoryWriter& writer) const;
+    virtual bool Deserialize(MemoryReader& reader) override;
+
+    virtual void OnPropertyChanged(Name propertyName);
 
     virtual ~Object() = default;
 

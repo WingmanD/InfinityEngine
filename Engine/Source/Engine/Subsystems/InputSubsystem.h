@@ -166,7 +166,7 @@ public:
     Delegate<> OnMouseXButton1Up;
     Delegate<> OnMouseXButton2Down;
     Delegate<> OnMouseXButton2Up;
-    Delegate<> OnMouseWheelScroll;
+    Delegate<int32> OnMouseWheelScroll;
 
     Delegate<EKey> OnAnyKeyDown;
     Delegate<EKey> OnAnyKeyUp;
@@ -205,16 +205,12 @@ private:
     std::unique_ptr<DirectX::Mouse> _mouse;
     DirectX::Mouse::State _mouseState;
     DirectX::Mouse::ButtonStateTracker _mouseButtonStateTracker;
+    
     ECursorIcon _cursorIcon = ECursorIcon::Arrow;
 
     std::unordered_map<EKey, KeyState> _keyStates;
 
     std::weak_ptr<Window> _focusedWindow;
-
-    std::vector<Delegate<>*> _pendingDelegates;
-    
-    std::vector<EKey> _pendingOnAnyKeyDown;
-    std::vector<EKey> _pendingOnAnyKeyUp;
 
     bool _isCapsLockToggled = false;
 

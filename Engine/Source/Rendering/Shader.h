@@ -15,7 +15,7 @@ public:
 
 public:
     Shader() = default;
-    Shader(const std::wstring& name);
+    Shader(Name name);
 
     Shader(const Shader& other);
 

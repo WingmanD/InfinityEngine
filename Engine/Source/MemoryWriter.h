@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Core.h"
-#include <vector>
+#include "ISerializeable.h"
+#include <filesystem>
 #include <string>
+#include <vector>
 
 class MemoryWriter
 {
@@ -34,31 +36,44 @@ MemoryWriter& operator<<(MemoryWriter& writer, const T& value)
     return writer;
 }
 
-template <typename T>
-MemoryWriter& operator<<(MemoryWriter& writer, const std::basic_string<T>& string)
+template <typename T> requires IsA<T, ISerializeable>
+MemoryWriter& operator<<(MemoryWriter& writer, const T& value)
 {
-    writer << string.size();
-    writer.Write(reinterpret_cast<const std::byte*>(string.data()), string.size() * sizeof(T));
+    value.Serialize(writer);
+    return writer;
+}
+
+template <typename T> requires IsSTDContainer<T>
+MemoryWriter& operator<<(MemoryWriter& writer, const T& value)
+{
+    writer << value.size();
+        
+    for (const auto& item : value)
+    {
+        writer << item;
+    }
+
+    return writer;
+}
+
+template <typename T> requires IsIEContainer<T>
+MemoryWriter& operator<<(MemoryWriter& writer, const T& value)
+{
+    writer << value.Count();
+        
+    for (const auto& item : value)
+    {
+        writer << item;
+    }
 
     return writer;
 }
 
 template <typename T>
-MemoryWriter& operator<<(MemoryWriter& writer, const std::vector<T>& vector)
+MemoryWriter& operator<<(MemoryWriter& writer, const std::basic_string<T>& string)
 {
-    writer << vector.size();
-
-    if constexpr (HasSerializationOperator<T>)
-    {
-        for (const auto& item : vector)
-        {
-            writer << item;
-        }
-    }
-    else
-    {
-        writer.Write(reinterpret_cast<const std::byte*>(vector.data()), vector.size());
-    }
+    writer << string.size();
+    writer.Write(reinterpret_cast<const std::byte*>(string.data()), string.size() * sizeof(T));
 
     return writer;
 }

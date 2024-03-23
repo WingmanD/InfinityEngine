@@ -2,6 +2,7 @@
 
 #include "Engine/Subsystems/EngineSubsystem.h"
 #include "Asset.h"
+#include "Name.h"
 #include "PackageManifest.h"
 #include "IDGenerator.h"
 #include <fstream>
@@ -18,12 +19,12 @@ public:
 
     ~AssetManager() override;
 
-    std::shared_ptr<Asset> NewAsset(const Type* type, const std::wstring& name);
+    std::shared_ptr<Asset> NewAsset(const Type& type, Name name);
 
     template <typename T> requires IsA<T, Asset>
-    std::shared_ptr<T> NewAsset(const std::wstring& name) requires IsA<T, Asset>
+    std::shared_ptr<T> NewAsset(Name name) requires IsA<T, Asset>
     {
-        return std::dynamic_pointer_cast<T>(NewAsset(T::StaticType(), name));
+        return std::dynamic_pointer_cast<T>(NewAsset(*T::StaticType(), name));
     }
 
     void DeleteAsset(const std::shared_ptr<Asset>& asset);
@@ -49,12 +50,20 @@ public:
         return asset;
     }
 
-    std::shared_ptr<Asset> FindAssetByName(const std::wstring& name) const;
+    std::shared_ptr<Asset> FindAssetByName(Name name) const;
 
     template <typename T>
-    std::shared_ptr<T> FindAssetByName(const std::wstring& name) const requires IsA<T, Asset>
+    std::shared_ptr<T> FindAssetByName(Name name) const requires IsA<T, Asset>
     {
         return std::dynamic_pointer_cast<T>(FindAssetByName(name));
+    }
+
+    std::shared_ptr<Asset> FindOrCreateAssetByName(const Type& type, Name name);
+    
+    template <typename T>
+    std::shared_ptr<T> FindOrCreateAssetByName(Name name) requires IsA<T, Asset>
+    {
+        return std::dynamic_pointer_cast<T>(FindOrCreateAssetByName(*T::StaticType(), name));
     }
 
     std::shared_ptr<Asset> FindAsset(uint64 id) const;
@@ -90,7 +99,7 @@ private:
     std::fstream _assetCache;
     
     std::unordered_map<uint64, std::shared_ptr<Asset>> _assetMap;
-    std::unordered_map<std::wstring, uint64> _assetNameMap;
+    std::unordered_map<Name, uint64> _assetNameMap;
     std::unordered_map<Type*, std::vector<uint64>> _assetTypeMap;
 
     std::filesystem::path _projectRootPath;

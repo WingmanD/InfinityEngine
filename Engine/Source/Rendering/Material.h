@@ -9,14 +9,14 @@
 #include <memory>
 #include "Material.reflection.h"
 
-REFLECTED()
+REFLECTED(CustomSerialization)
 class Material : public Asset
 {
     GENERATED()
 
 public:
     Material() = default;
-    Material(const std::wstring& name);
+    Material(Name name);
 
     Material(const Material& other);
 
@@ -49,7 +49,7 @@ public:
 
     // Object
 public:
-    void OnPropertyChanged(const std::wstring& propertyName) override;
+    void OnPropertyChanged(Name propertyName) override;
 
 private:
     PROPERTY(Edit, Load, DisplayName = "Shader")

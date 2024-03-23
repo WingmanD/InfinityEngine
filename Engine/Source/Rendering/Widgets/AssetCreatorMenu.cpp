@@ -123,7 +123,7 @@ bool AssetCreatorMenu::Initialize()
             return;
         }
 
-        AssetManager::Get().NewAsset(type, name);
+        AssetManager::Get().NewAsset(*type, Name(name));
 
         DestroyWidget();
     });
@@ -136,7 +136,7 @@ bool AssetCreatorMenu::Initialize()
             return;
         }
 
-        if (AssetManager::Get().FindAssetByName(text) != nullptr)
+        if (AssetManager::Get().FindAssetByName(Name(text)) != nullptr)
         {
             createButton->SetEnabled(false);
             return;

@@ -16,7 +16,7 @@ Type* Type::WithDataOffset(size_t offset)
     return this;
 }
 
-std::shared_ptr<Object> Type::NewObject() const
+SharedObjectPtr<Object> Type::NewObject() const
 {
     return GetCDO()->Duplicate();
 }
@@ -207,7 +207,7 @@ std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Objec
         }
         row->AddChild(nameLabel);
 
-        nameLabel->SetText(prop->GetDisplayName() + L":");
+        nameLabel->SetText(prop->GetDisplayName().ToString() + L":");
 
         const Type* propertyType = prop->GetType();
         if (propertyType != nullptr && !propertyType->IsA<Asset>())
@@ -229,6 +229,11 @@ std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Objec
     });
 
     return table;
+}
+
+bool Type::operator==(const Type& rhs) const
+{
+    return GetID() == rhs.GetID();
 }
 
 void Type::AddParentType(Type* type)

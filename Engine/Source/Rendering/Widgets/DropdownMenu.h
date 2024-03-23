@@ -2,9 +2,11 @@
 
 #include "Widget.h"
 #include "DropdownMenu.reflection.h"
+#include "SubtypeOf.h"
 
 class TextBox;
 class FlowBox;
+class ScrollBox;
 
 REFLECTED()
 
@@ -50,15 +52,17 @@ protected:
 
 private:
     PROPERTY(Edit, DisplayName = "Choice Widget Type")
-    Type* _choiceWidgetType = nullptr;
+    SubtypeOf<Widget> _choiceWidgetType = nullptr;
 
     std::weak_ptr<Widget> _selectedWidget;
     DelegateHandle _choiceReleasedHandle{};
 
-    std::weak_ptr<Widget> _choicesWidget;
+    std::weak_ptr<ScrollBox> _scrollBox;
+
+    PROPERTY(Edit, DisplayName = "Max Visible Choices")
+    uint32 _maxVisibleChoices = 5;
 
 private:
-    void UpdateChoicesWidgetTransform() const;
-    void ToggleChoicesWidget() const;
-    void SetChoicesWidgetEnabled(bool value) const;
+    void ToggleScrollBox() const;
+    void SetScrollBoxEnabled(bool value) const;
 };

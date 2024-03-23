@@ -4,6 +4,7 @@ project(Engine)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_UNITY_BUILD TRUE)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
@@ -26,6 +27,11 @@ target_include_directories(Engine PUBLIC "${_path}/Source" "${_files}")
 target_include_directories(Engine PUBLIC ${directxtk12_SOURCE_DIR}/Inc)
 
 target_compile_definitions(Engine PRIVATE "UNICODE" "_UNICODE")
+set_target_properties(Engine PROPERTIES UNITY_BUILD_BATCH_SIZE 8)
+
+if(MSVC)
+    target_compile_options(Engine PRIVATE "/MP")
+endif()
 
 target_link_libraries(Engine PRIVATE "d3d12.lib" "dxgi.lib" "d3dcompiler.lib" "dxguid.lib" DirectXTK12 ${CONAN_LIBS})
 

@@ -43,7 +43,7 @@ protected:
     void UpdateDesiredSizeInternal() override;
     void RebuildLayoutInternal() override;
     
-    virtual void OnFocusChanged(bool focused) override;
+    virtual void OnFocusChangedInternal(bool focused) override;
 
 private:
     PROPERTY(Edit, DisplayName = "Min Lenght")

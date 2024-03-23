@@ -26,7 +26,17 @@ Object* Object::DuplicateAt(void* ptr) const
     return new(ptr) Object(*this);
 }
 
-void Object::OnPropertyChanged(const std::wstring& propertyName)
+bool Object::Serialize(MemoryWriter& writer) const
+{
+    return true;
+}
+
+bool Object::Deserialize(MemoryReader& reader)
+{
+    return true;
+}
+
+void Object::OnPropertyChanged(Name propertyName)
 {
 }
 

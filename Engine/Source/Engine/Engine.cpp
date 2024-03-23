@@ -1,5 +1,4 @@
 ﻿#include "Engine.h"
-
 #include "Rendering/Window.h"
 #include "Rendering/DX12/DX12RenderingSubsystem.h"
 #include "Rendering/Widgets/EditorWidget.h"
@@ -97,8 +96,10 @@ void Engine::Run()
 
 void Engine::Shutdown()
 {
-    _assetManagerSubsystem.CallShutdown({});
     _renderingSubsystem->CallShutdown({});
+    _gameplaySubsystem.CallShutdown({});
+    _assetManagerSubsystem.CallShutdown({});
+    _inputSubsystem.CallShutdown({});
 }
 
 void Engine::RequestExit()

@@ -4,7 +4,7 @@
 #include "Engine/Subsystems/AssetManager.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 
-Material::Material(const std::wstring& name) : Asset(name)
+Material::Material(Name name) : Asset(name)
 {
 }
 
@@ -97,11 +97,11 @@ bool Material::Deserialize(MemoryReader& reader)
     return true;
 }
 
-void Material::OnPropertyChanged(const std::wstring& propertyName)
+void Material::OnPropertyChanged(Name propertyName)
 {
     Asset::OnPropertyChanged(propertyName);
 
-    if (propertyName == L"Shader")
+    if (propertyName == Name(L"Shader"))
     {
         OnShaderChanged();
     }

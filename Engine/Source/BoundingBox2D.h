@@ -1,4 +1,5 @@
 ﻿#pragma once
+
 #include "Core.h"
 
 class BoundingBox2D
@@ -9,6 +10,8 @@ public:
 
     bool Intersects(const BoundingBox2D& other) const;
     bool Contains(const Vector2& point) const;
+
+   static std::optional<BoundingBox2D> Intersection(const BoundingBox2D& lhs, const BoundingBox2D& rhs);
 
     void Move(const Vector2& offset);
     void MoveTo(const Vector2& position);

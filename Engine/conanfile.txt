@@ -1,5 +1,6 @@
 [requires]
 assimp/5.2.2
+concurrentqueue/1.0.4
 
 [generators]
 cmake

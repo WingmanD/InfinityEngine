@@ -14,7 +14,7 @@ void ShaderChangeListener::OnFileModified(const std::filesystem::path& path) con
 {
     const AssetManager& assetManager = AssetManager::Get();
 
-    std::shared_ptr<Shader> shader = assetManager.FindAssetByName<Shader>(path.stem());
+    std::shared_ptr<Shader> shader = assetManager.FindAssetByName<Shader>(Name(path.stem()));
     if (shader == nullptr)
     {
         return;

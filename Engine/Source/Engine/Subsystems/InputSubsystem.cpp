@@ -71,56 +71,61 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
     {
         using ButtonState = DirectX::Mouse::ButtonStateTracker::ButtonState;
         _mouse->ProcessMessage(msg, wParam, lParam);
+
+        const int32 oldScroll = _mouseButtonStateTracker.GetLastState().scrollWheelValue;
+        
         _mouseButtonStateTracker.Update(_mouse->GetState());
+        _mouseState = _mouseButtonStateTracker.GetLastState();
+        
+        const int32 scroll = _mouseButtonStateTracker.GetLastState().scrollWheelValue - oldScroll;
+        if (scroll != 0)
+        {
+            OnMouseWheelScroll.Broadcast(static_cast<int32>(scroll / 120.0f));
+        }
 
         if (_mouseButtonStateTracker.leftButton == ButtonState::PRESSED)
         {
-            _pendingDelegates.push_back(&OnMouseLeftButtonDown);
+            OnMouseLeftButtonDown.Broadcast();
         }
         else if (_mouseButtonStateTracker.leftButton == ButtonState::RELEASED)
         {
-            _pendingDelegates.push_back(&OnMouseLeftButtonUp);
+            OnMouseLeftButtonUp.Broadcast();
         }
 
         if (_mouseButtonStateTracker.rightButton == ButtonState::PRESSED)
         {
-            _pendingDelegates.push_back(&OnMouseRightButtonDown);
+            OnMouseRightButtonDown.Broadcast();
         }
         else if (_mouseButtonStateTracker.rightButton == ButtonState::RELEASED)
         {
-            _pendingDelegates.push_back(&OnMouseRightButtonUp);
+            OnMouseRightButtonUp.Broadcast();
         }
 
         if (_mouseButtonStateTracker.middleButton == ButtonState::PRESSED)
         {
-            _pendingDelegates.push_back(&OnMouseMiddleButtonDown);
+            OnMouseMiddleButtonDown.Broadcast();
         }
         else if (_mouseButtonStateTracker.middleButton == ButtonState::RELEASED)
         {
-            _pendingDelegates.push_back(&OnMouseMiddleButtonUp);
+            OnMouseMiddleButtonUp.Broadcast();
         }
 
         if (_mouseButtonStateTracker.xButton1 == ButtonState::PRESSED)
         {
-            _pendingDelegates.push_back(&OnMouseXButton1Down);
+            OnMouseXButton1Down.Broadcast();
         }
         else if (_mouseButtonStateTracker.xButton1 == ButtonState::RELEASED)
         {
-            _pendingDelegates.push_back(&OnMouseXButton1Up);
+            OnMouseXButton1Up.Broadcast();
         }
 
         if (_mouseButtonStateTracker.xButton2 == ButtonState::PRESSED)
         {
-            _pendingDelegates.push_back(&OnMouseXButton2Down);
+            OnMouseXButton2Down.Broadcast();
         }
         else if (_mouseButtonStateTracker.xButton2 == ButtonState::RELEASED)
         {
-            _pendingDelegates.push_back(&OnMouseXButton2Up);
-        }
-
-        if (_mouse->GetState().scrollWheelValue != 0)
-        {
-            _pendingDelegates.push_back(&OnMouseWheelScroll);
+            OnMouseXButton2Up.Broadcast();
         }
     }
 
@@ -131,9 +136,9 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
             const EKey key = ConvertKeyCode(wParam);
             KeyState& keyState = _keyStates[key];
             keyState.IsDown = true;
-            _pendingDelegates.push_back(&keyState.OnKeyDown);
-
-            _pendingOnAnyKeyDown.push_back(key);
+            keyState.OnKeyDown.Broadcast();
+                
+            OnAnyKeyDown.Broadcast(key);              
 
             return 0;
         }
@@ -141,9 +146,9 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
         {
             const EKey key = ConvertKeyCode(wParam);
             _keyStates[key].IsDown = false;
-            _pendingDelegates.push_back(&_keyStates[key].OnKeyUp);
+            _keyStates[key].OnKeyUp.Broadcast();
 
-            _pendingOnAnyKeyUp.push_back(key);
+            OnAnyKeyUp.Broadcast(key);
 
             return 0;
         }
@@ -315,8 +320,6 @@ bool InputSubsystem::Initialize()
     _keyStates[EKey::Minus].IsDown = false;
     _keyStates[EKey::Equals].IsDown = false;
 
-    _mouseState = _mouse->GetState();
-
     GetKey(EKey::CapsLock).OnKeyDown.Add([this]()
     {
         _isCapsLockToggled = !_isCapsLockToggled;
@@ -328,31 +331,12 @@ bool InputSubsystem::Initialize()
 void InputSubsystem::Tick(double deltaTime)
 {
     const Vector2 oldMousePosition = GetMousePosition();
-    _mouseState = _mouse->GetState();
+    _mouseButtonStateTracker.Update(_mouse->GetState());
     const Vector2 newMousePosition = GetMousePosition();
     if (oldMousePosition != newMousePosition)
     {
-        OnMouseMoved.Broadcast(Vector2(newMousePosition));
+        OnMouseMoved.Broadcast(newMousePosition);
     }
-
-    for (Delegate<>*& delegate : _pendingDelegates)
-    {
-        delegate->Broadcast();
-    }
-
-    _pendingDelegates.clear();
-
-    for (EKey pendingKey : _pendingOnAnyKeyDown)
-    {
-        OnAnyKeyDown.Broadcast(std::move(pendingKey));
-    }
-    _pendingOnAnyKeyDown.clear();
-
-    for (EKey pendingKey : _pendingOnAnyKeyUp)
-    {
-        OnAnyKeyUp.Broadcast(std::move(pendingKey));
-    }
-    _pendingOnAnyKeyUp.clear();
 }
 
 EKey InputSubsystem::ConvertKeyCode(WPARAM virtualKeyCode) const

@@ -53,7 +53,7 @@ bool DX12Window::Initialize()
     RequestResize(GetWidth(), GetHeight());
 
     AssetManager& assetManager = Engine::Get().GetAssetManager();
-    _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(L"SwarmDrone");
+    _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(Name(L"SwarmDrone"));
     if (_staticMeshTest != nullptr)
     {
         _staticMeshTest->Load();

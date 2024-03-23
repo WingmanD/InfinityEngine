@@ -1,24 +1,22 @@
 ﻿#pragma once
 
 #include "Object.h"
-#include "ISerializeable.h"
-#include "MemoryReader.h"
-#include "MemoryWriter.h"
 #include "PassKey.h"
+#include "Name.h"
 #include <string>
 #include "Asset.reflection.h"
 
 class Importer;
 class AssetManager;
 
-REFLECTED()
-class Asset : public Object, public ISerializeable
+REFLECTED(CustomSerialization)
+class Asset : public Object
 {
     GENERATED()
 
 public:
     Asset() = default;
-    explicit Asset(std::wstring name);
+    explicit Asset(Name name);
 
     virtual bool Initialize();
 
@@ -31,8 +29,8 @@ public:
     void SetAssetID(uint64 id, PassKey<AssetManager>);
     [[nodiscard]] uint64 GetAssetID() const;
 
-    void SetName(const std::wstring& name);
-    [[nodiscard]] const std::wstring& GetName() const;
+    void SetName(Name name);
+    [[nodiscard]] Name GetName() const;
 
     void SetIsLoaded(bool value, PassKey<AssetManager>);
     bool IsLoaded() const;
@@ -54,7 +52,7 @@ public:
 
     // Object
 public:
-    void OnPropertyChanged(const std::wstring& propertyName) override;
+    void OnPropertyChanged(Name propertyName) override;
 
 protected:
     void SetIsLoaded(bool value);
@@ -66,7 +64,7 @@ private:
     uint64 _id = 0;
 
     PROPERTY(Edit, DisplayName = "Name")
-    std::wstring _name;
+    Name _name;
 
     PROPERTY(DisplayName = "Import Path")
     std::filesystem::path _importPath;

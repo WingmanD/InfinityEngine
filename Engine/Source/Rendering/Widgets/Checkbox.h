@@ -13,7 +13,7 @@ public:
     Delegate<bool> OnCheckedChanged;
 
 public:
-    Checkbox() = default;
+    Checkbox();
     Checkbox(const Checkbox& other) = default;
     Checkbox& operator=(const Checkbox& other) = default;
 
@@ -26,7 +26,7 @@ public:
 
 protected:
     void UpdateDesiredSizeInternal() override;
-    virtual void OnReleasedInternal() override;
+    virtual bool OnReleasedInternal() override;
     
 private:
     bool _isChecked = false;

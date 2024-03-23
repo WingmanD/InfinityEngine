@@ -65,8 +65,8 @@ protected:
 
     virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow) override;
     
-    virtual void OnHoverStartedInternal() override;
-    virtual void OnHoverEndedInternal() override;
+    virtual bool OnHoverStartedInternal() override;
+    virtual bool OnHoverEndedInternal() override;
 
 private:
     PROPERTY(EditInEditor, DisplayName = "Text")
@@ -79,7 +79,7 @@ private:
     Font::EType _fontType = Font::EType::Regular;
 
     PROPERTY(EditInEditor, DisplayName = "Font Size")
-    float _fontSize = 1.0f;
+    float _fontSize = 0.5f;
 
     PROPERTY(EditInEditor, DisplayName = "Text Color")
     Color _textColor = {0.0f, 0.0f, 0.0f, 1.0f};

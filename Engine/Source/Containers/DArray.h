@@ -60,7 +60,6 @@ public:
         return _index <=> other._index;
     }
 
-    //bool operator==(const DArrayRandomAccessIterator&) const = default;
     bool operator==(const DArrayRandomAccessIterator& other) const
     {
         return _index == other._index;
@@ -305,6 +304,8 @@ template <typename T, std::size_t SSO_SIZE = 0, typename Allocator = std::alloca
 class DArray
 {
 public:
+    using type = T;
+    
     using ValueType = T;
     using AllocatorType = Allocator;
     using SizeType = std::size_t;
@@ -392,7 +393,7 @@ public:
             {
                 for (auto i = 0; i < std::min(_count, SSO_SIZE); ++i)
                 {
-                    std::construct_at(&GetSSOData(i), other.GetSSOData()[i]);
+                    std::construct_at(&GetSSOData()[i], other.GetSSODataConst()[i]);
                 }
 
                 _data = _allocator.allocate(_capacity - SSO_SIZE);
@@ -405,7 +406,7 @@ public:
             {
                 for (auto i = 0; i < other._count; ++i)
                 {
-                    std::construct_at(&GetSSOData()[i], other.GetSSOData()[i]);
+                    std::construct_at(&GetSSOData()[i], other.GetSSODataConst()[i]);
                 }
             }
         }
@@ -484,7 +485,7 @@ public:
 
                 for (auto i = 0; i < std::min(other._count, SSO_SIZE); ++i)
                 {
-                    std::construct_at(&GetSSOData()[i], other.GetSSOData()[i]);
+                    std::construct_at(&GetSSOData()[i], other.GetSSODataConst()[i]);
                 }
 
                 for (auto i = 0; i < other._capacity - SSO_SIZE; ++i)
@@ -497,7 +498,7 @@ public:
                 _capacity = SSO_SIZE;
                 for (auto i = 0; i < other._count; ++i)
                 {
-                    std::construct_at(&GetSSOData()[i], other.GetSSOData()[i]);
+                    std::construct_at(&GetSSOData()[i], other.GetSSODataConst()[i]);
                 }
             }
         }
@@ -537,6 +538,37 @@ public:
         _capacity = other._capacity;
 
         return *this;
+    }
+
+    bool operator==(const DArray& other) const
+    {
+        if (_count != other._count)
+        {
+            return false;
+        }
+
+        if constexpr (SSO_SIZE > 0)
+        {
+            for (auto i = 0; i < _count; ++i)
+            {
+                if (GetElementConst(i) != other.GetElementConst(i))
+                {
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            for (SizeType i = 0; i < _count; ++i)
+            {
+                if (_data[i] != other._data[i])
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     Reference operator[](SizeType index)
@@ -1078,7 +1110,7 @@ public:
 
         if constexpr (SSO_SIZE > 0)
         {
-            for (int64_t i = _count; i >= 0; i--)
+            for (int64 i = _count; i >= 0; i--)
             {
                 if (GetElementConst(i) == value)
                 {
@@ -1089,7 +1121,7 @@ public:
         }
         else
         {
-            for (int64_t i = _count; i >= 0; i--)
+            for (int64 i = _count; i >= 0; i--)
             {
                 if (_data[i] == value)
                 {
@@ -1108,7 +1140,7 @@ public:
 
         if constexpr (SSO_SIZE > 0)
         {
-            for (int64_t i = _count; i >= 0; i--)
+            for (int64 i = _count; i >= 0; i--)
             {
                 if (GetElementConst(i) == value)
                 {
@@ -1119,7 +1151,7 @@ public:
         }
         else
         {
-            for (int64_t i = _count; i >= 0; i--)
+            for (int64 i = _count; i >= 0; i--)
             {
                 if (_data[i] == value)
                 {
@@ -1138,7 +1170,7 @@ public:
 
         if constexpr (SSO_SIZE > 0)
         {
-            for (int64_t i = _count; i >= 0; i--)
+            for (int64 i = _count; i >= 0; i--)
             {
                 if (predicate(GetElementConst(i)))
                 {
@@ -1149,7 +1181,7 @@ public:
         }
         else
         {
-            for (int64_t i = _count; i >= 0; i--)
+            for (int64 i = _count; i >= 0; i--)
             {
                 if (predicate(_data[i]))
                 {
@@ -1168,7 +1200,7 @@ public:
 
         if constexpr (SSO_SIZE > 0)
         {
-            for (int64_t i = _count; i >= 0; i--)
+            for (int64 i = _count; i >= 0; i--)
             {
                 if (predicate(GetElementConst(i)))
                 {
@@ -1179,7 +1211,7 @@ public:
         }
         else
         {
-            for (int64_t i = _count; i >= 0; i--)
+            for (int64 i = _count; i >= 0; i--)
             {
                 if (predicate(_data[i]))
                 {
@@ -1255,7 +1287,7 @@ private:
     {
         if constexpr (SSO_SIZE > 0)
         {
-            int64_t numData = _count - SSO_SIZE;
+            const int64 numData = _count - SSO_SIZE;
             SizeType dataStartIndex = index - SSO_SIZE;
 
             if (index < SSO_SIZE)
@@ -1292,7 +1324,7 @@ private:
                 }
             }
 
-            for (SizeType i = dataStartIndex; i < numData - 1; ++i)
+            for (int64 i = dataStartIndex; i < numData - 1; ++i)
             {
                 _data[i].~T();
                 if constexpr (std::is_move_constructible_v<T>)
@@ -1308,17 +1340,16 @@ private:
         }
         else
         {
-            for (SizeType i = index; i < _count; ++i)
+            for (SizeType i = index; i < _count - 1; ++i)
             {
-                const SizeType next = i - 1;
-                _data[next].~T();
+                _data[i].~T();
                 if constexpr (std::is_move_constructible_v<T>)
                 {
-                    std::construct_at(&_data[next], std::move(_data[i]));
+                    std::construct_at(&_data[i], std::move(_data[i + 1]));
                 }
                 else
                 {
-                    std::construct_at(&_data[next], _data[i]);
+                    std::construct_at(&_data[i], _data[i + 1]);
                 }
             }
 
@@ -1330,12 +1361,12 @@ private:
     {
         if constexpr (SSO_SIZE > 0)
         {
-            const int64_t numData = _count - SSO_SIZE;
-            const int64_t dataStartIndex = index - SSO_SIZE;
+            const int64 numData = _count - SSO_SIZE;
+            const int64 dataStartIndex = index - SSO_SIZE;
 
             if (index > SSO_SIZE)
             {
-                for (int64_t i = numData - 1; i > dataStartIndex; --i)
+                for (int64 i = numData - 1; i > dataStartIndex; --i)
                 {
                     _data[i].~T();
                     if constexpr (std::is_move_constructible_v<T>)

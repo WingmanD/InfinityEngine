@@ -2,6 +2,11 @@
 #include "MaterialParameterTypes.h"
 #include "Rendering/Material.h"
 
+Checkbox::Checkbox()
+{
+    EnableInputCompatibility(EWidgetInputCompatibility::LeftClick);
+}
+
 void Checkbox::SetChecked(bool value)
 {
     if (_isChecked == value)
@@ -48,9 +53,11 @@ void Checkbox::UpdateDesiredSizeInternal()
     // Do nothing
 }
 
-void Checkbox::OnReleasedInternal()
+bool Checkbox::OnReleasedInternal()
 {
     SetChecked(!_isChecked);
+
+    return true;
 }
 
 void Checkbox::OnCheckedChangedInternal()

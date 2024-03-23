@@ -2,7 +2,7 @@
 
 #include "EntityList.h"
 #include "Archetype.h"
-#include <vector>
+#include "ECSQuery.h"
 
 class EntityListGraph
 {
@@ -11,10 +11,10 @@ public:
     {
     public:
         friend class IValidateable;
+
     public:
-        // todo SSO vector must be used here
-        std::vector<Node*> Parents;
-        std::vector<Node*> Children;
+        DArray<Node*, 8> Parents;
+        DArray<Node*, 8> Children;
 
         EntityList EntityList;
 
@@ -36,17 +36,24 @@ public:
         void SetValidImplementation(bool value);
         bool IsValidImplementation() const;
     };
-    
+
+    struct EntityListResult
+    {
+        EntityList* List = nullptr;
+        bool WasCreated = false;
+    };
+
 public:
     explicit EntityListGraph();
 
     Node* AddArchetype(const Archetype& type);
     void RemoveArchetype(const Archetype& type);
 
+    void Query(ECSQuery& query, const Archetype& archetype);
+
     bool Traverse(Node* root, const std::function<bool(Node*)>& callback);
 
-    EntityList& GetOrCreateEntityListFor(const Archetype& type);
-    // todo queries
+    EntityListResult GetOrCreateEntityListFor(const Archetype& type);
 
 private:
     BucketArray<Node> _nodes;

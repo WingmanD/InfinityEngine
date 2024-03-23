@@ -11,7 +11,7 @@ class Button : public Widget
     GENERATED()
     
 public:
-    Button() = default;
+    Button();
 
     void SetText(const std::wstring& text) const;
     const std::wstring& GetText() const;

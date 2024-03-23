@@ -33,7 +33,7 @@ public:
 
 public:
     explicit Font();
-    explicit Font(std::wstring name);
+    explicit Font(Name name);
 
     Font(const Font& other);
 

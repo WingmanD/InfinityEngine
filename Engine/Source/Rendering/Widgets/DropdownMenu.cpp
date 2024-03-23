@@ -1,14 +1,11 @@
 ﻿#include "DropdownMenu.h"
 #include "FlowBox.h"
+#include "ScrollBox.h"
 
 void DropdownMenu::AddChoice(const std::shared_ptr<Widget>& choice)
 {
-    // todo ScrollBox
     const std::shared_ptr<FlowBox> flowBox = std::dynamic_pointer_cast<
-        FlowBox>(_choicesWidget.lock()->GetChildren()[0]);
-
-    choice->SetVisibility(flowBox->IsVisible(), true);
-    choice->SetCollisionEnabled(flowBox->IsVisible());
+        FlowBox>(_scrollBox.lock()->GetChildren()[0]);
 
     flowBox->AddChild(choice);
 
@@ -50,15 +47,26 @@ bool DropdownMenu::Initialize()
         return false;
     }
 
-    const std::shared_ptr<Widget> choicesWidget = AddChild<Widget>();
-    _choicesWidget = choicesWidget;
+    const std::shared_ptr<ScrollBox> scrollBox = AddChild<ScrollBox>();
+    _scrollBox = scrollBox;
+    scrollBox->SetDirection(EScrollBoxDirection::Vertical);
+    scrollBox->SetFillMode(EWidgetFillMode::FillX);
+    scrollBox->SetAnchor(EWidgetAnchor::BottomCenter);
+    scrollBox->SetSelfAnchor(EWidgetAnchor::TopCenter);
 
-    choicesWidget->SetVisibility(false);
-    choicesWidget->SetAnchor(EWidgetAnchor::BottomCenter);
+    const std::shared_ptr<FlowBox> flowBox = scrollBox->AddChild<FlowBox>();
+    flowBox->SetFillMode(EWidgetFillMode::FillX);
 
-    const std::shared_ptr<FlowBox> flowBox = choicesWidget->AddChild<FlowBox>();
-    flowBox->SetVisibility(false);
-    flowBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+    scrollBox->SetCollapsed(true);
+
+    scrollBox->OnFocusChanged.Add([scrollBox, this](bool value)
+    {
+        if (!value && scrollBox->GetParentWidget() != SharedFromThis())
+        {
+            scrollBox->RemoveFromParent();
+            AddChild(scrollBox);
+        }
+    });
 
     return true;
 }
@@ -96,20 +104,21 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
 
     _choiceReleasedHandle = selectedWidget->OnReleased.Add([this]()
     {
-        ToggleChoicesWidget();
+        // ToggleScrollBox();
+        _scrollBox.lock()->RemoveFromParent();
+        AddChild(_scrollBox.lock());
     });
 
     _selectedWidget = selectedWidget;
 
-    SetChoicesWidgetEnabled(false);
-    UpdateChoicesWidgetTransform();
+    SetScrollBoxEnabled(false);
 
     OnSelectionChanged.Broadcast(std::move(choice));
 }
 
 const std::vector<std::shared_ptr<Widget>>& DropdownMenu::GetChoices() const
 {
-    return _choicesWidget.lock()->GetChildren()[0]->GetChildren();
+    return _scrollBox.lock()->GetChildren()[0]->GetChildren();
 }
 
 void DropdownMenu::RebuildLayoutInternal()
@@ -118,7 +127,17 @@ void DropdownMenu::RebuildLayoutInternal()
     selectedWidget->SetPosition(Vector2::Zero);
     selectedWidget->SetSize({1.0f, 1.0f});
 
-    UpdateChoicesWidgetTransform();
+    const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
+    const std::shared_ptr<Widget> flowBox = scrollBox->GetChildren()[0];
+
+    flowBox->SetSize({1.0f, std::max(static_cast<float>(GetChoices().size()) / static_cast<float>(_maxVisibleChoices), 1.0f)});
+
+    scrollBox->SetSize({1.0f, std::min(static_cast<float>(GetChoices().size()), static_cast<float>(_maxVisibleChoices))});
+    
+    //if (scrollBox->GetParentWidget() == SharedFromThis())
+    {
+        scrollBox->SetPosition({0.0f, 0.0f});
+    }
 }
 
 void DropdownMenu::UpdateDesiredSizeInternal()
@@ -128,51 +147,55 @@ void DropdownMenu::UpdateDesiredSizeInternal()
     {
         return;
     }
-    const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
-    if (choicesWidget == nullptr)
+
+    const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
+    if (scrollBox == nullptr)
     {
         return;
     }
 
+    // scrollBox->SetDesiredSize(Vector2(1.0f, std::min(static_cast<float>(GetChoices().size()), static_cast<float>(_maxVisibleChoices))) * GetScreenSize());
+
+    const std::shared_ptr<Widget> flowBox = scrollBox->GetChildren()[0];
+
     const Vector2 newDesiredSize = Vector2(
-        std::max(selectedWidget->GetPaddedDesiredSize().x, choicesWidget->GetPaddedDesiredSize().x),
+        std::max(selectedWidget->GetPaddedDesiredSize().x, flowBox->GetPaddedDesiredSize().x),
         selectedWidget->GetPaddedDesiredSize().y
     );
 
     SetDesiredSize(newDesiredSize);
 }
 
-void DropdownMenu::UpdateChoicesWidgetTransform() const
+void DropdownMenu::ToggleScrollBox() const
 {
-    const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
-    choicesWidget->SetPosition({0.0f, -0.5f});
+    const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
+    SetScrollBoxEnabled(scrollBox->IsCollapsed());
 }
 
-void DropdownMenu::ToggleChoicesWidget() const
-{
-    const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
-    const std::shared_ptr<FlowBox> flowBox = std::dynamic_pointer_cast<FlowBox>(choicesWidget->GetChildren()[0]);
-
-    const bool newVisibility = !flowBox->IsVisible();
-
-    SetChoicesWidgetEnabled(newVisibility);
-}
-
-void DropdownMenu::SetChoicesWidgetEnabled(bool value) const
+void DropdownMenu::SetScrollBoxEnabled(bool value) const
 {
     if (!IsEnabled())
     {
         return;
     }
 
-    const std::shared_ptr<Widget> choicesWidget = _choicesWidget.lock();
+    const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
+    scrollBox->SetCollapsed(!value);
 
-    const std::shared_ptr<FlowBox> flowBox = std::dynamic_pointer_cast<FlowBox>(choicesWidget->GetChildren()[0]);
-
-    flowBox->SetVisibility(value);
-    for (const std::shared_ptr<Widget>& widget : flowBox->GetChildren())
+    if (value)
     {
-        widget->SetVisibility(value, true);
-        widget->SetCollisionEnabled(value);
+        //const Vector2 positionWS = scrollBox->GetPositionWS();
+        
+        //scrollBox->SetAnchor(EWidgetAnchor::Center);
+        //scrollBox->SetSelfAnchor(EWidgetAnchor::Center);
+        //scrollBox->SetFillMode(EWidgetFillMode::None);
+        
+        scrollBox->RemoveFromParent();
+        
+        scrollBox->SetFocused(true);
+        
+        GetParentWindow()->AddPopup(scrollBox);
+        
+        //scrollBox->SetPosition(positionWS);
     }
 }

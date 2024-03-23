@@ -102,6 +102,7 @@ void Widget::SetEnabled(bool value)
         return;
     }
 
+    _desiredState = value ? _desiredState | EWidgetState::Enabled : _desiredState & ~EWidgetState::Enabled;
     _state = value ? _state | EWidgetState::Enabled : _state & ~EWidgetState::Enabled;
 
     WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
@@ -119,9 +120,10 @@ bool Widget::IsEnabled() const
 
 void Widget::SetVisibility(bool value, bool recursive /*= false*/)
 {
-    if (value != HasFlags(_state, EWidgetState::Visible))
+    if (value != HasFlags(_desiredState, EWidgetState::Visible))
     {
-        _state = value ? _state | EWidgetState::Visible : _state & ~EWidgetState::Visible;
+        _desiredState = value ? _desiredState | EWidgetState::Visible : _desiredState & ~EWidgetState::Visible;
+        SetVisibilityInternal(value);
 
         // todo disable mesh instance
     }
@@ -142,26 +144,12 @@ bool Widget::IsVisible() const
 
 void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
 {
-    if (value != HasFlags(_state, EWidgetState::CollisionEnabled))
+    if (value != HasFlags(_desiredState, EWidgetState::CollisionEnabled))
     {
-        _state = value ? _state | EWidgetState::CollisionEnabled : _state & ~EWidgetState::CollisionEnabled;
-
-        if (!IsLayoutDirty())
-        {
-            // If layout is dirty, we will update the hit test grid when rebuilding the layout
-            if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
-            {
-                HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGridFor(SharedFromThis()).value();
-                if (value)
-                {
-                    hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
-                }
-                else
-                {
-                    hitTestGrid.RemoveElement(this);
-                }
-            }
-        }
+        _desiredState = value
+                            ? _desiredState | EWidgetState::CollisionEnabled
+                            : _desiredState & ~EWidgetState::CollisionEnabled;
+        SetCollisionEnabledInternal(value);
     }
 
     if (recursive)
@@ -192,6 +180,8 @@ void Widget::SetCollapsed(bool value)
     if (value)
     {
         DisableCollisionForTree();
+
+        OnCollapsed.Broadcast();
     }
     else
     {
@@ -218,9 +208,17 @@ void Widget::SetFocused(bool value)
         return;
     }
 
+    _desiredState = value ? _desiredState | EWidgetState::Focused : _desiredState & ~EWidgetState::Focused;
     _state = value ? _state | EWidgetState::Focused : _state & ~EWidgetState::Focused;
 
-    OnFocusChanged(value);
+    OnFocusChangedInternal(value);
+
+    if (const std::shared_ptr<Window> window = GetParentWindow())
+    {
+        window->SetFocusedWidget(SharedFromThis());
+    }
+
+    OnFocusChanged.Broadcast(value);
 }
 
 bool Widget::IsFocused() const
@@ -237,11 +235,14 @@ void Widget::SetPosition(const Vector2& position)
 {
     if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
     {
-        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position * parentWidget->GetSizeWS() - GetAnchorPosition(GetSelfAnchor()) * GetSize());
+        _transform.SetPosition(
+            GetAnchorPosition(GetAnchor()) + position * parentWidget->GetSizeWS() - GetAnchorPosition(GetSelfAnchor()) *
+            GetSize());
     }
     else
     {
-        _transform.SetPosition(GetAnchorPosition(GetAnchor()) + position - GetAnchorPosition(GetSelfAnchor()) * GetSize());
+        _transform.SetPosition(
+            GetAnchorPosition(GetAnchor()) + position - GetAnchorPosition(GetSelfAnchor()) * GetSize());
     }
 
     _relativePosition = position;
@@ -513,7 +514,7 @@ void Widget::RemoveFromParent()
 {
     if (const std::shared_ptr<Widget> parent = GetParentWidget())
     {
-        parent->RemoveChild(std::static_pointer_cast<Widget>(shared_from_this()));
+        parent->RemoveChild(SharedFromThis());
     }
 }
 
@@ -569,14 +570,66 @@ void Widget::RebuildLayout()
         }
     }
 
-    if (IsCollisionEnabled())
+    UpdateCollision();
+
+    _isLayoutDirty = false;
+}
+
+void Widget::ForceRebuildLayout(bool recursive /*= false*/)
+{
+    if (IsCollapsed())
     {
-        HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGridFor(SharedFromThis()).value();
-        hitTestGrid.RemoveElement(this);
-        hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+        return;
+    }
+
+    // todo resizing window does not trigger update of desired size because 
+    for (const std::shared_ptr<Widget>& widget : _children)
+    {
+        widget->ForceUpdateDesiredSize(recursive);
+    }
+
+    RebuildLayoutInternal();
+
+    UpdateCollision();
+
+    if (recursive)
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->ForceRebuildLayout(recursive);
+        }
+    }
+    else
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->RebuildLayout();
+        }
     }
 
     _isLayoutDirty = false;
+}
+
+void Widget::UpdateCollision(bool recursive /*= false*/)
+{
+    if (IsCollisionEnabled())
+    {
+        if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
+        {
+            HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGridFor(SharedFromThis()).value();
+
+            hitTestGrid.RemoveElement(this);
+            hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+        }
+    }
+
+    if (recursive)
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->UpdateCollision(recursive);
+        }
+    }
 }
 
 std::shared_ptr<Widget> Widget::GetParentWidget() const
@@ -629,13 +682,7 @@ StaticMeshInstance& Widget::GetQuadMesh() const
 
 void Widget::DestroyWidget()
 {
-    if (IsCollisionEnabled())
-    {
-        if (const std::shared_ptr<Window> window = GetParentWindow())
-        {
-            window->GetHitTestGridFor(SharedFromThis()).value().get().RemoveElement(this);
-        }
-    }
+    SetCollisionEnabledInternal(false);
 
     for (const std::shared_ptr<Widget>& child : _children)
     {
@@ -647,7 +694,7 @@ void Widget::DestroyWidget()
 
     if (const std::shared_ptr<Widget> parent = GetParentWidget())
     {
-        parent->RemoveChild(std::static_pointer_cast<Widget>(shared_from_this()));
+        parent->RemoveChild(SharedFromThis());
     }
 
     OnDestroyed.Broadcast();
@@ -694,6 +741,28 @@ EWidgetFillMode Widget::GetFillMode() const
     return _fillMode;
 }
 
+void Widget::SetConstrainedToParent(bool value)
+{
+    if (value == _isConstrainedToParent)
+    {
+        return;
+    }
+
+    _isConstrainedToParent = value;
+
+    UpdateBoundingBox();
+
+    for (const std::shared_ptr<Widget> child : _children)
+    {
+        child->SetConstrainedToParent(value);
+    }
+}
+
+bool Widget::IsConstrainedToParent() const
+{
+    return _isConstrainedToParent;
+}
+
 WidgetRenderingProxy& Widget::GetRenderingProxy() const
 {
     return *RenderingProxy.get();
@@ -704,164 +773,84 @@ const BoundingBox2D& Widget::GetBoundingBox() const
     return _boundingBox;
 }
 
-void Widget::Pressed(PassKey<Window>)
+void Widget::SetInputCompatibility(EWidgetInputCompatibility value)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnPressedInternal();
-
-    OnPressed.Broadcast();
+    _inputCompatibility = value;
 }
 
-void Widget::Released(PassKey<Window>)
+EWidgetInputCompatibility Widget::GetInputCompatibility() const
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnReleasedInternal();
-
-    OnReleased.Broadcast();
+    return _inputCompatibility;
 }
 
-void Widget::HoverStarted(PassKey<Window>)
+void Widget::EnableInputCompatibility(EWidgetInputCompatibility value)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnHoverStartedInternal();
-
-    OnHoverStarted.Broadcast();
+    _inputCompatibility |= value;
 }
 
-void Widget::HoverEnded(PassKey<Window>)
+void Widget::DisableInputCompatibility(EWidgetInputCompatibility value)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnHoverEndedInternal();
-
-    OnHoverEnded.Broadcast();
+    _inputCompatibility &= ~value;
 }
 
-void Widget::DragStarted(PassKey<Window>)
+bool Widget::IsInputCompatible(EWidgetInputCompatibility value) const
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnDragStartedInternal();
-
-    OnDragStarted.Broadcast();
+    return HasFlags(_inputCompatibility, value);
 }
 
-void Widget::DragEnded(PassKey<Window>)
+void Widget::CallPressed(PassKey<Window>)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnDragEndedInternal();
-
-    OnDragEnded.Broadcast();
+    Pressed();
 }
 
-void Widget::RightClickPressed(PassKey<Window>)
+void Widget::CallReleased(PassKey<Window>)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnRightClickPressedInternal();
-
-    OnRightClickPressed.Broadcast();
+    Released();
 }
 
-void Widget::RightClickReleased(PassKey<Window>)
+void Widget::CallHoverStarted(PassKey<Window>)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnRightClickReleasedInternal();
-
-    OnRightClickReleased.Broadcast();
+    HoverStarted();
 }
 
-void Widget::MiddleClickPressed(PassKey<Window>)
+void Widget::CallHoverEnded(PassKey<Window>)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnMiddleClickPressedInternal();
-
-    OnMiddleClickPressed.Broadcast();
+    HoverEnded();
 }
 
-void Widget::MiddleClickReleased(PassKey<Window>)
+void Widget::CallDragStarted(PassKey<Window>)
 {
-    if (!IsEnabled())
-    {
-        return;
-    }
-
-    OnMiddleClickReleasedInternal();
-
-    OnMiddleClickReleased.Broadcast();
+    DragStarted();
 }
 
-void Widget::ForceRebuildLayout(bool recursive /*= false*/)
+void Widget::CallDragEnded(PassKey<Window>)
 {
-    if (IsCollapsed())
-    {
-        return;
-    }
-    
-    // todo resizing window does not trigger update of desired size because 
-    for (const std::shared_ptr<Widget>& widget : _children)
-    {
-        widget->ForceUpdateDesiredSize(recursive);
-    }
-    
-    RebuildLayoutInternal();
+    DragEnded();
+}
 
-    if (IsCollisionEnabled())
-    {
-        HitTestGrid<Widget*>& hitTestGrid = GetParentWindow()->GetHitTestGridFor(SharedFromThis()).value().get();
-        hitTestGrid.RemoveElement(this);
-        hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
-    }
+void Widget::CallRightClickPressed(PassKey<Window>)
+{
+    RightClickPressed();
+}
 
-    if (recursive)
-    {
-        for (const std::shared_ptr<Widget>& widget : _children)
-        {
-            widget->ForceRebuildLayout(recursive);
-        }
-    }
-    else
-    {
-        for (const std::shared_ptr<Widget>& widget : _children)
-        {
-            widget->RebuildLayout();
-        }
-    }
+void Widget::CallRightClickReleased(PassKey<Window>)
+{
+    RightClickReleased();
+}
 
-    _isLayoutDirty = false;
+void Widget::CallMiddleClickPressed(PassKey<Window>)
+{
+    MiddleClickPressed();
+}
+
+void Widget::CallMiddleClickReleased(PassKey<Window>)
+{
+    MiddleClickReleased();
+}
+
+void Widget::CallScrolled(int32 value, PassKey<Window>)
+{
+    Scrolled(value);
 }
 
 void Widget::RebuildLayoutInternal()
@@ -906,9 +895,9 @@ void Widget::UpdateDesiredSize()
     }
 
     const Vector2 oldDesiredSize = GetDesiredSize();
-    
+
     UpdateDesiredSizeInternal();
-    
+
     if (oldDesiredSize != GetDesiredSize())
     {
         InvalidateTree();
@@ -963,7 +952,7 @@ bool Widget::InitializeRenderingProxy()
     return RenderingProxy->Initialize();
 }
 
-void Widget::OnFocusChanged(bool focused)
+void Widget::OnFocusChangedInternal(bool focused)
 {
 }
 
@@ -971,16 +960,14 @@ void Widget::OnTransformChanged()
 {
     UpdateMaterialParameters();
 
-    _boundingBox = BoundingBox2D(GetPositionWS(), GetSizeWS());
-
-    UpdateWidgetRect();
+    UpdateBoundingBox();
 
     GetRenderingProxy().OnTransformChanged();
 
     for (const std::shared_ptr<Widget>& widget : GetChildren())
     {
         widget->OnTransformChanged();
-    } 
+    }
 }
 
 Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
@@ -994,13 +981,69 @@ Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
     return anchorPosition;
 }
 
+void Widget::SetVisibilityInternal(bool value, bool recursive /*= false*/)
+{
+    _state = value ? _state | EWidgetState::Visible : _state & ~EWidgetState::Visible;
+
+    if (recursive)
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->SetVisibilityInternal(value, recursive);
+        }
+    }
+}
+
+void Widget::SetCollisionEnabledInternal(bool value, bool recursive /*= false*/)
+{
+    const bool wasCollisionEnabled = HasFlags(_state, EWidgetState::CollisionEnabled);
+    if (value == wasCollisionEnabled)
+    {
+        return;
+    }
+
+    _state = value ? _state | EWidgetState::CollisionEnabled : _state & ~EWidgetState::CollisionEnabled;
+
+    if (!IsLayoutDirty() || wasCollisionEnabled && !value)
+    {
+        // If layout is dirty, we will update the hit test grid when rebuilding the layout
+        if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
+        {
+            const auto hitTestGrid = parentWindow->GetHitTestGridFor(SharedFromThis());
+            if (hitTestGrid.has_value())
+            {
+                HitTestGrid<Widget*>& grid = hitTestGrid.value();
+                if (value)
+                {
+                    grid.InsertElement(this, _boundingBox, GWidgetComparator);
+                }
+                else
+                {
+                    grid.RemoveElement(this);
+                }
+            }
+        }
+    }
+
+    if (recursive)
+    {
+        for (const std::shared_ptr<Widget>& widget : _children)
+        {
+            widget->SetCollisionEnabledInternal(value, recursive);
+        }
+    }
+}
+
 void Widget::EnableCollisionForTree()
 {
     if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
     {
-        if (HasFlags(_state, EWidgetState::CollisionEnabled) && !HasFlags(_state, EWidgetState::Collapsed))
+        if (!IsCollisionEnabled())
         {
-            parentWindow->GetHitTestGridFor(SharedFromThis()).value().get().InsertElement(this, _boundingBox, GWidgetComparator);
+            if (HasFlags(_desiredState, EWidgetState::CollisionEnabled))
+            {
+                SetCollisionEnabledInternal(true);
+            }
         }
 
         for (const std::shared_ptr<Widget>& child : GetChildren())
@@ -1012,14 +1055,11 @@ void Widget::EnableCollisionForTree()
 
 void Widget::DisableCollisionForTree()
 {
-    if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
-    {
-        parentWindow->GetHitTestGridFor(SharedFromThis()).value().get().RemoveElement(this);
+    SetCollisionEnabledInternal(false);
 
-        for (const std::shared_ptr<Widget>& child : GetChildren())
-        {
-            child->DisableCollisionForTree();
-        }
+    for (const std::shared_ptr<Widget>& child : GetChildren())
+    {
+        child->DisableCollisionForTree();
     }
 }
 
@@ -1034,14 +1074,7 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
 
     if (oldWindow != nullptr)
     {
-        if (IsCollisionEnabled())
-        {
-            const auto hitTestGrid = oldWindow->GetHitTestGridFor(SharedFromThis());
-            if (hitTestGrid.has_value())
-            {
-                hitTestGrid.value().get().RemoveElement(this);
-            }
-        }
+        SetCollisionEnabledInternal(false);
     }
 
     UpdateWidgetRect();
@@ -1054,6 +1087,7 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
 
 void Widget::OnChildAdded(const std::shared_ptr<Widget>& child)
 {
+    child->SetConstrainedToParent(IsConstrainedToParent());
 }
 
 void Widget::OnChildRemoved(const std::shared_ptr<Widget>& child)
@@ -1076,60 +1110,79 @@ void Widget::OnRemovedFromParent(const std::shared_ptr<Widget>& parent)
     _parentWidget.reset();
 }
 
-void Widget::OnPressedInternal()
+bool Widget::OnPressedInternal()
 {
     WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
     assert(parameter != nullptr);
 
     parameter->Flags |= WidgetPerPassConstants::EWidgetFlags::Pressed;
+
+    return true;
 }
 
-void Widget::OnReleasedInternal()
+bool Widget::OnReleasedInternal()
 {
     WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
     assert(parameter != nullptr);
 
     parameter->Flags &= ~WidgetPerPassConstants::EWidgetFlags::Pressed;
+
+    return true;
 }
 
-void Widget::OnHoverStartedInternal()
+bool Widget::OnHoverStartedInternal()
 {
     WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
     assert(parameter != nullptr);
 
     parameter->Flags |= WidgetPerPassConstants::EWidgetFlags::Hovered;
+
+    return true;
 }
 
-void Widget::OnHoverEndedInternal()
+bool Widget::OnHoverEndedInternal()
 {
     WidgetPerPassConstants* parameter = _material->GetParameter<WidgetPerPassConstants>("GWidgetConstants");
     assert(parameter != nullptr);
 
     parameter->Flags &= ~WidgetPerPassConstants::EWidgetFlags::Hovered;
+
+    return true;
 }
 
-void Widget::OnDragStartedInternal()
+bool Widget::OnDragStartedInternal()
 {
+    return false;
 }
 
-void Widget::OnDragEndedInternal()
+bool Widget::OnDragEndedInternal()
 {
+    return false;
 }
 
-void Widget::OnRightClickPressedInternal()
+bool Widget::OnRightClickPressedInternal()
 {
+    return false;
 }
 
-void Widget::OnRightClickReleasedInternal()
+bool Widget::OnRightClickReleasedInternal()
 {
+    return false;
 }
 
-void Widget::OnMiddleClickPressedInternal()
+bool Widget::OnMiddleClickPressedInternal()
 {
+    return false;
 }
 
-void Widget::OnMiddleClickReleasedInternal()
+bool Widget::OnMiddleClickReleasedInternal()
 {
+    return false;
+}
+
+bool Widget::OnScrolledInternal(int32 value)
+{
+    return false;
 }
 
 void Widget::UpdateMaterialParameters() const
@@ -1138,6 +1191,50 @@ void Widget::UpdateMaterialParameters() const
     assert(parameter != nullptr);
 
     parameter->Transform = _quadTransform * GetTransformWS();
+}
+
+void Widget::UpdateBoundingBox()
+{
+    _boundingBox = BoundingBox2D(GetPositionWS(), GetSizeWS());
+    _isBoundingBoxValid = true;
+
+    if (IsConstrainedToParent())
+    {
+        if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+        {
+            if (parentWidget->_isBoundingBoxValid)
+            {
+                const BoundingBox2D& parentBoundingBox = parentWidget->GetBoundingBox();
+                const std::optional<BoundingBox2D> intersection = BoundingBox2D::Intersection(
+                    _boundingBox, parentBoundingBox);
+                if (intersection.has_value())
+                {
+                    _boundingBox = intersection.value();
+                    UpdateWidgetRect();
+
+                    if (HasFlags(_desiredState, EWidgetState::CollisionEnabled))
+                    {
+                        SetCollisionEnabledInternal(true, false);
+                    }
+
+                    if (HasFlags(_desiredState, EWidgetState::Visible))
+                    {
+                        SetVisibilityInternal(true, false);
+                    }
+                }
+                else
+                {
+                    _isBoundingBoxValid = false;
+                    SetCollisionEnabledInternal(false, true);
+                    SetVisibilityInternal(false, true);
+                }
+            }
+        }
+    }
+    else
+    {
+        UpdateWidgetRect();
+    }
 }
 
 void Widget::UpdateWidgetRect()
@@ -1151,5 +1248,137 @@ void Widget::UpdateWidgetRect()
         _widgetRect.top = static_cast<LONG>(maxSS.y);
         _widgetRect.right = static_cast<LONG>(maxSS.x);
         _widgetRect.bottom = static_cast<LONG>(minSS.y);
+    }
+}
+
+void Widget::Pressed()
+{
+    if (IsEnabled() && IsInputCompatible(EWidgetInputCompatibility::LeftClick) && OnPressedInternal())
+    {
+        OnPressed.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->Pressed();
+    }
+}
+
+void Widget::Released()
+{
+    if (IsEnabled() && OnReleasedInternal())
+    {
+        OnReleased.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->Released();
+    }
+}
+
+void Widget::HoverStarted()
+{
+    if (IsEnabled() && IsInputCompatible(EWidgetInputCompatibility::Hover) && OnHoverStartedInternal())
+    {
+        OnHoverStarted.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->HoverStarted();
+    }
+}
+
+void Widget::HoverEnded()
+{
+    if (IsEnabled() && OnHoverEndedInternal())
+    {
+        OnHoverEnded.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->HoverEnded();
+    }
+}
+
+void Widget::DragStarted()
+{
+    if (IsEnabled() && IsInputCompatible(EWidgetInputCompatibility::Drag) && OnDragStartedInternal())
+    {
+        OnDragStarted.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->DragStarted();
+    }
+}
+
+void Widget::DragEnded()
+{
+    if (IsEnabled() && OnDragEndedInternal())
+    {
+        OnDragEnded.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->DragEnded();
+    }
+}
+
+void Widget::RightClickPressed()
+{
+    if (IsEnabled() && IsInputCompatible(EWidgetInputCompatibility::RightClick) && OnRightClickPressedInternal())
+    {
+        OnRightClickPressed.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->RightClickPressed();
+    }
+}
+
+void Widget::RightClickReleased()
+{
+    if (IsEnabled() && OnRightClickReleasedInternal())
+    {
+        OnRightClickReleased.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->RightClickReleased();
+    }
+}
+
+void Widget::MiddleClickPressed()
+{
+    if (IsEnabled() && IsInputCompatible(EWidgetInputCompatibility::MiddleClick) && OnMiddleClickPressedInternal())
+    {
+        OnMiddleClickPressed.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->MiddleClickPressed();
+    }
+}
+
+void Widget::MiddleClickReleased()
+{
+    if (IsEnabled() && OnMiddleClickReleasedInternal())
+    {
+        OnMiddleClickReleased.Broadcast();
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->MiddleClickReleased();
+    }
+}
+
+void Widget::Scrolled(int32 value)
+{
+    if (IsEnabled() && IsInputCompatible(EWidgetInputCompatibility::Scroll) && OnScrolledInternal(value))
+    {
+        OnScrolled.Broadcast(value);
+    }
+    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    {
+        parentWidget->Scrolled(value);
     }
 }

@@ -1,10 +1,11 @@
 ﻿#pragma once
 
-#include <filesystem>
-#include <fstream>
-
 #include "ReflectionInitializer.h"
 #include "ReflectionParser.h"
+
+#include <filesystem>
+#include <fstream>
+#include <unordered_map>
 
 class ReflectionGenerator
 {
@@ -27,4 +28,6 @@ private:
 
     ReflectionParser _parser;
     ReflectionInitializer _reflectionInitializer;
+
+    std::unordered_map<std::string, TypeInfo*> _nameToTypeInfoMap;
 };

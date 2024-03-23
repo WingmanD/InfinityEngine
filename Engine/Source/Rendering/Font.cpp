@@ -10,7 +10,7 @@ Font::Font()
     SetImporterType(FontImporter::StaticType());
 }
 
-Font::Font(std::wstring name) : Asset(std::move(name))
+Font::Font(Name name) : Asset(std::move(name))
 {
 }
 
@@ -84,7 +84,7 @@ bool Font::Initialize()
                                                          descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontRegular == nullptr)
     {
-        LOG(L"Failed to load regular font {}!", GetName());
+        LOG(L"Failed to load regular font {}!", GetName().ToString());
         return false;
     }
 
@@ -96,7 +96,7 @@ bool Font::Initialize()
                                                       descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontBold == nullptr)
     {
-        LOG(L"Failed to load bold font {}!", GetName());
+        LOG(L"Failed to load bold font {}!", GetName().ToString());
         return false;
     }
 
@@ -108,7 +108,7 @@ bool Font::Initialize()
                                                         descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontItalic == nullptr)
     {
-        LOG(L"Failed to load italic font {}!", GetName());
+        LOG(L"Failed to load italic font {}!", GetName().ToString());
         return false;
     }
 
@@ -120,7 +120,7 @@ bool Font::Initialize()
                                                                descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontStrikethrough == nullptr)
     {
-        LOG(L"Failed to load strikethrough font {}!", GetName());
+        LOG(L"Failed to load strikethrough font {}!", GetName().ToString());
         return false;
     }
 
@@ -132,7 +132,7 @@ bool Font::Initialize()
                                                            descriptorHeap->GetGPUHeapResourceHandle(heapHandle));
     if (_fontUnderline == nullptr)
     {
-        LOG(L"Failed to load underline font {}!", GetName());
+        LOG(L"Failed to load underline font {}!", GetName().ToString());
         return false;
     }
 
@@ -235,7 +235,7 @@ std::vector<std::shared_ptr<Asset>> Font::Import(const std::shared_ptr<Importer>
         return {};
     }
 
-    std::shared_ptr<Font> font = assetManager.NewAsset<Font>(Util::ToWString(name));
+    std::shared_ptr<Font> font = assetManager.NewAsset<Font>(Name(Util::ToWString(name)));
     font->_bitmapPathBase = fontPath / legalName;
     if (!font->Initialize())
     {
@@ -243,7 +243,7 @@ std::vector<std::shared_ptr<Asset>> Font::Import(const std::shared_ptr<Importer>
         return {};
     }
 
-    font->SetName(Util::ToWString(name));
+    font->SetName(Name(Util::ToWString(name)));
 
     return {font};
 }

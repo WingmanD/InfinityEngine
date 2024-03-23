@@ -132,9 +132,9 @@ void EditableTextBox::RebuildLayoutInternal()
     OnCursorPositionChanged();
 }
 
-void EditableTextBox::OnFocusChanged(bool focused)
+void EditableTextBox::OnFocusChangedInternal(bool focused)
 {
-    TextBox::OnFocusChanged(focused);
+    TextBox::OnFocusChangedInternal(focused);
 
     const std::shared_ptr<Caret> caret = _caret.lock();
     InputSubsystem& inputSubsystem = InputSubsystem::Get();

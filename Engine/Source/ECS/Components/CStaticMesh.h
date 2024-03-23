@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "AssetPtr.h"
 #include "Component.h"
+#include "AssetPtr.h"
 #include "Rendering/StaticMesh.h"
 #include "CStaticMesh.reflection.h"
 
@@ -11,9 +11,7 @@ class CStaticMesh : public Component
     GENERATED()
 
 public:
+    PROPERTY(Edit, Serialize)
     AssetPtr<StaticMesh> Mesh;
     // todo transform
-
-public:
-    CStaticMesh() = default;
 };

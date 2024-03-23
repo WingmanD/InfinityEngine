@@ -1,18 +1,16 @@
 ﻿#include "Asset.h"
-
-#include <fstream>
-
 #include "AssetPtrBase.h"
 #include "Importer.h"
 #include "Engine/Subsystems/AssetManager.h"
 #include "Rendering/Widgets/Button.h"
 #include "Rendering/Widgets/FlowBox.h"
 #include "Rendering/Widgets/TextBox.h"
+#include <fstream>
 
-Asset::Asset(std::wstring name) : _name(std::move(name))
+Asset::Asset(Name name) : _name(name)
 {
     // todo ask AssetManager for a new ID
-    _id = std::hash<std::wstring>{}(_name);
+    _id = _name.GetID();
 }
 
 bool Asset::Initialize()
@@ -63,7 +61,7 @@ uint64 Asset::GetAssetID() const
     return _id;
 }
 
-void Asset::SetName(const std::wstring& name)
+void Asset::SetName(Name name)
 {
     _name = name;
 
@@ -71,7 +69,7 @@ void Asset::SetName(const std::wstring& name)
     MarkDirtyForAutosave();
 }
 
-const std::wstring& Asset::GetName() const
+Name Asset::GetName() const
 {
     return _name;
 }
@@ -94,25 +92,25 @@ bool Asset::Load()
         return true;
     }
 
-    LOG(L"Loading asset {}...", _name);
+    LOG(L"Loading asset {}...", _name.ToString());
 
     std::ifstream file(_assetPath, std::ios::binary);
     if (!file.is_open())
     {
-        LOG(L"Failed to open file {} for reading (asset {})!", _assetPath.wstring(), _name);
+        LOG(L"Failed to open file {} for reading (asset {})!", _assetPath.wstring(), _name.ToString());
         return false;
     }
 
     MemoryReader reader;
     if (!reader.ReadFromFile(file))
     {
-        LOG(L"Failed to read asset {} from file {}!", _name, _assetPath.wstring());
+        LOG(L"Failed to read asset {} from file {}!", _name.ToString(), _assetPath.wstring());
         return false;
     }
 
     if (!Deserialize(reader))
     {
-        LOG(L"Failed to deserialize asset {} from file {}!", _name, _assetPath.wstring());
+        LOG(L"Failed to deserialize asset {} from file {}!", _name.ToString(), _assetPath.wstring());
         return false;
     }
 
@@ -134,7 +132,7 @@ bool Asset::Load()
 
     if (!Initialize())
     {
-        LOG(L"Failed to initialize asset {}!", _name);
+        LOG(L"Failed to initialize asset {}!", _name.ToString());
         DEBUG_BREAK();
         return false;
     }
@@ -151,7 +149,7 @@ bool Asset::Save() const
 
     if (_assetPath.empty())
     {
-        LOG(L"Asset {} has no asset path!", _name);
+        LOG(L"Asset {} has no asset path!", _name.ToString());
         return false;
     }
 
@@ -166,7 +164,7 @@ bool Asset::Save() const
     Serialize(writer);
     if (!writer.WriteToFile(file))
     {
-        LOG(L"Failed to write asset {} to file {}!", _name, _assetPath.wstring());
+        LOG(L"Failed to write asset {} to file {}!", _name.ToString(), _assetPath.wstring());
         return false;
     }
 
@@ -271,7 +269,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
         LOG(L"Imported assets: ");
         for (const std::shared_ptr<Asset>& asset : importedAssets)
         {
-            LOG(L"{}", asset->GetName());
+            LOG(L"{}", asset->GetName().ToString());
         }
 
         verticalBox->DestroyWidget();
@@ -285,7 +283,7 @@ std::vector<std::shared_ptr<Asset>> Asset::Import(const std::shared_ptr<Importer
     return {};
 }
 
-void Asset::OnPropertyChanged(const std::wstring& propertyName)
+void Asset::OnPropertyChanged(Name propertyName)
 {
     MarkDirtyForAutosave();
 }

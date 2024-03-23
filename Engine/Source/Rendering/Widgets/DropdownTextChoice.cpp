@@ -23,7 +23,7 @@ bool DropdownTextChoice::Initialize()
     return true;
 }
 
-std::shared_ptr<TextBox> DropdownTextChoice::GetTextBox()
+std::shared_ptr<TextBox> DropdownTextChoice::GetTextBox() const
 {
     return _textBox.lock();
 }

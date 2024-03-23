@@ -1,45 +1,119 @@
 ﻿#include "World.h"
 
+World::World() : _eventQueue(this)
+{
+}
+
+void World::CreateEntityAsync(const Archetype& archetype)
+{
+    _eventQueue.Enqueue([this, archetype](World* world)
+    {
+        CreateEntity(archetype);
+    });
+}
+
+void World::CreateEntityAsync(const Archetype& archetype, uint32 count)
+{
+    _eventQueue.Enqueue([this, archetype, count](World* world)
+    {
+        for (uint32 i = 0; i < count; ++i)
+        {
+            CreateEntity(archetype);
+        }
+    });
+}
+
+void World::DestroyEntityAsync(Entity& entity)
+{
+    _eventQueue.Enqueue([this, &entity](World* world)
+    {
+        DestroyEntity(entity);
+    });
+}
+
 Entity& World::CreateEntity(const Archetype& archetype)
 {
-    EntityList& entityList = _entityListGraph.GetOrCreateEntityListFor(archetype);
+    EntityList& entityList = GetEntityList(archetype);
 
     Entity& entity = *entityList.AddDefault();
-    for (Type* type : archetype.GetComponentTypes())
+    for (const Archetype::QualifiedComponentType& qualifiedType : archetype.GetComponentTypes())
     {
-        AddComponent(entity, *type);
+        AddComponentInternal(entity, *qualifiedType.Type, qualifiedType.Name);
     }
 
     return entity;
 }
 
-Entity& World::RegisterEntity(const Archetype& archetype, Entity&& entity)
+void World::CreateEntities(const Archetype& archetype, uint32 count)
 {
-    EntityList& entityList = _entityListGraph.GetOrCreateEntityListFor(archetype);
-    return *entityList.Emplace(std::move(entity));
+    for (uint32 i = 0; i < count; ++i)
+    {
+        CreateEntity(archetype);
+    }
 }
 
-void World::DestroyEntity(const Archetype& archetype, Entity& entity)
+void World::DestroyEntity(Entity& entity)
 {
-    EntityList& entityList = _entityListGraph.GetOrCreateEntityListFor(archetype);
+    const EntityListGraph::EntityListResult result = _entityListGraph.GetOrCreateEntityListFor(Archetype(entity));
+    EntityList& entityList = *result.List;
+
     entityList.Remove(entity);
 }
 
-SharedObjectPtr<Component> World::AddComponent(Entity& entity, Type& componentType)
+SharedObjectPtr<Component> World::AddComponent(Entity& entity, Type& componentType, Name name)
 {
-    const SharedObjectPtr<Component> newComponent = _componentTypeMap.NewObject<Component>(componentType);
-    entity.AddComponent(newComponent, {});
+    Archetype archetypeBefore = Archetype(entity);
+    const SharedObjectPtr<Component> newComponent = AddComponentInternal(entity, componentType, name);
+    Archetype archetypeAfter = Archetype(entity);
+
+    EntityList& entityListBefore = GetEntityList(archetypeBefore);
+    EntityList& entityListAfter = GetEntityList(archetypeAfter);
+
+    entityListAfter.Add(entity);
+    entityListBefore.Remove(entity);
 
     return newComponent;
 }
 
 void World::RemoveComponent(Entity& entity, uint16 index)
 {
+    Archetype archetypeBefore = Archetype(entity);
     entity.RemoveComponent(index, {});
+    Archetype archetypeAfter = Archetype(entity);
+
+    EntityList& entityListBefore = GetEntityList(archetypeBefore);
+    EntityList& entityListAfter = GetEntityList(archetypeAfter);
+
+    entityListAfter.Add(entity);
+    entityListBefore.Remove(entity);
+}
+
+void World::Query(ECSQuery& query, const Archetype& archetype)
+{
+    _entityListGraph.Query(query, archetype);
+}
+
+void World::Initialize()
+{
 }
 
 void World::Tick(double deltaTime, PassKey<GameplaySubsystem>)
 {
+    _eventQueue.ProcessEvents();
+
+    _systemScheduler.Tick(deltaTime);
+
+    _eventQueue.ProcessEvents();
+}
+
+void World::Shutdown()
+{
+    _systemScheduler.Shutdown();
+}
+
+EventQueue<World>& World::GetEventQueue()
+{
+    return _eventQueue;
 }
 
 void World::SetValidImplementation(bool valid)
@@ -50,4 +124,31 @@ void World::SetValidImplementation(bool valid)
 bool World::IsValidImplementation() const
 {
     return _isValid;
+}
+
+SharedObjectPtr<Component> World::AddComponentInternal(Entity& entity, Type& componentType, Name name)
+{
+    const SharedObjectPtr<Component> newComponent = _componentTypeMap.NewObject<Component>(componentType);
+    newComponent->SetName(name, {});
+    entity.AddComponent(newComponent, {});
+
+    return newComponent;
+}
+
+EntityList& World::GetEntityList(const Archetype& archetype)
+{
+    const EntityListGraph::EntityListResult result = _entityListGraph.GetOrCreateEntityListFor(archetype);
+
+    if (result.WasCreated)
+    {
+        for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
+        {
+            if (system->GetArchetype().IsSubsetOf(archetype) || system->GetArchetype().IsSupersetOf(archetype))
+            {
+                system->UpdateQuery({});
+            }
+        }
+    }
+
+    return *result.List;
 }

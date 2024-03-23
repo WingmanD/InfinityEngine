@@ -21,7 +21,7 @@ DX12Shader::DX12Shader()
     SetImporterType(DX12ShaderImporter::StaticType());
 }
 
-DX12Shader::DX12Shader(const std::wstring& name) : Shader(name)
+DX12Shader::DX12Shader(Name name) : Shader(name)
 {
 }
 
@@ -64,7 +64,7 @@ bool DX12Shader::Recompile(bool immediate)
 
     DX12RenderingSubsystem& renderingSubsystem = dynamic_cast<DX12RenderingSubsystem&>(RenderingSubsystem::Get());
 
-    LOG(L"Compiling shader {}...", GetName());
+    LOG(L"Compiling shader {}...", GetName().ToString());
     const std::filesystem::path& importPath = GetImportPath();
 
     std::shared_ptr<RecompiledData> recompiledData = std::make_shared<RecompiledData>();
@@ -90,14 +90,14 @@ bool DX12Shader::Recompile(bool immediate)
 
     if (!ReflectShaderParameters(vertexShader.Get(), rootParameters, constantBufferParameterTypes))
     {
-        LOG(L"Failed to compile shader {} - failed to reflect vertex shader", GetName());
+        LOG(L"Failed to compile shader {} - failed to reflect vertex shader", GetName().ToString());
         _beingRecompiled = false;
         return false;
     }
 
     if (!ReflectShaderParameters(pixelShader.Get(), rootParameters, constantBufferParameterTypes))
     {
-        LOG(L"Failed to compile shader {} - failed to reflect pixel shader", GetName());
+        LOG(L"Failed to compile shader {} - failed to reflect pixel shader", GetName().ToString());
         return false;
     }
 
@@ -123,14 +123,14 @@ bool DX12Shader::Recompile(bool immediate)
 
     if (FAILED(hr))
     {
-        LOG(L"Failed to serialize root signature for shader {}!", GetName());
+        LOG(L"Failed to serialize root signature for shader {}!", GetName().ToString());
         _beingRecompiled = false;
         return false;
     }
 
     if (!Initialize())
     {
-        LOG(L"Failed to initialize shader {}!", GetName());
+        LOG(L"Failed to initialize shader {}!", GetName().ToString());
         _beingRecompiled = false;
         return false;
     }
@@ -143,7 +143,7 @@ bool DX12Shader::Recompile(bool immediate)
 
     if (FAILED(result))
     {
-        LOG(L"Failed to create root signature for shader {}!", GetName());
+        LOG(L"Failed to create root signature for shader {}!", GetName().ToString());
 
         _beingRecompiled = false;
         return false;
@@ -177,7 +177,7 @@ bool DX12Shader::Recompile(bool immediate)
     result = renderingSubsystem.GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&recompiledData->Pso));
     if (FAILED(result))
     {
-        LOG(L"Failed to create PSO for shader {}!", GetName());
+        LOG(L"Failed to create PSO for shader {}!", GetName().ToString());
         _beingRecompiled = false;
         return false;
     }
@@ -222,7 +222,7 @@ bool DX12Shader::Recompile(bool immediate)
         renderingSubsystem.GetEventQueue().Enqueue(lambda);
     }
 
-    LOG(L"Shader {} compiled successfully!", GetName());
+    LOG(L"Shader {} compiled successfully!", GetName().ToString());
 
     return true;
 }
@@ -307,7 +307,7 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
 
     if (lastWriteTime < last_write_time(GetImportPath()))
     {
-        LOG(L"Shader {} is out of date!", GetName());
+        LOG(L"Shader {} is out of date!", GetName().ToString());
         return Recompile(true);
     }
 
@@ -317,7 +317,7 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
         const HRESULT result = D3DCreateBlob(serializedRootSignatureSize, _serializedRootSignature.GetAddressOf());
         if (FAILED(result))
         {
-            LOG(L"Failed to create serialized root signature blob for shader {}!", GetName());
+            LOG(L"Failed to create serialized root signature blob for shader {}!", GetName().ToString());
             success = false;
         }
         else
@@ -332,7 +332,7 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
         const HRESULT result = D3DCreateBlob(vertexShaderSize, _vertexShader.GetAddressOf());
         if (FAILED(result))
         {
-            LOG(L"Failed to create vertex shader blob for shader {}!", GetName());
+            LOG(L"Failed to create vertex shader blob for shader {}!", GetName().ToString());
             success = false;
         }
         else
@@ -346,7 +346,7 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
         const HRESULT result = D3DCreateBlob(pixelShaderSize, _pixelShader.GetAddressOf());
         if (FAILED(result))
         {
-            LOG(L"Failed to create pixel shader blob for shader {}!", GetName());
+            LOG(L"Failed to create pixel shader blob for shader {}!", GetName().ToString());
             success = false;
         }
         else
@@ -366,7 +366,7 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
     {
         if (!Initialize())
         {
-            LOG(L"Failed to deserialize shader {}!", GetName());
+            LOG(L"Failed to deserialize shader {}!", GetName().ToString());
             return false;
         }
 
@@ -411,12 +411,12 @@ std::vector<std::shared_ptr<Asset>> DX12Shader::Import(const std::shared_ptr<Imp
 
     AssetManager& assetManager = AssetManager::Get();
 
-    std::shared_ptr<DX12Shader> shader = assetManager.NewAsset<DX12Shader>(path.stem().wstring());
+    std::shared_ptr<DX12Shader> shader = assetManager.NewAsset<DX12Shader>(Name(path.stem().wstring()));
     shader->SetImportPath(path);
 
     if (!shader->Recompile(true))
     {
-        LOG(L"Imported shader {} failed to compile!", shader->GetName());
+        LOG(L"Imported shader {} failed to compile!", shader->GetName().ToString());
     }
 
     shader->MarkDirtyForAutosave();
@@ -477,7 +477,7 @@ bool DX12Shader::InitializeRootSignature(const DX12RenderingSubsystem& rendering
 
     if (FAILED(result))
     {
-        LOG(L"Failed to create root signature for shader {}!", GetName());
+        LOG(L"Failed to create root signature for shader {}!", GetName().ToString());
 
         return false;
     }
@@ -519,7 +519,7 @@ bool DX12Shader::InitializePSO(const DX12RenderingSubsystem& renderingSubsystem)
     const HRESULT result = renderingSubsystem.GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&_pso));
     if (FAILED(result))
     {
-        LOG(L"Failed to create PSO for shader {}!", GetName());
+        LOG(L"Failed to create PSO for shader {}!", GetName().ToString());
         return false;
     }
 
@@ -535,7 +535,7 @@ bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12
 
     if (shaderReflection == nullptr)
     {
-        LOG(L"Failed to reflect shader {}!", GetName());
+        LOG(L"Failed to reflect shader {}!", GetName().ToString());
         return false;
     }
 
@@ -561,18 +561,18 @@ bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12
         case D3D_SIT_TEXTURE:
             {
                 // todo
-                LOG(L"Texture '{}' found in shader {}!", Util::ToWString(bindDesc.Name), GetName());
+                LOG(L"Texture '{}' found in shader {}!", Util::ToWString(bindDesc.Name), GetName().ToString());
                 break;
             }
         case D3D_SIT_SAMPLER:
             {
                 // todo
-                LOG(L"Sampler '{}' found in shader {}!", Util::ToWString(bindDesc.Name), GetName());
+                LOG(L"Sampler '{}' found in shader {}!", Util::ToWString(bindDesc.Name), GetName().ToString());
                 break;
             }
         default:
             {
-                LOG(L"Unsupported shader resource type '{}' in shader {}!", Util::ToWString(bindDesc.Name), GetName());
+                LOG(L"Unsupported shader resource type '{}' in shader {}!", Util::ToWString(bindDesc.Name), GetName().ToString());
                 break;
             }
         }
@@ -589,7 +589,7 @@ bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
     ID3D12ShaderReflectionConstantBuffer* cbReflection = shaderReflection->GetConstantBufferByIndex(bindDesc.BindPoint);
     if (cbReflection == nullptr)
     {
-        LOG(L"Failed to reflect constant buffer {} in shader {}!", Util::ToWString(bindDesc.Name), GetName());
+        LOG(L"Failed to reflect constant buffer {} in shader {}!", Util::ToWString(bindDesc.Name), GetName().ToString());
         return false;
     }
 
@@ -602,7 +602,7 @@ bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
         if (varReflection == nullptr)
         {
             LOG(L"Failed to reflect variable {} in constant buffer {} in shader {}!", i, Util::ToWString(bindDesc.Name),
-                GetName());
+                GetName().ToString());
             return false;
         }
 
@@ -613,7 +613,7 @@ bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
         const Type* type = TypeRegistry::Get().FindTypeByName(typeDesc.Name);
         if (type == nullptr)
         {
-            LOG(L"Failed to find type {} in shader {}!", Util::ToWString(typeDesc.Name), GetName());
+            LOG(L"Failed to find type {} in shader {}!", Util::ToWString(typeDesc.Name), GetName().ToString());
             return false;
         }
 

@@ -13,14 +13,14 @@
 
 std::shared_ptr<StaticMesh> UIStatics::GetUIQuadMesh()
 {
-    static std::weak_ptr mesh = AssetManager::Get().FindAssetByName<StaticMesh>(L"UIQuad");
+    static std::weak_ptr mesh = AssetManager::Get().FindAssetByName<StaticMesh>(Name(L"UIQuad"));
 
     return mesh.lock();
 }
 
 std::shared_ptr<Font> UIStatics::GetDefaultFont()
 {
-    static std::weak_ptr font = AssetManager::Get().FindAssetByName<Font>(L"Arial");
+    static std::weak_ptr font = AssetManager::Get().FindAssetByName<Font>(Name(L"Arial"));
 
     return font.lock();
 }

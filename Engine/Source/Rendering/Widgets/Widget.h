@@ -52,6 +52,19 @@ enum class EWidgetFillMode : uint8
 };
 ENABLE_ENUM_OPS(EWidgetFillMode)
 
+REFLECTED(BitField)
+enum class EWidgetInputCompatibility : uint8
+{
+    None = 0,
+    LeftClick = 1 << 0,
+    RightClick = 1 << 1,
+    MiddleClick= 1 << 2,
+    Hover = 1 << 3,
+    Drag = 1 << 4,
+    Scroll = 1 << 5
+};
+ENABLE_ENUM_OPS(EWidgetInputCompatibility)
+
 REFLECTED()
 class Widget : public Asset
 {
@@ -72,8 +85,12 @@ public:
 
     Delegate<> OnMiddleClickPressed;
     Delegate<> OnMiddleClickReleased;
+    
+    Delegate<int8> OnScrolled;
 
     Delegate<> OnDestroyed;
+    Delegate<> OnCollapsed;
+    Delegate<bool> OnFocusChanged;
 
 public:
     explicit Widget();
@@ -183,6 +200,8 @@ public:
     void RebuildLayout();
     void ForceRebuildLayout(bool recursive = false);
 
+    void UpdateCollision(bool recursive = false);
+
     [[nodiscard]] std::shared_ptr<Widget> GetParentWidget() const;
     std::shared_ptr<Widget> GetRootWidget();
     const RECT& GetRect() const;
@@ -204,26 +223,39 @@ public:
 
     void SetFillMode(EWidgetFillMode fillMode);
     EWidgetFillMode GetFillMode() const;
+
+    void SetConstrainedToParent(bool value);
+    bool IsConstrainedToParent() const;
     
     WidgetRenderingProxy& GetRenderingProxy() const;
 
     const BoundingBox2D& GetBoundingBox() const;
 
+    void SetInputCompatibility(EWidgetInputCompatibility value);
+    EWidgetInputCompatibility GetInputCompatibility() const;
+
+    void EnableInputCompatibility(EWidgetInputCompatibility value);
+    void DisableInputCompatibility(EWidgetInputCompatibility value);
+
+    bool IsInputCompatible(EWidgetInputCompatibility value) const;
+
 public:
-    void Pressed(PassKey<Window>);
-    void Released(PassKey<Window>);
+    void CallPressed(PassKey<Window>);
+    void CallReleased(PassKey<Window>);
 
-    void HoverStarted(PassKey<Window>);
-    void HoverEnded(PassKey<Window>);
+    void CallHoverStarted(PassKey<Window>);
+    void CallHoverEnded(PassKey<Window>);
 
-    void DragStarted(PassKey<Window>);
-    void DragEnded(PassKey<Window>);
+    void CallDragStarted(PassKey<Window>);
+    void CallDragEnded(PassKey<Window>);
 
-    void RightClickPressed(PassKey<Window>);
-    void RightClickReleased(PassKey<Window>);
+    void CallRightClickPressed(PassKey<Window>);
+    void CallRightClickReleased(PassKey<Window>);
 
-    void MiddleClickPressed(PassKey<Window>);
-    void MiddleClickReleased(PassKey<Window>);
+    void CallMiddleClickPressed(PassKey<Window>);
+    void CallMiddleClickReleased(PassKey<Window>);
+
+    void CallScrolled(int32 value, PassKey<Window>);
 
 protected:
     std::unique_ptr<WidgetRenderingProxy> RenderingProxy = nullptr;
@@ -236,11 +268,15 @@ protected:
     
     virtual bool InitializeRenderingProxy();
 
-    virtual void OnFocusChanged(bool focused);
+    virtual void OnFocusChangedInternal(bool focused);
 
     virtual void OnTransformChanged();
 
     Vector2 GetAnchorPosition(EWidgetAnchor anchor) const;
+
+    void SetVisibilityInternal(bool value, bool recursive = false);
+    void SetCollisionEnabledInternal(bool value, bool recursive = false);
+
 
     void EnableCollisionForTree();
     void DisableCollisionForTree();
@@ -253,24 +289,27 @@ protected:
     virtual void OnAddedToParent(const std::shared_ptr<Widget>& parent);
     virtual void OnRemovedFromParent(const std::shared_ptr<Widget>& parent);
 
-    virtual void OnPressedInternal();
-    virtual void OnReleasedInternal();
+    virtual bool OnPressedInternal();
+    virtual bool OnReleasedInternal();
 
-    virtual void OnHoverStartedInternal();
-    virtual void OnHoverEndedInternal();
+    virtual bool OnHoverStartedInternal();
+    virtual bool OnHoverEndedInternal();
 
-    virtual void OnDragStartedInternal();
-    virtual void OnDragEndedInternal();
+    virtual bool OnDragStartedInternal();
+    virtual bool OnDragEndedInternal();
 
-    virtual void OnRightClickPressedInternal();
-    virtual void OnRightClickReleasedInternal();
+    virtual bool OnRightClickPressedInternal();
+    virtual bool OnRightClickReleasedInternal();
 
-    virtual void OnMiddleClickPressedInternal();
-    virtual void OnMiddleClickReleasedInternal();
+    virtual bool OnMiddleClickPressedInternal();
+    virtual bool OnMiddleClickReleasedInternal();
+
+    virtual bool OnScrolledInternal(int32 value);
 
 private:
     static std::array<const Vector2, 9> _anchorPositionMap;
 
+    EWidgetState _desiredState = EWidgetState::Visible | EWidgetState::Enabled;
     EWidgetState _state = EWidgetState::Visible | EWidgetState::Enabled;
 
     PROPERTY(Edit, DisplayName = "Anchor")
@@ -282,8 +321,8 @@ private:
     PROPERTY(Edit, DisplayName = "Fill Mode")
     EWidgetFillMode _fillMode = EWidgetFillMode::None;
 
-    PROPERTY(Edit, DisplayName = "Should Ignore Child Desired Size")
-    bool _ignoreChildDesiredSize = false;
+    PROPERTY(Edit, DisplayName = "Input Compatibility")
+    EWidgetInputCompatibility _inputCompatibility = EWidgetInputCompatibility::None;
 
     std::shared_ptr<StaticMeshInstance> _quadMeshInstance;
 
@@ -297,6 +336,9 @@ private:
 
     std::vector<std::shared_ptr<Widget>> _children;
 
+    PROPERTY(Edit, DisplayName = "Constrain To Parent")
+    bool _isConstrainedToParent = false;
+    
     //PROPERTY(Edit, DisplayName = "Transform")
     Transform2D _transform;
 
@@ -313,6 +355,7 @@ private:
     Transform2D _quadTransform;
 
     BoundingBox2D _boundingBox;
+    bool _isBoundingBoxValid = false;
 
     RECT _widgetRect = {0, 0, 0, 0};
 
@@ -320,5 +363,23 @@ private:
 
 private:
     void UpdateMaterialParameters() const;
+    void UpdateBoundingBox();
     void UpdateWidgetRect();
+
+    void Pressed();
+    void Released();
+
+    void HoverStarted();
+    void HoverEnded();
+
+    void DragStarted();
+    void DragEnded();
+
+    void RightClickPressed();
+    void RightClickReleased();
+
+    void MiddleClickPressed();
+    void MiddleClickReleased();
+
+    void Scrolled(int32 value);
 };

@@ -1,4 +1,6 @@
 #include "AssetManager.h"
+#include "NameRegistry.h"
+#include "ProjectSettings.h"
 #include "Engine/Engine.h"
 #include "Rendering/StaticMesh.h"
 #include "Rendering/Widgets/UIStatics.h"
@@ -22,34 +24,29 @@ AssetManager::~AssetManager()
     _assetCache.close();
 }
 
-std::shared_ptr<Asset> AssetManager::NewAsset(const Type* type, const std::wstring& name)
+std::shared_ptr<Asset> AssetManager::NewAsset(const Type& type, Name name)
 {
-    if (type == nullptr)
-    {
-        return nullptr;
-    }
-
-    std::shared_ptr<Asset> asset = type->NewObject<Asset>();
+    std::shared_ptr<Asset> asset = type.NewObject<Asset>();
     asset->SetName(name);
     asset->SetAssetID(_idGenerator.GenerateID(), {});
 
     if (!asset->Initialize())
     {
-        LOG(L"Failed to initialize asset {}!", name);
+        LOG(L"Failed to initialize asset {}!", name.ToString());
         return nullptr;
     }
 
     if (!RegisterAsset(asset))
     {
-        LOG(L"Failed to register asset {}!", name);
+        LOG(L"Failed to register asset {}!", name.ToString());
         return nullptr;
     }
 
-    const std::filesystem::path assetPath = _assetCacheDirectory / (name + L".asset");
+    const std::filesystem::path assetPath = _assetCacheDirectory / (name.ToString() + L".asset");
     std::ofstream file(assetPath, std::ios::binary);
     if (!file.is_open())
     {
-        LOG(L"Failed to create file for asset {}!", name);
+        LOG(L"Failed to create file for asset {}!", name.ToString());
         return nullptr;
     }
     file.close();
@@ -80,7 +77,7 @@ void AssetManager::DeleteAsset(const std::shared_ptr<Asset>& asset)
     UnregisterAsset(asset);
     if (asset.use_count() != 1)
     {
-        LOG(L"Asset {} has been deleted, but there are still references to it in memory.", asset->GetName());
+        LOG(L"Asset {} has been deleted, but there are still references to it in memory.", asset->GetName().ToString());
     }
 }
 
@@ -139,19 +136,19 @@ bool AssetManager::RegisterAsset(const std::shared_ptr<Asset>& asset)
 
     if (asset->GetAssetID() == 0)
     {
-        LOG(L"Failed to register asset {} - asset id is 0!", asset->GetName());
+        LOG(L"Failed to register asset {} - asset id is 0!", asset->GetName().ToString());
         return false;
     }
 
     if (_assetMap.contains(asset->GetAssetID()))
     {
-        LOG(L"Failed to register asset {} - asset id {} is already registered!", asset->GetName(), asset->GetAssetID());
+        LOG(L"Failed to register asset {} - asset id {} is already registered!", asset->GetName().ToString(), asset->GetAssetID());
         return false;
     }
 
     if (_assetNameMap.contains(asset->GetName()))
     {
-        LOG(L"Failed to register asset {} - asset name {} is already registered!", asset->GetName(),
+        LOG(L"Failed to register asset {} - asset name {} is already registered!", asset->GetName().ToString(),
             asset->GetAssetID());
         return false;
     }
@@ -263,7 +260,7 @@ void AssetManager::RediscoverAssets()
     }
 }
 
-std::shared_ptr<Asset> AssetManager::FindAssetByName(const std::wstring& name) const
+std::shared_ptr<Asset> AssetManager::FindAssetByName(Name name) const
 {
     const auto it = _assetNameMap.find(name);
     if (it != _assetNameMap.end())
@@ -272,6 +269,16 @@ std::shared_ptr<Asset> AssetManager::FindAssetByName(const std::wstring& name) c
     }
 
     return nullptr;
+}
+
+std::shared_ptr<Asset> AssetManager::FindOrCreateAssetByName(const Type& type, Name name)
+{
+    if (const std::shared_ptr<Asset> asset = FindAssetByName(name))
+    {
+        return asset;
+    }
+
+    return NewAsset(type, name);
 }
 
 std::shared_ptr<Asset> AssetManager::FindAsset(uint64 id) const
@@ -293,8 +300,8 @@ const std::filesystem::path& AssetManager::GetProjectRootPath() const
 
 void AssetManager::LoadAlwaysLoadedAssets()
 {
-    // todo make a list of always loaded assets and load them here instead of this
     UIStatics::GetUIQuadMesh()->Load();
+    ProjectSettings::Get()->Load();
 }
 
 bool AssetManager::Initialize()
@@ -434,7 +441,6 @@ bool AssetManager::Load()
         asset->SetAssetPath(assetPath);
 
         // todo this is a problem - we should read description first, then create asset - when we delete asset type, we can't deserialize it, which breaks all other asset descriptions
-        LOG(L"Loading asset description {}...", assetPath.wstring());
         asset->LoadDescription(reader, {});
 
         if (exists(assetPath))
@@ -477,7 +483,6 @@ bool AssetManager::Save()
         writer << asset->GetAssetID();
         writer << asset->GetAssetPath();
 
-        LOG(L"Saving asset description {}...", asset->GetName());
         asset->SaveDescription(writer, {});
     }
     writer.WriteToFile(editorAssetMap);
@@ -491,10 +496,10 @@ void AssetManager::AutosaveAssets() const
     {
         if (const std::shared_ptr<const Asset> asset = FindAsset(assetID))
         {
-            LOG(L"Saving asset {}...", asset->GetName());
+            LOG(L"Saving asset {}...", asset->GetName().ToString());
             if (!asset->Save())
             {
-                LOG(L"Failed to save asset {}!", asset->GetName());
+                LOG(L"Failed to save asset {}!", asset->GetName().ToString());
             }
         }
     }

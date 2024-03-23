@@ -4,6 +4,7 @@
 #include <string>
 
 class Type;
+
 template <typename T>
 concept IsReflectedType = requires
 {

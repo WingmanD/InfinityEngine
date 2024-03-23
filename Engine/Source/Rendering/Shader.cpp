@@ -1,7 +1,7 @@
 ﻿#include "Shader.h"
 #include "MaterialParameterMap.h"
 
-Shader::Shader(const std::wstring& name) : Asset(name)
+Shader::Shader(Name name) : Asset(name)
 {
 }
 

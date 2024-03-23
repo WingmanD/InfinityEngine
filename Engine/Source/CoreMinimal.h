@@ -4,20 +4,57 @@
 #include <cstdint>
 #include <memory>
 
-struct ObjectDeleter;
-class Object;
+#ifdef _MSC_VER
+
+#define DEBUG_BREAK() \
+__debugbreak(); \
+__nop();
+
+#define DEBUG _DEBUG
+
+#endif
 
 template <typename Derived, typename Base>
 concept IsA = std::derived_from<Derived, Base>;
 
-template <typename T> requires std::is_base_of_v<Object, T>
-using UniqueObjectPtr = std::unique_ptr<T, ObjectDeleter>;
+template <typename Interface, typename... Args>
+struct FindSuperOfType;
 
-template <typename T> requires std::is_base_of_v<Object, T>
-using SharedObjectPtr = std::shared_ptr<T>;
+template <typename Interface, typename First, typename... Rest>
+struct FindSuperOfType<Interface, First, Rest...>
+{
+    using type = std::conditional_t<IsA<First, Interface>,
+                                    First,
+                                    typename FindSuperOfType<Interface, Rest...>::type>;
+};
 
-template <typename T> requires std::is_base_of_v<Object, T>
-using WeakObjectPtr = std::weak_ptr<T>;
+template <typename Interface>
+struct FindSuperOfType<Interface>
+{
+    using type = void;
+};
+
+template <typename T>
+concept IsContainer = requires(T t)
+{
+    t.begin();
+    t.end();
+};
+
+template <class T>
+concept IsSTDContainer = requires(const T& container)
+{
+    container.size();
+};
+
+template <class T>
+concept IsIEContainer = requires(const T& container)
+{
+    container.Count();
+};
+
+template <typename T>
+constexpr bool IsConst = std::is_const_v<std::remove_reference_t<T>>;
 
 typedef int8_t int8;
 typedef uint8_t uint8;

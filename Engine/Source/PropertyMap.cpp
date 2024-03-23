@@ -1,7 +1,7 @@
 ﻿#include "PropertyMap.h"
 #include <ranges>
 
-const std::wstring& PropertyBase::GetDisplayName() const
+Name PropertyBase::GetDisplayName() const
 {
     return _displayName;
 }
@@ -26,7 +26,7 @@ std::shared_ptr<Widget> PropertyBase::CreateWidget(const std::shared_ptr<Object>
     return nullptr;
 }
 
-void PropertyBase::SetDisplayName(const std::wstring& displayName)
+void PropertyBase::SetDisplayName(Name displayName)
 {
     _displayName = displayName;
 }

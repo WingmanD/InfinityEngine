@@ -52,7 +52,7 @@ bool DropdownAssetChoice::InitializeFromAssetInternal(const std::shared_ptr<Asse
 
     if (asset != nullptr)
     {
-        textWidget->SetText(asset->GetName());
+        textWidget->SetText(asset->GetName().ToString());
     }
     else
     {

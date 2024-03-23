@@ -1,59 +1,43 @@
 #pragma once
 
-#include <atomic>
+#include "moodycamel/concurrentqueue.h"
 
+/**
+ * A lock-free MPMC queue.
+ * This is a wrapper around moodycamel::ConcurrentQueue (https://github.com/cameron314/concurrentqueue).
+ * Licensed under the Simplified BSD License (BSD 2-Clause License).
+ * For full license text of the moodycamel::ConcurrentQueue, visit
+ * https://github.com/cameron314/concurrentqueue/blob/master/LICENSE.md
+ */
 template <typename T>
 class LockFreeQueue
 {
 public:
-    LockFreeQueue() : _head(nullptr), _tail(nullptr)
+    LockFreeQueue() = default;
+
+    LockFreeQueue(const LockFreeQueue&) = delete;
+    LockFreeQueue(LockFreeQueue&&) = delete;
+
+    LockFreeQueue& operator=(const LockFreeQueue&) = delete;
+    LockFreeQueue& operator=(LockFreeQueue&&) = delete;
+
+    ~LockFreeQueue() = default;
+
+    bool Enqueue(T&& value)
     {
+        return _queue.enqueue(value);
     }
 
-    void Enqueue(T&& value)
+    [[nodiscard]] bool Dequeue(T& value)
     {
-        Node* newNode = new Node(std::move(value), nullptr);
-        Node* prevTail = _tail.exchange(newNode, std::memory_order_acq_rel);
-        if (prevTail != nullptr)
-        {
-            prevTail->Next = newNode;
-        }
-        else
-        {
-            _head = newNode;
-        }
-    }
-
-    bool Dequeue(T& value)
-    {
-        Node* currentHead = _head.load(std::memory_order_acquire);
-        if (currentHead == nullptr)
-        {
-            return false;
-        }
-
-        _head = currentHead->Next;
-        if (currentHead->Next == nullptr)
-        {
-            _tail.store(nullptr, std::memory_order_release);
-        }
-        value = std::move(currentHead->Data);
-        delete currentHead;
-        return true;
+        return _queue.try_dequeue(value);
     }
 
     [[nodiscard]] bool IsEmpty() const
     {
-        return _head.load(std::memory_order_acquire) == nullptr;
+        return _queue.size_approx() == 0;
     }
 
 private:
-    struct Node
-    {
-        T Data;
-        Node* Next;
-    };
-
-    std::atomic<Node*> _head;
-    std::atomic<Node*> _tail;
+    moodycamel::ConcurrentQueue<T> _queue{};
 };

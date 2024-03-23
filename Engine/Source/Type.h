@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ObjectShared.h"
 #include "PropertyMap.h"
 #include "ReflectionTags.h"
 #include "ReflectionShared.h"
@@ -42,13 +43,12 @@ public:
         return id;
     }
 
-    std::shared_ptr<Object> NewObject() const;
+    SharedObjectPtr<Object> NewObject() const;
 
     template <typename T>
-    std::shared_ptr<T> NewObject() const
+    SharedObjectPtr<T> NewObject() const
     {
-        std::shared_ptr<Object> newObject = NewObject();
-        return std::dynamic_pointer_cast<T>(newObject);
+        return std::dynamic_pointer_cast<T>(NewObject());
     }
 
     SharedObjectPtr<Object> NewObject(BucketArrayBase& bucketArray) const;
@@ -56,8 +56,7 @@ public:
     template <typename T>
     SharedObjectPtr<T> NewObject(BucketArrayBase& bucketArray) const
     {
-        SharedObjectPtr<Object> newObject = NewObject(bucketArray);
-        return std::dynamic_pointer_cast<T>(newObject);
+        return std::dynamic_pointer_cast<T>(NewObject(bucketArray));
     }
 
     /*
@@ -156,6 +155,7 @@ public:
     std::shared_ptr<Widget> CreatePropertiesWidget(const std::shared_ptr<Object>& object) const;
 
     friend auto operator<=>(const Type& lhs, const Type& rhs);
+    bool operator==(const Type&) const;
 
 protected:
     Type() = default;

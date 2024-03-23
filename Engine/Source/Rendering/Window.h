@@ -91,6 +91,8 @@ public:
     Widget* GetWidgetUnderCursor();
 
     bool IsFocused() const;
+    void SetFocusedWidget(const std::shared_ptr<Widget>& widget);
+    std::shared_ptr<Widget> GetFocusedWidget() const;
 
     HWND GetHandle() const;
 
@@ -128,8 +130,9 @@ private:
 
     DelegateHandle _onLMBDownHandle{};
     DelegateHandle _onLMBUpHandle{};
-    DelegateHandle _onMMBUpHandle{};
     DelegateHandle _onMMBDownHandle{};
+    DelegateHandle _onMMBUpHandle{};
+    DelegateHandle _onScrollHandle{};
     DelegateHandle _onMouseMovedHandle{};
 
     HWND _hwnd = nullptr;

@@ -78,14 +78,19 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
 
     for (const TypeInfo& typeInfo : _parser.GetTypeInfos())
     {
+        bool usesCustomSerialization = std::ranges::find_if(typeInfo.Attributes, [] (const Attribute& attribute)
+        {
+            return attribute.Name == "CustomSerialization";
+        }) != typeInfo.Attributes.end();
+        
         std::string createTypeFunction;
+        std::stringstream parentTypeNames;
         if (typeInfo.ParentTypeNames.empty())
         {
             createTypeFunction = std::format("CreateRootType<{}>()", typeInfo.Name);
         }
         else
         {
-            std::stringstream parentTypeNames;
             for (size_t i = 0; i < typeInfo.ParentTypeNames.size(); ++i)
             {
                 parentTypeNames << typeInfo.ParentTypeNames[i];
@@ -95,10 +100,12 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
                     parentTypeNames << ", ";
                 }
             }
-            createTypeFunction = std::format("CreateType<{}, {}>()", typeInfo.Name, parentTypeNames.str());
+            createTypeFunction = std::format("CreateType<{}, {}>()", typeInfo.Name, parentTypeNames.view());
         }
-
+        
         std::stringstream propertyMapDefinition;
+        std::stringstream serializeDefinition;
+        std::stringstream deserializeDefinition;
         if (!typeInfo.Properties.empty())
         {
             propertyMapDefinition << " \\\n";
@@ -126,13 +133,32 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
                            property.Type,
                            typeInfo.Name,
                            property.Name,
-                           propertyAttributes.str());
+                           propertyAttributes.view());
                 if (i < typeInfo.Properties.size() - 1)
                 {
                     propertyMapDefinition << " \\\n";
                 }
             }
             propertyMapDefinition << " \\\n\t\t";
+
+            if (!usesCustomSerialization)
+            {
+                for (const auto& property : typeInfo.Properties)
+                {
+                    if (std::ranges::find_if(property.Attributes,
+                                             [](const Attribute& attribute)
+                                             {
+                                                 return attribute.Name == "Serialize";
+                                             }) != property.Attributes.end())
+                    {
+                        std::println(serializeDefinition, R"(writer << {}; \)", property.Name);
+                        std::println(deserializeDefinition, R"(reader >> {}; \)", property.Name);
+                    }
+                }
+
+                std::print(serializeDefinition, "        \\");
+                std::print(deserializeDefinition, "        \\");
+            }
         }
 
         std::string dataOffsetDefinition;
@@ -155,10 +181,40 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
             }
         }
 
+        std::stringstream serialization;
+        std::print(serialization, "\\");
+        if (!usesCustomSerialization && !serializeDefinition.view().empty())
+        {
+            std::print(serialization,
+R"(
+    virtual bool Serialize(MemoryWriter& writer) const override \
+    {{ \
+        if (!Super<ISerializeable>::Serialize(writer)) \
+        {{ \
+            return false; \
+        }} \
+        {}
+        return true; \
+    }} \
+    \
+    virtual bool Deserialize(MemoryReader& reader) override \
+    {{ \
+        if (!Super<ISerializeable>::Deserialize(reader)) \
+        {{ \
+            return false; \
+        }} \
+        {}
+        return true; \
+    }} \
+    \)", serializeDefinition.view(), deserializeDefinition.view());
+        }
+
         // todo methods
         std::print(reflectionHeader,
                    R"(
 #define GENERATED_{}_{}() \
+    template <typename Interface> \
+    using Super = typename FindSuperOfType<Interface, {}>::type; \
 public: \
     static Type* StaticType() \
     {{ \
@@ -181,7 +237,7 @@ public: \
     {{ \
         return new(ptr) {}(*this); \
     }} \
-    \
+    {}
     std::shared_ptr<{}> SharedFromThis() \
     {{ \
         return std::static_pointer_cast<{}>(shared_from_this()); \
@@ -198,11 +254,13 @@ private:
 )",
                    headerName,
                    typeInfo.GeneratedMacroLine,
+                   parentTypeNames.view(),
                    createTypeFunction,
                    dataOffsetDefinition,
-                   propertyMapDefinition.str(),
+                   propertyMapDefinition.view(),
                    typeInfo.Name,
                    typeInfo.Name,
+                   serialization.view(),
                    typeInfo.Name,
                    typeInfo.Name,
                    typeInfo.Name,

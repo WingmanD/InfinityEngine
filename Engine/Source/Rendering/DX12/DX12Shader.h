@@ -32,7 +32,7 @@ class DX12Shader : public Shader
 
 public:
     DX12Shader();
-    DX12Shader(const std::wstring& name);
+    DX12Shader(Name name);
 
     DX12Shader(const DX12Shader& other);
     DX12Shader& operator=(const DX12Shader& other);

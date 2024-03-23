@@ -4,6 +4,7 @@
 #include "Delegate.h"
 #include "EnumRegistry.h"
 #include "ReflectionWidgets.h"
+#include "Name.h"
 #include "Util.h"
 #include <functional>
 #include <memory>
@@ -22,7 +23,7 @@ public:
 public:
     virtual ~PropertyBase() = default;
 
-    const std::wstring& GetDisplayName() const;
+    Name GetDisplayName() const;
     const std::vector<Attribute>& GetAttributes() const;
 
     Type* GetType() const;
@@ -32,7 +33,7 @@ public:
     virtual std::shared_ptr<Widget> CreateWidget(const std::shared_ptr<Object>& object);
 
 protected:
-    void SetDisplayName(const std::wstring& displayName);
+    void SetDisplayName(Name displayName);
     std::vector<Attribute>& GetAttributes();
 
     void SetType(Type* type);
@@ -40,7 +41,7 @@ protected:
     void SetIsEditable(bool isEditable);
 
 private:
-    std::wstring _displayName;
+    Name _displayName;
     std::vector<Attribute> _attributes;
     Type* _type = nullptr;
 
@@ -62,7 +63,7 @@ public:
             attrs.push_back(attribute);
             if (attribute.Name == "DisplayName")
             {
-                SetDisplayName(Util::ToWString(attribute.Value));
+                SetDisplayName(Name(Util::ToWString(attribute.Value)));
             }
             else if (attribute.Name == "Edit")
             {
@@ -70,9 +71,9 @@ public:
             }
         }
 
-        if (GetDisplayName().empty())
+        if (GetDisplayName() == NameNone)
         {
-            SetDisplayName(Util::ToWString(name));
+            SetDisplayName(Name(Util::ToWString(name)));
         }
     }
 
@@ -106,22 +107,25 @@ public:
 
             if (IsEditable())
             {
-                return CreateEditableWidgetForEnum(object, enumType, *this,
-                                                   reinterpret_cast<uint32*>(&
-                                                       GetRef(static_cast<ObjectType*>(object.get()))));
+                return ReflectionWidgets::CreateEditableWidgetForEnum(object, enumType, *this,
+                                                                      reinterpret_cast<uint32*>(&
+                                                                          GetRef(
+                                                                              static_cast<ObjectType*>(object.get()))));
             }
 
-            return CreateWidgetForEnum(object, enumType, *this,
-                                       reinterpret_cast<uint32*>(&GetRef(static_cast<ObjectType*>(object.get()))));
+            return ReflectionWidgets::CreateWidgetForEnum(object, enumType, *this,
+                                                          reinterpret_cast<uint32*>(&GetRef(
+                                                              static_cast<ObjectType*>(object.get()))));
         }
         else
         {
             if (IsEditable())
             {
-                return CreateEditableWidgetFor(object, *this, &GetRef(static_cast<ObjectType*>(object.get())));
+                return ReflectionWidgets::CreateEditableWidgetFor(object, *this,
+                                                                  &GetRef(static_cast<ObjectType*>(object.get())));
             }
 
-            return CreateWidgetFor(object, *this, &GetRef(static_cast<ObjectType*>(object.get())));
+            return ReflectionWidgets::CreateWidgetFor(object, *this, &GetRef(static_cast<ObjectType*>(object.get())));
         }
     }
 

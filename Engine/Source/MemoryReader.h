@@ -1,8 +1,9 @@
 #pragma once
 
-#include <map>
-
 #include "Core.h"
+#include "ISerializeable.h"
+#include <filesystem>
+#include <string>
 #include <vector>
 
 class MemoryReader
@@ -40,6 +41,43 @@ MemoryReader& operator>>(MemoryReader& reader, T& value)
     return reader;
 }
 
+template <typename T> requires IsA<T, ISerializeable>
+MemoryReader& operator>>(MemoryReader& reader, T& value)
+{
+    value.Deserialize(reader);
+    return reader;
+}
+
+template <typename T> requires IsSTDContainer<T>
+MemoryReader& operator>>(MemoryReader& reader, T& value)
+{
+    uint64 size;
+    reader >> size;
+
+    for (uint64 i = 0; i < size; ++i)
+    {
+        auto& newElement = value.emplace_back(); // todo this only works for std::vector
+        reader >> newElement;
+    }
+
+    return reader;
+}
+
+template <typename T> requires IsIEContainer<T>
+MemoryReader& operator>>(MemoryReader& reader, T& value)
+{
+    uint64 size;
+    reader >> size;
+
+    for (uint64 i = 0; i < size; ++i)
+    {
+        auto& newElement = value.Emplace();
+        reader >> newElement;
+    }
+
+    return reader;
+}
+
 template <typename T>
 MemoryReader& operator>>(MemoryReader& reader, std::basic_string<T>& string)
 {
@@ -65,61 +103,38 @@ MemoryReader& operator>>(MemoryReader& reader, std::basic_string<T>& string)
     return reader;
 }
 
-template <typename T>
-MemoryReader& operator>>(MemoryReader& reader, std::vector<T>& vector)
-{
-    size_t size;
-    reader >> size;
-    vector.clear();
-    vector.resize(size);
-
-    if constexpr (HasDeserializationOperator<T>)
-    {
-        for (auto& item : vector)
-        {
-            reader >> item;
-        }
-    }
-    else
-    {
-        reader.Read(reinterpret_cast<const std::byte*>(vector.data()), vector.size());
-    }
-
-    return reader;
-}
-
 MemoryReader& operator>>(MemoryReader& reader, std::filesystem::path& path);
 
-template <typename Key, typename Value>
-MemoryReader& operator>>(MemoryReader& reader, std::map<Key, Value>& map)
-{
-    size_t size;
-    reader >> size;
-
-    for (size_t i = 0; i < size; ++i)
-    {
-        Key key;
-        if constexpr (HasDeserializationOperator<Key>)
-        {
-            reader >> key;
-        }
-        else
-        {
-            reader.Read(reinterpret_cast<std::byte*>(&key), sizeof(Key));
-        }
-
-        Value value;
-        if constexpr (HasDeserializationOperator<Value>)
-        {
-            reader >> value;
-        }
-        else
-        {
-            reader.Read(reinterpret_cast<std::byte*>(&value), sizeof(Value));
-        }
-
-        map[key] = value;
-    }
-
-    return reader;
-}
+// template <typename Key, typename Value>
+// MemoryReader& operator>>(MemoryReader& reader, std::map<Key, Value>& map)
+// {
+//     size_t size;
+//     reader >> size;
+//
+//     for (size_t i = 0; i < size; ++i)
+//     {
+//         Key key;
+//         if constexpr (HasDeserializationOperator<Key>)
+//         {
+//             reader >> key;
+//         }
+//         else
+//         {
+//             reader.Read(reinterpret_cast<std::byte*>(&key), sizeof(Key));
+//         }
+//
+//         Value value;
+//         if constexpr (HasDeserializationOperator<Value>)
+//         {
+//             reader >> value;
+//         }
+//         else
+//         {
+//             reader.Read(reinterpret_cast<std::byte*>(&value), sizeof(Value));
+//         }
+//
+//         map[key] = value;
+//     }
+//
+//     return reader;
+// }

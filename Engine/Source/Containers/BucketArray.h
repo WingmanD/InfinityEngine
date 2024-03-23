@@ -15,6 +15,9 @@ template <typename T, size_t BucketSize = 100>
 class BucketArray : public BucketArrayBase
 {
 public:
+    using type = T;
+    
+public:
     BucketArray() = default;
 
     T* Add(const T& element)

@@ -30,7 +30,7 @@ public:
     StaticMeshImporter() = default;
 };
 
-REFLECTED()
+REFLECTED(CustomSerialization)
 class StaticMesh : public Asset
 {
     GENERATED()
@@ -41,7 +41,7 @@ public:
     StaticMesh(const StaticMesh& other);
     StaticMesh& operator=(const StaticMesh& other);
 
-    explicit StaticMesh(std::wstring name);
+    explicit StaticMesh(Name name);
 
     virtual bool Initialize() override;
 

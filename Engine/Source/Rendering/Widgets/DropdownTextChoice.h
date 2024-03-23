@@ -18,7 +18,7 @@ public:
     virtual bool Initialize() override;
 
 protected:
-    std::shared_ptr<TextBox> GetTextBox();
+    std::shared_ptr<TextBox> GetTextBox() const;
 
 private:
     std::weak_ptr<TextBox> _textBox;

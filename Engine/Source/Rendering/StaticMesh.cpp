@@ -5,6 +5,7 @@
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 #include "Engine/Engine.h"
+#include "AssetPtr.h"
 
 StaticMesh::StaticMesh()
 {
@@ -32,7 +33,7 @@ StaticMesh& StaticMesh::operator=(const StaticMesh& other)
     return *this;
 }
 
-StaticMesh::StaticMesh(std::wstring name) : Asset(std::move(name))
+StaticMesh::StaticMesh(Name name) : Asset(name)
 {
 }
 
@@ -157,7 +158,7 @@ std::vector<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Imp
     for (uint32 i = 0; i < scene->mNumMeshes; ++i)
     {
         std::wstring meshName = Util::ToWString(scene->mMeshes[i]->mName.C_Str());
-        std::shared_ptr newMesh = AssetManager::Get().NewAsset<StaticMesh>(meshName);
+        std::shared_ptr newMesh = AssetManager::Get().NewAsset<StaticMesh>(Name(meshName));
         if (newMesh == nullptr)
         {
             LOG(L"Error creating new static mesh: {}", meshName);
@@ -173,7 +174,7 @@ std::vector<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Imp
             continue;
         }
 
-        std::shared_ptr<Material> defaultMaterial = AssetManager::Get().FindAssetByName<Material>(L"DefaultMaterial");
+        std::shared_ptr<Material> defaultMaterial = AssetManager::Get().FindAssetByName<Material>(Name(L"DefaultMaterial"));
         if (defaultMaterial == nullptr)
         {
             LOG(L"Failed to find default material!");
@@ -197,11 +198,11 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
         return false;
     }
 
-    SetName(Util::ToWString(assimpMesh->mName.C_Str()));
+    SetName(Name(Util::ToWString(assimpMesh->mName.C_Str())));
 
     if (assimpMesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
     {
-        LOG(L"Failed to import Static Mesh {}: Unsupported primitive type!", GetName());
+        LOG(L"Failed to import Static Mesh {}: Unsupported primitive type!", GetName().ToString());
         return false;
     }
 
@@ -256,7 +257,7 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
 
     if (!Initialize())
     {
-        LOG(L"Failed to initialize static mesh: {}", GetName());
+        LOG(L"Failed to initialize static mesh: {}", GetName().ToString());
         return false;
     }
 

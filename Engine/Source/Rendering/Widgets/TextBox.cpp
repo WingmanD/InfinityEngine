@@ -160,7 +160,7 @@ void TextBox::UpdateDesiredSizeInternal()
         return;
     }
 
-    const Vector2 desiredSize = Vector2(font->MeasureString(_text.c_str(), GetFontType())) * GetFontSize() * static_cast<float>(GetParentWindow()->GetHeight()) / 1080.0f;
+    const Vector2 desiredSize = Vector2(font->MeasureString(_text.c_str(), GetFontType())) * GetFontSize() /** static_cast<float>(GetParentWindow()->GetHeight()) / 1080.0f*/;
     SetDesiredSize(desiredSize);
 }
 
@@ -186,7 +186,7 @@ void TextBox::OnTransformChanged()
         const Transform2D transformWS = GetTransformWS();
 
         const Vector2 position = UIStatics::ToScreenSpace(transformWS.GetPosition(), parentWindow);
-        const Vector2 scale = Vector2(GetFontSize() * parentWindow->GetHeight() / 1080.0f);
+        const Vector2 scale = Vector2(GetFontSize());
         const float rotation = transformWS.GetRotation();
 
         _textTransform.SetPosition(position);
@@ -199,17 +199,21 @@ void TextBox::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const st
 {
     Widget::OnWindowChanged(oldWindow, newWindow);
 
-    OnTextChanged();
+    InvalidateLayout();
 }
 
-void TextBox::OnHoverStartedInternal()
+bool TextBox::OnHoverStartedInternal()
 {
     InputSubsystem::Get().SetCursorIcon(ECursorIcon::IBeam);
+    
+    return true;
 }
 
-void TextBox::OnHoverEndedInternal()
+bool TextBox::OnHoverEndedInternal()
 {
     InputSubsystem::Get().SetCursorIcon(ECursorIcon::Arrow);
+
+    return true;
 }
 
 void TextBox::UpdateTextOrigin()
