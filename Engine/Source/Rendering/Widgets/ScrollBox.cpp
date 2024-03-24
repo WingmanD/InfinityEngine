@@ -103,8 +103,8 @@ void ScrollBox::UpdateDesiredSizeInternal()
 {
     Widget::UpdateDesiredSizeInternal();
 
-    // const Vector2 newDesiredSize = Vector2::Min(GetDesiredSize(), _maxDesiredSize);
-    // SetDesiredSize(newDesiredSize);
+    const Vector2 newDesiredSize = Vector2::Min(GetDesiredSize(), _maxDesiredSize);
+    SetDesiredSize(newDesiredSize);
 }
 
 void ScrollBox::RebuildLayoutInternal()

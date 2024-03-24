@@ -60,6 +60,7 @@ public:
 
     std::shared_ptr<Layer> AddLayer();
     bool AddPopup(const std::shared_ptr<Widget>& popup);
+    bool AddBorrowedPopup(const std::shared_ptr<Widget>& popup);
 
     template <typename T>
     std::shared_ptr<Widget> AddPopup()

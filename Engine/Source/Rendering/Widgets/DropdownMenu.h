@@ -63,6 +63,6 @@ private:
     uint32 _maxVisibleChoices = 5;
 
 private:
-    void ToggleScrollBox() const;
-    void SetScrollBoxEnabled(bool value) const;
+    void ToggleScrollBox();
+    void SetScrollBoxEnabled(bool value);
 };

@@ -104,9 +104,9 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
 
     _choiceReleasedHandle = selectedWidget->OnReleased.Add([this]()
     {
-        // ToggleScrollBox();
-        _scrollBox.lock()->RemoveFromParent();
-        AddChild(_scrollBox.lock());
+        ToggleScrollBox();
+        // _scrollBox.lock()->RemoveFromParent();
+        // AddChild(_scrollBox.lock());
     });
 
     _selectedWidget = selectedWidget;
@@ -130,11 +130,14 @@ void DropdownMenu::RebuildLayoutInternal()
     const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
     const std::shared_ptr<Widget> flowBox = scrollBox->GetChildren()[0];
 
-    flowBox->SetSize({1.0f, std::max(static_cast<float>(GetChoices().size()) / static_cast<float>(_maxVisibleChoices), 1.0f)});
+    flowBox->SetSize({
+        1.0f, std::max(static_cast<float>(GetChoices().size()) / static_cast<float>(_maxVisibleChoices), 1.0f)
+    });
 
-    scrollBox->SetSize({1.0f, std::min(static_cast<float>(GetChoices().size()), static_cast<float>(_maxVisibleChoices))});
-    
-    //if (scrollBox->GetParentWidget() == SharedFromThis())
+    scrollBox->SetSize(
+        {1.0f, std::min(static_cast<float>(GetChoices().size()), static_cast<float>(_maxVisibleChoices))});
+
+    if (scrollBox->GetParentWidget() == SharedFromThis())
     {
         scrollBox->SetPosition({0.0f, 0.0f});
     }
@@ -148,13 +151,16 @@ void DropdownMenu::UpdateDesiredSizeInternal()
         return;
     }
 
-    const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
+    const std::shared_ptr<ScrollBox> scrollBox = _scrollBox.lock();
     if (scrollBox == nullptr)
     {
         return;
     }
 
-    // scrollBox->SetDesiredSize(Vector2(1.0f, std::min(static_cast<float>(GetChoices().size()), static_cast<float>(_maxVisibleChoices))) * GetScreenSize());
+    // todo this shouldn't be here - scrollbox needs to take fillx from flowbox
+    scrollBox->SetMaxDesiredSize(Vector2(GetScreenSize().x,
+                                         std::min(static_cast<float>(GetChoices().size()),
+                                                  static_cast<float>(_maxVisibleChoices))) * GetScreenSize());
 
     const std::shared_ptr<Widget> flowBox = scrollBox->GetChildren()[0];
 
@@ -166,13 +172,13 @@ void DropdownMenu::UpdateDesiredSizeInternal()
     SetDesiredSize(newDesiredSize);
 }
 
-void DropdownMenu::ToggleScrollBox() const
+void DropdownMenu::ToggleScrollBox()
 {
     const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
     SetScrollBoxEnabled(scrollBox->IsCollapsed());
 }
 
-void DropdownMenu::SetScrollBoxEnabled(bool value) const
+void DropdownMenu::SetScrollBoxEnabled(bool value)
 {
     if (!IsEnabled())
     {
@@ -184,18 +190,31 @@ void DropdownMenu::SetScrollBoxEnabled(bool value) const
 
     if (value)
     {
-        //const Vector2 positionWS = scrollBox->GetPositionWS();
-        
-        //scrollBox->SetAnchor(EWidgetAnchor::Center);
-        //scrollBox->SetSelfAnchor(EWidgetAnchor::Center);
-        //scrollBox->SetFillMode(EWidgetFillMode::None);
-        
+        const Vector2 positionWS = scrollBox->GetPositionWS();
+
+        scrollBox->SetAnchor(EWidgetAnchor::Center);
+        scrollBox->SetFillMode(EWidgetFillMode::None);
+
+        const Vector2 positionWSAfter = scrollBox->GetPositionWS();
+
         scrollBox->RemoveFromParent();
-        
-        scrollBox->SetFocused(true);
-        
-        GetParentWindow()->AddPopup(scrollBox);
-        
-        //scrollBox->SetPosition(positionWS);
+
+        GetParentWindow()->AddBorrowedPopup(scrollBox);
+
+        const Vector2 relativePosition = scrollBox->GetPosition();
+        const Vector2 positionWS2 = scrollBox->GetPositionWS();
+
+        //scrollBox->SetPosition(relativePosition + positionWS - positionWS2);
+        scrollBox->SetPosition(Vector2::Zero);
+        const Vector2 positionWS3 = scrollBox->GetPositionWS();
+    }
+    else
+    {
+        scrollBox->RemoveFromParent();
+
+        scrollBox->SetFillMode(EWidgetFillMode::FillX);
+        scrollBox->SetAnchor(EWidgetAnchor::BottomCenter);
+
+        AddChild(scrollBox);
     }
 }

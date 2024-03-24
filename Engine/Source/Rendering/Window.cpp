@@ -360,6 +360,56 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
 
     popup->OnDestroyed.Add(removeLayer);
 
+    popup->SetFocused(true);
+
+    return true;
+}
+
+bool Window::AddBorrowedPopup(const std::shared_ptr<Widget>& popup)
+{
+    // todo refactor this, same as AddPopup
+    if (popup == nullptr)
+    {
+        DEBUG_BREAK();
+        return false;
+    }
+
+    const std::shared_ptr<Layer> layer = AddLayer();
+    if (layer == nullptr)
+    {
+        return false;
+    }
+
+    layer->RootWidget->AddChild(popup);
+
+    auto removeLayer = [this, weakLayer = std::weak_ptr(layer), popup]()
+    {
+        const auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
+        {
+            return layer == weakLayer.lock();
+        });
+
+        if (it != _layers.end())
+        {
+            popup->RemoveFromParent();
+            _layers.erase(it);
+        }
+    };
+
+    // todo unsubscribe from events
+    popup->OnCollapsed.Add(removeLayer);
+    popup->OnFocusChanged.Add([removeLayer](bool value)
+    {
+        if (!value)
+        {
+            removeLayer();
+        }
+    });
+
+    popup->OnDestroyed.Add(removeLayer);
+
+    popup->SetFocused(true);
+
     return true;
 }
 
