@@ -19,6 +19,11 @@ void Entity::RemoveComponent(uint16 index, PassKey<World>)
     _components.RemoveAtSwap(index);
 }
 
+Component* Entity::Get(uint16 index)
+{
+    return _components[index].get();
+}
+
 void Entity::Destroy()
 {
     _id = 0;

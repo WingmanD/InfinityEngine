@@ -2,6 +2,7 @@
 
 #include "Containers/DArray.h"
 #include "ECS/Components/Component.h"
+#include "ECS/Archetype.h"
 #include "PassKey.h"
 
 class World;
@@ -21,6 +22,8 @@ public:
     void AddComponent(const SharedObjectPtr<Component>& newComponent, PassKey<World>);
     void RemoveComponent(uint16 index, PassKey<World>);
 
+    Component* Get(uint16 index);
+    
     /*
      * Get component at index.
      * NOTE: This does not check if component at index is of correct or if it exists.
@@ -30,10 +33,17 @@ public:
     template <typename ComponentType> requires IsA<ComponentType, Component>
     ComponentType* Get(uint16 index)
     {
-        ComponentType* component = static_cast<ComponentType*>(_components[index].get());
+        ComponentType* component = static_cast<ComponentType*>(Get(index));
         assert(component != nullptr);
 
         return component;
+    }
+
+    template <typename ComponentType> requires IsA<ComponentType, Component>
+    ComponentType* Get(const Archetype& archetype)
+    {
+        uint16 index = archetype.GetComponentIndex<ComponentType>();
+        return Get<ComponentType>(index);
     }
 
     void Destroy();

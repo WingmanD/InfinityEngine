@@ -53,6 +53,21 @@ public:
         return ObjectType == rhs.ObjectType && Object == rhs.Object;
     }
 
+    SharedObjectPtr<T> operator->()
+    {
+        return std::dynamic_pointer_cast<T>(Object);
+    }
+    
+    T& operator*()
+    {
+        return dynamic_cast<T&>(*Object.get());
+    }
+
+    const T& operator*() const
+    {
+        return dynamic_cast<const T&>(*Object.get());
+    }
+
     ~ObjectEntry() override = default;
 
     // ISerializeable

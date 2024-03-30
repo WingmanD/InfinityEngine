@@ -5,6 +5,7 @@
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 #include "Engine/Engine.h"
+#include "MaterialParameterTypes.h"
 #include "AssetPtr.h"
 
 StaticMesh::StaticMesh()
@@ -39,16 +40,21 @@ StaticMesh::StaticMesh(Name name) : Asset(name)
 
 bool StaticMesh::Initialize()
 {
-    RenderingSubsystem* renderingSubsystem = Engine::Get().GetRenderingSubsystem();
+    RenderingSubsystem& renderingSubsystem = RenderingSubsystem::Get();
 
-    _renderingData = renderingSubsystem->CreateStaticMeshRenderingData();
+    _renderingData = renderingSubsystem.CreateStaticMeshRenderingData();
     if (_renderingData == nullptr)
     {
         return false;
     }
 
     _renderingData->SetMesh(std::dynamic_pointer_cast<StaticMesh>(shared_from_this()), {});
-    _renderingData->UploadToGPU(*renderingSubsystem);
+    _renderingData->UploadToGPU(renderingSubsystem);
+
+    if (_material != nullptr)
+    {
+        _material->GetParameterMap().SetSharedParameter("GPerPassConstants", renderingSubsystem.GetPerPassConstants(), true);
+    }
 
     return true;
 }
@@ -111,6 +117,10 @@ void StaticMesh::SetMaterial(const std::shared_ptr<Material>& material)
 
     _material = material;
 
+    const RenderingSubsystem& renderingSubsystem = RenderingSubsystem::Get();
+    _material->GetParameterMap().
+               SetSharedParameter("GPerPassConstants", renderingSubsystem.GetPerPassConstants(), true);
+
     MarkDirtyForAutosave();
 }
 
@@ -134,14 +144,14 @@ std::vector<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Imp
     }
 
     const std::filesystem::path& path = smImporter->Path;
-    
+
     Assimp::Importer assimpImporter;
     const aiScene* scene = assimpImporter.ReadFile(path.string(),
-                                             aiProcess_CalcTangentSpace |
-                                             aiProcess_Triangulate |
-                                             aiProcess_JoinIdenticalVertices |
-                                             aiProcess_SortByPType |
-                                             aiProcess_FlipUVs);
+                                                   aiProcess_CalcTangentSpace |
+                                                   aiProcess_Triangulate |
+                                                   aiProcess_JoinIdenticalVertices |
+                                                   aiProcess_SortByPType |
+                                                   aiProcess_FlipUVs);
 
     if (scene == nullptr)
     {
@@ -174,7 +184,8 @@ std::vector<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Imp
             continue;
         }
 
-        std::shared_ptr<Material> defaultMaterial = AssetManager::Get().FindAssetByName<Material>(Name(L"DefaultMaterial"));
+        std::shared_ptr<Material> defaultMaterial = AssetManager::Get().FindAssetByName<Material>(
+            Name(L"DefaultMaterial"));
         if (defaultMaterial == nullptr)
         {
             LOG(L"Failed to find default material!");

@@ -25,6 +25,7 @@ public:
     
 protected:
     virtual bool Initialize();
+    virtual bool PostInitialize();
     virtual void Shutdown();
     virtual void Tick(double deltaTime);
 };

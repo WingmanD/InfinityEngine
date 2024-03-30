@@ -20,6 +20,13 @@ struct PropertyBase
 public:
     Delegate<> OnChanged;
 
+    enum class EEditorVisibility : uint8
+    {
+        None,
+        Visible,
+        Editable
+    };
+
 public:
     virtual ~PropertyBase() = default;
 
@@ -28,7 +35,7 @@ public:
 
     Type* GetType() const;
 
-    bool IsEditable() const;
+    EEditorVisibility GetEditorVisibility() const;
 
     virtual std::shared_ptr<Widget> CreateWidget(const std::shared_ptr<Object>& object);
 
@@ -38,14 +45,17 @@ protected:
 
     void SetType(Type* type);
 
-    void SetIsEditable(bool isEditable);
+    void SetEditorVisibility(EEditorVisibility visibility)
+    {
+        _editorVisibility = visibility;
+    }
 
 private:
     Name _displayName;
     std::vector<Attribute> _attributes;
     Type* _type = nullptr;
 
-    bool _isEditable = false;
+    EEditorVisibility _editorVisibility = EEditorVisibility::None;
 };
 
 template <typename ObjectType, typename ValueType>
@@ -65,9 +75,13 @@ public:
             {
                 SetDisplayName(Name(Util::ToWString(attribute.Value)));
             }
+            else if (attribute.Name == "Visible")
+            {
+                SetEditorVisibility(EEditorVisibility::Visible);
+            }
             else if (attribute.Name == "Edit")
             {
-                SetIsEditable(true);
+                SetEditorVisibility(EEditorVisibility::Editable);
             }
         }
 
@@ -105,28 +119,59 @@ public:
                 return nullptr;
             }
 
-            if (IsEditable())
+            if (GetEditorVisibility() == EEditorVisibility::Editable)
             {
-                return ReflectionWidgets::CreateEditableWidgetForEnum(object, enumType, *this,
-                                                                      reinterpret_cast<uint32*>(&
-                                                                          GetRef(
-                                                                              static_cast<ObjectType*>(object.get()))));
+                return ReflectionWidgets::CreateEditableWidgetForEnum(object,
+                                                                      enumType, *this,
+                                                                      reinterpret_cast<uint32*>(&GetRef(
+                                                                          static_cast<ObjectType*>(object.get()))));
             }
 
-            return ReflectionWidgets::CreateWidgetForEnum(object, enumType, *this,
-                                                          reinterpret_cast<uint32*>(&GetRef(
-                                                              static_cast<ObjectType*>(object.get()))));
+            if (GetEditorVisibility() == EEditorVisibility::Visible)
+            {
+                return ReflectionWidgets::CreateWidgetForEnum(object,
+                                                              enumType,
+                                                              *this,
+                                                              reinterpret_cast<uint32*>(&GetRef(
+                                                                  static_cast<ObjectType*>(object.get()))));
+            }
         }
         else
         {
-            if (IsEditable())
+            if (GetEditorVisibility() == EEditorVisibility::Editable)
             {
-                return ReflectionWidgets::CreateEditableWidgetFor(object, *this,
-                                                                  &GetRef(static_cast<ObjectType*>(object.get())));
+                if constexpr (ReflectionWidgets::HasEditableWidgetRepresentation<ValueType>)
+                {
+                    return ReflectionWidgets::CreateEditableWidgetFor(object,
+                                                                      *this,
+                                                                      &GetRef(static_cast<ObjectType*>(object.get())));
+                }
+                else
+                {
+                    LOG(
+                        L"Could not create editable widget for property. Type {} does not have editable widget representation. See ReflectionWidgets.h for more info.",
+                        Util::ToWString(NameOf<ValueType>()));
+                }
             }
 
-            return ReflectionWidgets::CreateWidgetFor(object, *this, &GetRef(static_cast<ObjectType*>(object.get())));
+            if (GetEditorVisibility() == EEditorVisibility::Visible)
+            {
+                if constexpr (ReflectionWidgets::HasWidgetRepresentation<ValueType>)
+                {
+                    return ReflectionWidgets::CreateWidgetFor(object,
+                                                              *this,
+                                                              &GetRef(static_cast<ObjectType*>(object.get())));
+                }
+                else
+                {
+                    LOG(
+                        L"Could not create widget for property. Type {} does not have widget representation. See ReflectionWidgets.h for more info.",
+                        Util::ToWString(NameOf<ValueType>()));
+                }
+            }
         }
+
+        return nullptr;
     }
 
 private:

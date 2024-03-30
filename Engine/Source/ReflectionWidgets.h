@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 
+class Archetype;
 class Transform;
 class SubtypeOfBase;
 class ObjectEntryBase;
@@ -100,6 +101,9 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
 std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, SubtypeOfBase* value);
 std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, SubtypeOfBase* value);
 
+std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, Archetype* value);
+std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, Archetype* value);
+    
 std::shared_ptr<Widget> DisableWidget(const std::shared_ptr<Widget>& widget);
     
 std::shared_ptr<Widget> CreatePropertiesWidgetFor(const std::shared_ptr<Object>& object);
@@ -148,4 +152,40 @@ std::shared_ptr<Widget> CreateWidgetFor(const std::shared_ptr<Object>& object, P
 {
     return ReflectionWidgets::DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
+
+template <typename T, typename = void>
+struct HasWidgetRepresentationImplementation : std::false_type
+{
+};
+
+template <typename T>
+struct HasWidgetRepresentationImplementation<
+        T, std::enable_if_t<std::is_same_v<std::shared_ptr<Widget>, decltype(CreateWidgetFor(
+                                               std::declval<const std::shared_ptr<Object>&>(),
+                                               std::declval<PropertyBase&>(),
+                                               std::declval<T*>()))>>> : std::true_type
+{
+};
+
+template <typename T>
+constexpr bool HasWidgetRepresentation = HasWidgetRepresentationImplementation<std::remove_cvref_t<T>>::value;
+
+
+template <typename T, typename = void>
+struct HasEditableWidgetRepresentationImplementation : std::false_type
+{
+};
+
+template <typename T>
+struct HasEditableWidgetRepresentationImplementation<
+        T, std::enable_if_t<std::is_same_v<std::shared_ptr<Widget>, decltype(CreateEditableWidgetFor(
+                                               std::declval<const std::shared_ptr<Object>&>(),
+                                               std::declval<PropertyBase&>(),
+                                               std::declval<T*>()))>>> : std::true_type
+{
+};
+
+template <typename T>
+constexpr bool HasEditableWidgetRepresentation = HasEditableWidgetRepresentationImplementation<std::remove_cvref_t<T>>::value;
+    
 }

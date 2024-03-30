@@ -2,7 +2,7 @@
 
 bool EngineSubsystem::CallInitialize(PassKey<Engine>)
 {
-    return Initialize();
+    return Initialize() && PostInitialize();
 }
 
 void EngineSubsystem::CallTick(double deltaTime, PassKey<Engine>)
@@ -16,6 +16,11 @@ void EngineSubsystem::CallShutdown(PassKey<Engine>)
 }
 
 bool EngineSubsystem::Initialize()
+{
+    return true;
+}
+
+bool EngineSubsystem::PostInitialize()
 {
     return true;
 }

@@ -248,6 +248,21 @@ Vector3 Transform::GetWorldScale() const
     return _scale;
 }
 
+Vector3 Transform::GetForwardVector() const
+{
+    return Vector3::Transform(Vector3::UnitX, _rotation);
+}
+
+Vector3 Transform::GetRightVector() const
+{
+    return Vector3::Transform(Vector3::UnitY, _rotation);
+}
+
+Vector3 Transform::GetUpVector() const
+{
+    return Vector3::Transform(Vector3::UnitZ, _rotation);
+}
+
 const Matrix& Transform::GetWorldMatrix() const
 {
     if (!_isWorldMatrixDirty)

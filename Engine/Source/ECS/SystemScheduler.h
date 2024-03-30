@@ -40,6 +40,7 @@ private:
         DArray<Task*, 8> Children;
 
         std::atomic<int32> ParentsCompleted = 0;
+        std::atomic<bool> IsFinished = false;
         bool Valid = false;
 
     public:

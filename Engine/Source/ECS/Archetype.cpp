@@ -1,6 +1,7 @@
 ﻿#include "Archetype.h"
 #include "Entity.h"
 #include "FNV1a.h"
+#include "TypeRegistry.h"
 
 // todo we should not initialize maps everywhere, we should have something like FullyInitialize() method that initializes maps,
 // or even better, FullArchetype class that has maps - the size of this class is way too large for copying, but we need to copy it
@@ -43,6 +44,20 @@ Archetype::Archetype(const std::initializer_list<QualifiedComponentType>& compon
         fnv.Combine(qualifiedType.Type->GetID());
     }
     _id = fnv.GetHash();
+}
+
+void Archetype::AddComponent(const Component& component)
+{
+    Name name = component.GetName();
+    Type* componentType = component.GetType();
+
+    FNV1a fnv(_id);
+
+    _componentTypeToIndexMap[componentType] = static_cast<uint16>(_componentTypeToIndexMap.size());
+    _componentNameToIndexMap[name] = static_cast<uint16>(_componentNameToIndexMap.size());
+    _componentTypeList.Emplace(name, componentType, false);
+
+    fnv.Combine(componentType->GetID());
 }
 
 bool Archetype::HasComponent(const Type& componentType) const
@@ -108,8 +123,10 @@ Archetype Archetype::Difference(const Archetype& rhs) const
     {
         if (!rhs._componentTypeToIndexMap.contains(qualifiedType.Type))
         {
-            difference._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(difference._componentTypeToIndexMap.size());
-            difference._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(difference._componentNameToIndexMap.size());
+            difference._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(difference.
+                _componentTypeToIndexMap.size());
+            difference._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(difference.
+                _componentNameToIndexMap.size());
             difference._componentTypeList.Add(qualifiedType);
             fnv.Combine(qualifiedType.Type->GetID());
         }
@@ -129,8 +146,10 @@ Archetype Archetype::Union(const Archetype& rhs) const
     FNV1a fnv;
     for (const QualifiedComponentType& qualifiedType : _componentTypeList)
     {
-        unionArchetype._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(unionArchetype._componentTypeToIndexMap.size());
-        unionArchetype._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(unionArchetype._componentNameToIndexMap.size());
+        unionArchetype._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(unionArchetype.
+            _componentTypeToIndexMap.size());
+        unionArchetype._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(unionArchetype.
+            _componentNameToIndexMap.size());
         unionArchetype._componentTypeList.Add(qualifiedType);
         fnv.Combine(qualifiedType.Type->GetID());
     }
@@ -139,8 +158,10 @@ Archetype Archetype::Union(const Archetype& rhs) const
     {
         if (!unionArchetype._componentTypeToIndexMap.contains(qualifiedType.Type))
         {
-            unionArchetype._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(unionArchetype._componentTypeToIndexMap.size());
-            unionArchetype._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(unionArchetype._componentNameToIndexMap.size());
+            unionArchetype._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(unionArchetype.
+                _componentTypeToIndexMap.size());
+            unionArchetype._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(unionArchetype.
+                _componentNameToIndexMap.size());
             unionArchetype._componentTypeList.Add(qualifiedType);
             fnv.Combine(qualifiedType.Type->GetID());
         }
@@ -168,8 +189,10 @@ Archetype Archetype::Intersection(const Archetype& rhs) const
         {
             ++itB;
 
-            intersectionArchetype._componentTypeToIndexMap[itA->Type] = static_cast<uint16>(intersectionArchetype._componentTypeToIndexMap.size());
-            intersectionArchetype._componentNameToIndexMap[itA->Name] = static_cast<uint16>(intersectionArchetype._componentNameToIndexMap.size());
+            intersectionArchetype._componentTypeToIndexMap[itA->Type] = static_cast<uint16>(intersectionArchetype.
+                _componentTypeToIndexMap.size());
+            intersectionArchetype._componentNameToIndexMap[itA->Name] = static_cast<uint16>(intersectionArchetype.
+                _componentNameToIndexMap.size());
 
             intersectionArchetype._componentTypeList.Emplace(itA->Name, itA->Type, itA->IsConst && itB->IsConst);
 
@@ -204,4 +227,51 @@ bool Archetype::CanBeExecutedInParallelWith(const Archetype& rhs) const
 std::strong_ordering Archetype::operator<=>(const Archetype& rhs) const
 {
     return _id <=> rhs._id;
+}
+
+MemoryWriter& operator<<(MemoryWriter& writer, const Archetype::QualifiedComponentType& componentType)
+{
+    writer << componentType.Name;
+    writer << (componentType.Type ? componentType.Type->GetID() : 0ull);
+    writer << componentType.IsConst;
+
+    return writer;
+}
+
+MemoryReader& operator>>(MemoryReader& reader, Archetype::QualifiedComponentType& componentType)
+{
+    reader >> componentType.Name;
+
+    uint64 typeID = 0;
+    reader >> typeID;
+
+    reader >> componentType.IsConst;
+
+    componentType.Type = TypeRegistry::Get().FindTypeForID(typeID);
+
+    return reader;
+}
+
+MemoryWriter& operator<<(MemoryWriter& writer, const Archetype& archetype)
+{
+    writer << archetype._componentTypeList;
+
+    return writer;
+}
+
+MemoryReader& operator>>(MemoryReader& reader, Archetype& archetype)
+{
+    reader >> archetype._componentTypeList;
+
+    FNV1a fnv;
+    for (const Archetype::QualifiedComponentType& qualifiedType : archetype._componentTypeList)
+    {
+        archetype._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(archetype._componentTypeToIndexMap.size());
+        archetype._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(archetype._componentNameToIndexMap.size());
+
+        fnv.Combine(qualifiedType.Type->GetID());
+    }
+    archetype._id = fnv.GetHash();
+
+    return reader;
 }

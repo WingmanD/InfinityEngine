@@ -8,6 +8,7 @@ SystemScheduler::SystemScheduler()
 
     _endTask = _tasks.AddDefault();
     _startTask->Children.Add(_endTask);
+    _endTask->Parents.Add(_startTask);
 }
 
 void SystemScheduler::Initialize()
@@ -21,15 +22,15 @@ void SystemScheduler::Tick(double deltaTime)
         return;
     }
 
-    _endTask->ParentsCompleted.store(0, std::memory_order::memory_order_relaxed);
+    _endTask->ParentsCompleted.store(0, std::memory_order_release);
+    _endTask->IsFinished.store(false, std::memory_order_release);
 
     for (Task* task : _startTask->Children)
     {
         EnqueueTask(task, deltaTime);
     }
 
-    const int32 totalEndParentTasks = static_cast<int32>(_endTask->Parents.Count());
-    _endTask->ParentsCompleted.wait(totalEndParentTasks, std::memory_order::memory_order_relaxed);
+    _endTask->IsFinished.wait(false, std::memory_order_acquire);
 }
 
 void SystemScheduler::Shutdown()
@@ -66,14 +67,20 @@ SystemBase& SystemScheduler::AddSystem(std::unique_ptr<SystemBase>&& system)
             if (!newTask->CanBeExecutedInParallelWith(*parent))
             {
                 parent->Children.RemoveSwap(_endTask);
+                _endTask->Parents.RemoveSwap(parent);
+                
                 parent->Children.Add(newTask);
-
                 newTask->Parents.Add(parent);
+                
+                newTask->Children.Add(_endTask);
+                _endTask->Parents.Add(newTask);
 
                 found = true;
                 break;
             }
         }
+
+        // todo this doesn't seem to work, implement a debug print to visualize the graph
 
         if (!found)
         {
@@ -195,7 +202,8 @@ void SystemScheduler::ForEachTask(const std::function<void(Task*)>& callback, Ta
 
 void SystemScheduler::EnqueueTask(Task* task, double deltaTime)
 {
-    task->ParentsCompleted.store(0, std::memory_order::memory_order_relaxed);
+    task->ParentsCompleted.store(0, std::memory_order_release);
+    task->IsFinished.store(false, std::memory_order_release);
 
     Engine::Get().GetThreadPool().EnqueueTask([task, deltaTime, this]()
     {
@@ -203,12 +211,13 @@ void SystemScheduler::EnqueueTask(Task* task, double deltaTime)
 
         for (Task* child : task->Children)
         {
-            const int32 total = child->ParentsCompleted.fetch_add(1, std::memory_order::memory_order_relaxed) + 1;
+            const int32 total = child->ParentsCompleted.fetch_add(1, std::memory_order_acq_rel) + 1;
             if (total == child->Parents.Count())
             {
                 if (child == _endTask)
                 {
-                    child->ParentsCompleted.notify_one();
+                    child->IsFinished.store(true, std::memory_order_release);
+                    child->IsFinished.notify_one();
                 }
                 else
                 {

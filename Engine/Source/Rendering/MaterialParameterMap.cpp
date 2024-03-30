@@ -116,6 +116,7 @@ void MaterialParameterMap::SetSharedParameter(const std::string& name, const std
             DEBUG_BREAK();
         }
 
+        LOG(L"Failed to find parameter {}!", Util::ToWString(name));
         return;
     }
 

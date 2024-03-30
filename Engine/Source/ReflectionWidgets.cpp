@@ -1361,6 +1361,18 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return typePicker;
 }
 
+std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+    PropertyBase& property, Archetype* value)
+{
+    return DisableWidget(CreateEditableWidgetFor(object, property, value));
+}
+
+std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+    PropertyBase& property, Archetype* value)
+{
+    return nullptr;
+}
+
 std::shared_ptr<Widget> ReflectionWidgets::DisableWidget(const std::shared_ptr<Widget>& widget)
 {
     if (widget == nullptr)

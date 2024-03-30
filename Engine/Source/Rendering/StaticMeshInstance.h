@@ -2,6 +2,7 @@
 
 #include "Asset.h"
 #include "StaticMesh.h"
+#include "Math/Transform.h"
 #include "StaticMeshInstance.reflection.h"
 
 REFLECTED(InstancedOnly)
@@ -20,9 +21,12 @@ public:
     void SetMaterial(const std::shared_ptr<Material>& material);
 
 private:
-    PROPERTY(Edit, Load, DisplayName = "Mesh")
+    PROPERTY(Edit, Load, Serialize, DisplayName = "Mesh")
     AssetPtr<StaticMesh> _mesh;
     
-    PROPERTY(Edit, Load, DisplayName = "Material")
+    PROPERTY(Edit, Load, Serialize, DisplayName = "Material")
     AssetPtr<Material> _material;
+
+    PROPERTY(Edit, Serialize)
+    Transform _transform;
 };

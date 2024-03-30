@@ -122,8 +122,7 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
                 PerPassConstants* perPassConstants = material->GetParameter<PerPassConstants>("GPerPassConstants");
                 if (perPassConstants != nullptr)
                 {
-                    perPassConstants->Time += 0.008f;
-                    XMStoreFloat4x4(&perPassConstants->World, XMMatrixTranspose(world));
+                    //XMStoreFloat4x4(&perPassConstants->World, XMMatrixTranspose(world));
                     XMStoreFloat4x4(&perPassConstants->ViewProjection, XMMatrixTranspose(view * proj));
                     perPassConstants->CameraPosition = pos;
                     perPassConstants->CameraDirection = target - pos;

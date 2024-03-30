@@ -2,6 +2,7 @@
 
 #include "Component.h"
 #include "AssetPtr.h"
+#include "Math/Transform.h"
 #include "Rendering/StaticMesh.h"
 #include "CStaticMesh.reflection.h"
 
@@ -13,5 +14,10 @@ class CStaticMesh : public Component
 public:
     PROPERTY(Edit, Serialize)
     AssetPtr<StaticMesh> Mesh;
-    // todo transform
+
+    PROPERTY(Edit, Serialize)
+    AssetPtr<Material> MaterialOverride;
+
+    PROPERTY(Edit, Serialize)
+    Transform MeshTransform;
 };

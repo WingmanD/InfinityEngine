@@ -34,19 +34,33 @@ private:
     std::unique_ptr<MaterialParameterRenderingData> _renderingData;
 };
 
-REFLECTED(DataStart = "World")
+REFLECTED(DataStart = "ViewProjection")
 struct PerPassConstants : public MaterialParameter
 {
     GENERATED()
 
 public:
-    Matrix World;
     Matrix ViewProjection;
     Vector3 CameraPosition;
     PADDING()
     Vector3 CameraDirection;
     PADDING()
     float Time = 0.0f;
+
+public:
+    PerPassConstants()
+    {
+        Shared = true;
+    }
+};
+
+REFLECTED(DataStart = "Transform")
+struct StaticMeshConstants : public MaterialParameter
+{
+    GENERATED()
+
+public:
+    Matrix Transform;
 };
 
 REFLECTED(DataStart = "Transform")

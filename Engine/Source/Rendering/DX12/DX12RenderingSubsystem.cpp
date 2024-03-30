@@ -372,7 +372,7 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
     GetEventQueue().ProcessEvents();
 
     for (std::shared_ptr<DX12Window>& window : _windows)
-    {
+{
         window->Tick(deltaTime);
     }
 
@@ -381,7 +381,9 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
     // todo multiple descriptor heaps
     ID3D12DescriptorHeap* descriptorHeaps[] = {_cbvHeap->GetHeap().Get()};
     _availableCommandLists[0].CommandList->SetDescriptorHeaps(1, descriptorHeaps);
-
+    // todo the line above crashes because the StaticMeshRenderingSystem consumed the command list
+    // we need to link cameras/viewports and windows - command lists must be executed in order of window presentation
+    
     for (std::shared_ptr<DX12Window>& window : _windows)
     {
         // the reason we can't use the thread pool currently is the command list request/close that is not multi-threaded, also, command lists must be executed in order of windows

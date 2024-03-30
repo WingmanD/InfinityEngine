@@ -1,6 +1,12 @@
 ﻿#include "GameplaySubsystem.h"
 #include "Game.h"
 #include "ProjectSettings.h"
+#include "Engine/Engine.h"
+
+GameplaySubsystem& GameplaySubsystem::Get()
+{
+    return Engine::Get().GetGameplaySubsystem();
+}
 
 bool GameplaySubsystem::StartGame()
 {
@@ -28,6 +34,8 @@ void GameplaySubsystem::StopGame()
         return;
     }
 
+    // todo we need to destroy some worlds on StopGame as well
+    
     _game->Shutdown({});
     _game = nullptr;
 }
@@ -35,6 +43,11 @@ void GameplaySubsystem::StopGame()
 std::shared_ptr<Game> GameplaySubsystem::GetGame() const
 {
     return _game;
+}
+
+BucketArray<World>& GameplaySubsystem::GetWorlds()
+{
+    return _worlds;
 }
 
 bool GameplaySubsystem::Initialize()
@@ -60,8 +73,7 @@ void GameplaySubsystem::Tick(double deltaTime)
 void GameplaySubsystem::Shutdown()
 {
     StopGame();
-
-    // todo we need to shut down some worlds on StopGame as well
+    
     _worlds.ForEach([](World& world)
     {
         world.Shutdown();

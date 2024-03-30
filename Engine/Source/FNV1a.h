@@ -9,6 +9,7 @@ class FNV1a
 {
 public:
     explicit FNV1a() = default;
+    explicit FNV1a(uint64 value);
 
     void Combine(uint64 value);
     uint64 GetHash() const;

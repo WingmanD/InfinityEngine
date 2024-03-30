@@ -1,13 +1,7 @@
-struct PerPassConstants
-{
-    float4x4 World;
-    float4x4 ViewProjection;
-    float3 CameraPosition;
-    float3 CameraDirection;
-    float Time;
-};
+#include "ShaderCore.hlsl"
 
 ConstantBuffer<PerPassConstants> GPerPassConstants: register(b0);
+ConstantBuffer<StaticMeshConstants> GStaticMeshConstants: register(b1);
 
 struct VertexIn
 {
@@ -30,9 +24,9 @@ VertexOut VS(VertexIn vIn)
 {
     VertexOut vOut;
 
-    vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GPerPassConstants.World);
-    vOut.PositionCS = mul(float4(vIn.PositionLS, 1.0f), mul(GPerPassConstants.ViewProjection, GPerPassConstants.World));
-    vOut.Normal = mul(float4(vIn.Normal, 0.0f), GPerPassConstants.World).xyz;
+    vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GStaticMeshConstants.Transform);
+    vOut.PositionCS = mul(float4(vIn.PositionLS, 1.0f), mul(GPerPassConstants.ViewProjection, GStaticMeshConstants.Transform));
+    vOut.Normal = mul(float4(vIn.Normal, 0.0f), GStaticMeshConstants.Transform).xyz;
     vOut.VertexColor = vIn.VertexColor;
     vOut.UV = vIn.UV;
 

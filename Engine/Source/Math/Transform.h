@@ -49,6 +49,10 @@ public:
     void SetWorldScale(const Vector3& scale);
     Vector3 GetWorldScale() const;
 
+    Vector3 GetForwardVector() const;
+    Vector3 GetRightVector() const;
+    Vector3 GetUpVector() const;
+    
     const Matrix& GetWorldMatrix() const;
 
     friend MemoryWriter& operator<<(MemoryWriter& writer, const Transform& transform);

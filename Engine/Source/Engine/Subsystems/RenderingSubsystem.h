@@ -7,6 +7,7 @@
 #include "Rendering/Widgets/WidgetRenderingProxy.h"
 #include <memory>
 
+class World;
 class Window;
 class StaticMeshRenderingData;
 class MaterialRenderingData;
@@ -14,6 +15,7 @@ class MaterialParameterRenderingData;
 class MaterialParameterMap;
 class Texture;
 class RenderTarget;
+struct PerPassConstants;
 
 class RenderingSubsystem : public EngineSubsystem
 {
@@ -22,7 +24,6 @@ public:
 
     static RenderingSubsystem& Get();
 
-    virtual bool Initialize() override;
 
     virtual std::shared_ptr<Window> ConstructWindow(const std::wstring& title) = 0;
     virtual void ForEachWindow(std::function<bool(Window*)> callback) = 0;
@@ -41,7 +42,15 @@ public:
 
     EventQueue<RenderingSubsystem>& GetEventQueue();
 
+    std::shared_ptr<PerPassConstants> GetPerPassConstants() const;
+
+protected:
+    virtual bool Initialize() override;
+    virtual bool PostInitialize() override;
+    virtual void Tick(double deltaTime) override;
+
 private:
     EventQueue<RenderingSubsystem> _eventQueue;
     std::unique_ptr<ShaderChangeListener> _shaderChangeListener;
+    std::shared_ptr<PerPassConstants> _perPassConstants = nullptr;
 };

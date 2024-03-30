@@ -16,9 +16,9 @@ Type* PropertyBase::GetType() const
     return _type;
 }
 
-bool PropertyBase::IsEditable() const
+PropertyBase::EEditorVisibility PropertyBase::GetEditorVisibility() const
 {
-    return _isEditable;
+    return _editorVisibility;
 }
 
 std::shared_ptr<Widget> PropertyBase::CreateWidget(const std::shared_ptr<Object>& object)
@@ -39,11 +39,6 @@ std::vector<Attribute>& PropertyBase::GetAttributes()
 void PropertyBase::SetType(Type* type)
 {
     _type = type;
-}
-
-void PropertyBase::SetIsEditable(bool isEditable)
-{
-    _isEditable = isEditable;
 }
 
 bool PropertyMap::ForEachPropertyWithTag(const std::string& tag,

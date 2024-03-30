@@ -20,7 +20,9 @@ public:
     virtual ~SystemBase() = default;
     
     void CallInitialize(PassKey<SystemScheduler>);
+    void CallOnEntityCreated(const Archetype& archetype, Entity& entity, PassKey<World>);
     void CallTick(double deltaTime, PassKey<SystemScheduler>);
+    void CallOnEntityDestroyed(const Archetype& archetype, Entity& entity, PassKey<World>);
     void CallShutdown(PassKey<SystemScheduler>);
 
     void SetWorld(World* world, PassKey<World>);
@@ -31,12 +33,13 @@ public:
     const Archetype& GetArchetype() const;
 
 protected:
-    virtual void Initialize() = 0;
+    virtual void Initialize();
+    virtual void OnEntityCreated(const Archetype& archetype, Entity& entity);   // todo refactor, this call should be scheduled
     virtual void Tick(double deltaTime) = 0;
-    virtual void Shutdown() = 0;
+    virtual void OnEntityDestroyed(const Archetype& archetype, Entity& entity);
+    virtual void Shutdown();
 
     const ECSQuery& GetQuery() const;
-    
 
 private:
     Archetype _archetype;
@@ -45,10 +48,10 @@ private:
 };
 
 template <typename... ComponentTypes> requires (IsReflectedType<ComponentTypes> && ...)
-class System
+class System : public SystemBase
 {
 public:
-    System() : System(Archetype::Create<ComponentTypes...>())
+    System() : SystemBase(Archetype::Create<ComponentTypes...>())
     {
     }
 };

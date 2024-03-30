@@ -7,6 +7,7 @@
 #include "Containers/EventQueue.h"
 #include "Containers/ObjectTypeMap.h"
 
+class EntityTemplate;
 class GameplaySubsystem;
 class Type;
 class Entity;
@@ -65,8 +66,35 @@ public:
         });
     }
 
+    Entity& CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate);
+    void CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, uint32 count);
+
+    template <typename Func>
+    void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, Func onCreated)
+    {
+        _eventQueue.Enqueue([this, entityTemplate, onCreated](World* world)
+        {
+            Entity& newEntity = CreateEntity(entityTemplate);
+            onCreated(newEntity);
+        });
+    }
+    
+    template <typename Func>
+    void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, uint32 count, Func onCreated)
+    {
+        _eventQueue.Enqueue([this, entityTemplate, onCreated, count](World* world)
+        {
+            for (uint32 i = 0; i < count; ++i)
+            {
+                Entity& newEntity = CreateEntity(entityTemplate);
+                onCreated(newEntity);
+            }
+        });
+    }
+    
     Entity& CreateEntity(const Archetype& archetype);
     void CreateEntities(const Archetype& archetype, uint32 count);
+    
     void DestroyEntity(Entity& entity);
 
     SharedObjectPtr<Component> AddComponent(Entity& entity, Type& componentType, Name name);
@@ -83,7 +111,7 @@ public:
     SystemType& AddSystem()
     {
         SystemType& newSystem = _systemScheduler.AddSystem<SystemType>();
-        newSystem.SetWorld(this);
+        newSystem.SetWorld(this, {});
         newSystem.UpdateQuery({});
         return newSystem;
     }

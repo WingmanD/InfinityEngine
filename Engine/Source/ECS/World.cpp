@@ -31,6 +31,22 @@ void World::DestroyEntityAsync(Entity& entity)
     });
 }
 
+Entity& World::CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate)
+{
+    Entity& entity = CreateEntity(entityTemplate->GetArchetype());
+    entityTemplate->InitializeEntity(entity);
+    
+    return entity;
+}
+
+void World::CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, uint32 count)
+{
+    for (uint32 i = 0; i < count; ++i)
+    {
+        CreateEntity(entityTemplate);
+    }
+}
+
 Entity& World::CreateEntity(const Archetype& archetype)
 {
     EntityList& entityList = GetEntityList(archetype);
@@ -39,6 +55,14 @@ Entity& World::CreateEntity(const Archetype& archetype)
     for (const Archetype::QualifiedComponentType& qualifiedType : archetype.GetComponentTypes())
     {
         AddComponentInternal(entity, *qualifiedType.Type, qualifiedType.Name);
+    }
+
+    for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
+    {
+        if (system->GetArchetype().IsSubsetOf(archetype) || system->GetArchetype().IsSupersetOf(archetype))
+        {
+            system->CallOnEntityCreated(archetype, entity, {});
+        }
     }
 
     return entity;
@@ -54,8 +78,17 @@ void World::CreateEntities(const Archetype& archetype, uint32 count)
 
 void World::DestroyEntity(Entity& entity)
 {
-    const EntityListGraph::EntityListResult result = _entityListGraph.GetOrCreateEntityListFor(Archetype(entity));
+    const Archetype archetype = Archetype(entity);
+    const EntityListGraph::EntityListResult result = _entityListGraph.GetOrCreateEntityListFor(archetype);
     EntityList& entityList = *result.List;
+
+    for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
+    {
+        if (system->GetArchetype().IsSubsetOf(archetype) || system->GetArchetype().IsSupersetOf(archetype))
+        {
+            system->CallOnEntityDestroyed(archetype, entity, {});
+        }
+    }
 
     entityList.Remove(entity);
 }
