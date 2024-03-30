@@ -2,11 +2,10 @@
 #include <d3dcompiler.h>
 #include <filesystem>
 #include "Core.h"
-#include "d3dx12.h"
+#include "d3dx12/d3dx12.h"
 #include "DX12MaterialParameterMap.h"
 #include "DX12RenderingSubsystem.h"
 #include "Util.h"
-#include "Engine/Engine.h"
 #include "Engine/Subsystems/AssetManager.h"
 
 std::vector<D3D12_INPUT_ELEMENT_DESC> DX12Shader::_inputLayout = {

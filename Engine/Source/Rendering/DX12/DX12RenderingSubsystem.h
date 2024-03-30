@@ -2,7 +2,7 @@
 
 #include "Core.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
-#include "d3dx12.h"
+#include "d3dx12/d3dx12.h"
 #include "DescriptorHeap.h"
 #include "GraphicsMemory.h"
 #include "ThreadPool.h"
@@ -15,7 +15,7 @@ class DX12Window;
 struct DX12CommandList
 {
     ComPtr<ID3D12CommandAllocator> CommandAllocator;
-    ComPtr<ID3D12GraphicsCommandList> CommandList;
+    ComPtr<ID3D12GraphicsCommandList10> CommandList;
 
     void Reset()
     {
@@ -52,7 +52,7 @@ public:
     ID3D12CommandQueue* GetCopyCommandQueue() const;
     DX12CopyCommandList RequestCopyCommandList();
     void ReturnCopyCommandList(DX12CopyCommandList& commandList);
-    ComPtr<ID3D12Resource> CreateDefaultBuffer(ID3D12GraphicsCommandList* commandList, const void* data, UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) const;
+    ComPtr<ID3D12Resource> CreateDefaultBuffer(ID3D12GraphicsCommandList10* commandList, const void* data, UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) const;
 
     bool IsMSAAEnabled() const;
     uint32 GetMSAASampleCount() const;

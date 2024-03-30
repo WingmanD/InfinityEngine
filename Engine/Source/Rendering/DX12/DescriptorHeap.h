@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Core.h"
-#include "d3dx12.h"
+#include "d3dx12/d3dx12.h"
 #include <wrl/client.h>
 #include <vector>
 

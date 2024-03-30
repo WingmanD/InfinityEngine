@@ -25,6 +25,8 @@ add_executable(Engine WIN32 ${_files})
 
 target_include_directories(Engine PUBLIC "${_path}/Source" "${_files}")
 target_include_directories(Engine PUBLIC ${directxtk12_SOURCE_DIR}/Inc)
+target_include_directories(Engine PUBLIC ${AGILITYSDK_SOURCE_DIR}/build/native/include)
+target_include_directories(Engine PUBLIC ${D3DCOMPILER_SOURCE_DIR}/inc)
 
 target_compile_definitions(Engine PRIVATE "UNICODE" "_UNICODE")
 set_target_properties(Engine PROPERTIES UNITY_BUILD_BATCH_SIZE 8)
@@ -42,3 +44,25 @@ add_custom_command(
     COMMAND $<TARGET_FILE:ReflectionTool> ${_path}/Logs/ReflectionLog.txt ${_path}/Source
     COMMENT "Running ReflectionTool..."
 )
+
+set(SOURCE_DIR "${AGILITYSDK_SOURCE_DIR}/build/native/bin/x64")
+set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/D3D12")
+
+add_custom_command(TARGET Engine POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   "${SOURCE_DIR}" "${DEST_DIR}")
+                   
+set(SOURCE_DIR "${D3DCOMPILER_SOURCE_DIR}/bin/x64")
+set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/D3D12")
+
+add_custom_command(TARGET Engine POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   "${SOURCE_DIR}" "${DEST_DIR}")
+
+set(SOURCE_DIR "${D3DCOMPILERPDB_SOURCE_DIR}/symbols/x64")
+set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/D3D12")
+
+add_custom_command(TARGET Engine POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   "${SOURCE_DIR}" "${DEST_DIR}")
+

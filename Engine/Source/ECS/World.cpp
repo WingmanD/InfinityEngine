@@ -1,4 +1,5 @@
 ﻿#include "World.h"
+#include "EntityTemplate.h"
 
 World::World() : _eventQueue(this)
 {

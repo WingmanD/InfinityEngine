@@ -1,4 +1,5 @@
 ﻿#include "System.h"
+#include "ECS/World.h"
 
 SystemBase::SystemBase(Archetype&& archetype) : _archetype(std::move(archetype))
 {

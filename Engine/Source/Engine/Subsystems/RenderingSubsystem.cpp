@@ -43,7 +43,7 @@ EventQueue<RenderingSubsystem>& RenderingSubsystem::GetEventQueue()
 
 void RenderingSubsystem::Tick(double deltaTime)
 {
-    _perPassConstants->Time += deltaTime;
+    _perPassConstants->Time += static_cast<float>(deltaTime);
     // todo camera
     // XMStoreFloat4x4(&_perPassConstants->World, XMMatrixTranspose(world));
     // XMStoreFloat4x4(&_perPassConstants->ViewProjection, XMMatrixTranspose(view * proj));

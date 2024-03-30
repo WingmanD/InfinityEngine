@@ -1,8 +1,7 @@
 ﻿#pragma once
 
-#include <d3d12.h>
+#include "d3d12.h"
 #include <wrl/client.h>
-#include "Core.h"
 #include "Rendering/RenderTarget.h"
 
 using Microsoft::WRL::ComPtr;

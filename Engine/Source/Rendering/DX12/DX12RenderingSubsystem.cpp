@@ -1,6 +1,6 @@
 ﻿#include "DX12RenderingSubsystem.h"
 #include "Core.h"
-#include "d3dx12.h"
+#include "d3dx12/d3dx12.h"
 #include "DX12MaterialParameterRenderingData.h"
 #include "DX12MaterialRenderingData.h"
 #include "DX12RenderTarget.h"
@@ -15,6 +15,9 @@
 #include <dxgi1_2.h>
 #include <string>
 #include <vector>
+
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 613; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
 
 DX12RenderingSubsystem& DX12RenderingSubsystem::Get()
 {
@@ -121,7 +124,7 @@ void DX12RenderingSubsystem::ReturnCopyCommandList(DX12CopyCommandList& commandL
 }
 
 ComPtr<ID3D12Resource> DX12RenderingSubsystem::CreateDefaultBuffer(
-    ID3D12GraphicsCommandList* commandList,
+    ID3D12GraphicsCommandList10* commandList,
     const void* data,
     uint64 byteSize,
     ComPtr<ID3D12Resource>& uploadBuffer) const
