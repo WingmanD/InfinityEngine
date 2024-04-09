@@ -24,13 +24,19 @@ public:
     void SetShader(const std::shared_ptr<Shader>& shader);
     [[nodiscard]] std::shared_ptr<Shader> GetShader() const;
 
+    template <typename T> requires IsA<T, Shader>
+    [[nodiscard]] std::shared_ptr<T> GetShader() const
+    {
+        return std::static_pointer_cast<T>(GetShader());
+    }
+
     template <typename T> requires std::is_base_of_v<MaterialParameter, T>
     T* GetParameter(const std::string& name)
     {
         return _materialParameterMap->GetParameter<T>(name);
     }
 
-    [[nodiscard]] MaterialParameterMap& GetParameterMap() const;
+    [[nodiscard]] MaterialParameterMap* GetParameterMap() const;
 
     [[nodiscard]] MaterialRenderingData* GetRenderingData() const;
     

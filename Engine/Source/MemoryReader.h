@@ -12,6 +12,8 @@ public:
     MemoryReader() = default;
 
     MemoryReader& Read(std::byte* destination, uint64 size);
+    std::byte* GetCurrentPointer();
+    void Skip(uint64 size);
 
     bool ReadFromFile(std::ifstream& file, uint64 numBytesToRead = 0);
 

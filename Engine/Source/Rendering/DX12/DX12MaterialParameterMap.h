@@ -1,12 +1,12 @@
 ﻿#pragma once
 
+#include "Rendering/DX12/DX12RenderingCore.h"
 #include "Rendering/MaterialParameterMap.h"
-#include "ConstantBuffer.h"
 
 class DX12MaterialParameterMap : public MaterialParameterMap
 {
 public:
     DX12MaterialParameterMap() = default;
 
-    void Bind(ID3D12GraphicsCommandList* commandList) const;
+    void Bind(DX12GraphicsCommandList* commandList) const;
 };

@@ -10,19 +10,19 @@ public:
     using type = T;
 
 public:
-    AssetPtr()
+    AssetPtr() : AssetPtrBase()
     {
         SetType(T::StaticType());
     }
 
-    AssetPtr(const std::shared_ptr<T>& asset) : AssetPtrBase(asset)
+    AssetPtr(const std::shared_ptr<T>& asset) : AssetPtr()
     {
-        SetType(T::StaticType());
+        SetAsset(asset);
     }
 
-    AssetPtr(const AssetPtr& other) : AssetPtrBase(other)
+    AssetPtr(const AssetPtr& other) : AssetPtr()
     {
-        SetType(T::StaticType());
+        SetAsset(other.GetAsset());
     }
 
     AssetPtr& operator=(const AssetPtr& other)

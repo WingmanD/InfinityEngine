@@ -80,6 +80,17 @@ uint16 Archetype::GetComponentIndex(Name componentName) const
     return _componentNameToIndexMap.at(componentName);
 }
 
+uint16 Archetype::GetComponentIndexChecked(Type& componentType) const
+{
+    const auto it = _componentTypeToIndexMap.find(&componentType);
+    if (it == _componentTypeToIndexMap.end())
+    {
+        return std::numeric_limits<uint16>::max();
+    }
+
+    return it->second;
+}
+
 uint64 Archetype::GetID() const
 {
     return _id;
@@ -264,12 +275,16 @@ MemoryReader& operator>>(MemoryReader& reader, Archetype& archetype)
     reader >> archetype._componentTypeList;
 
     FNV1a fnv;
+    uint16 index = 0;
     for (const Archetype::QualifiedComponentType& qualifiedType : archetype._componentTypeList)
     {
-        archetype._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(archetype._componentTypeToIndexMap.size());
-        archetype._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(archetype._componentNameToIndexMap.size());
+        // todo check if error is here
+        archetype._componentTypeToIndexMap[qualifiedType.Type] = index;
+        archetype._componentNameToIndexMap[qualifiedType.Name] = index;
 
         fnv.Combine(qualifiedType.Type->GetID());
+        
+        ++index;
     }
     archetype._id = fnv.GetHash();
 

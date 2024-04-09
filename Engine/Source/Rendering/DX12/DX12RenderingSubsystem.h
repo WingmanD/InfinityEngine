@@ -1,33 +1,18 @@
 ﻿#pragma once
 
-#include "Core.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
-#include "d3dx12/d3dx12.h"
 #include "DescriptorHeap.h"
 #include "GraphicsMemory.h"
+#include "InstanceBufferUploader.h"
+#include "Rendering/DX12/DX12RenderingCore.h"
 #include "ThreadPool.h"
 #include <dxgi.h>
 
-using Microsoft::WRL::ComPtr;
-
+class ViewportWidget;
+class CCamera;
 class DX12Window;
-
-struct DX12CommandList
-{
-    ComPtr<ID3D12CommandAllocator> CommandAllocator;
-    ComPtr<ID3D12GraphicsCommandList10> CommandList;
-
-    void Reset()
-    {
-        CommandAllocator->Reset();
-        CommandList->Reset(CommandAllocator.Get(), nullptr);
-    }
-};
-
-struct DX12CopyCommandList : public DX12CommandList
-{
-    std::vector<std::function<void()>> OnCompletedCallbacks;
-};
+class InstanceBuffer;
+class StaticMeshRenderingSystem;
 
 class DX12RenderingSubsystem : public RenderingSubsystem, public std::enable_shared_from_this<DX12RenderingSubsystem>
 {
@@ -46,13 +31,15 @@ public:
     void WaitForGPU() const;
 
     ID3D12CommandQueue* GetCommandQueue() const;
-    DX12CommandList RequestCommandList();
-    void CloseCommandList(const DX12CommandList& commandList);
 
     ID3D12CommandQueue* GetCopyCommandQueue() const;
     DX12CopyCommandList RequestCopyCommandList();
     void ReturnCopyCommandList(DX12CopyCommandList& commandList);
-    ComPtr<ID3D12Resource> CreateDefaultBuffer(ID3D12GraphicsCommandList10* commandList, const void* data, UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) const;
+    
+    ComPtr<ID3D12Resource> CreateDefaultBuffer(DX12GraphicsCommandList* commandList, const void* data,
+                                               UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) const;
+
+    void DrawScene(const ViewportWidget& viewport);
 
     bool IsMSAAEnabled() const;
     uint32 GetMSAASampleCount() const;
@@ -62,12 +49,16 @@ public:
     DXGI_FORMAT GetDepthStencilFormat() const;
 
     IDXGIFactory* GetDXGIFactory() const;
-    ID3D12Device* GetDevice() const;
+    DX12Device* GetDevice() const;
+    DXCompiler& GetD3DCompiler() const;
+    IDxcUtils& GetDXCUtils() const;
 
     DescriptorHeap& GetRTVHeap();
     DescriptorHeap& GetDSVHeap();
     const std::shared_ptr<DescriptorHeap>& GetCBVHeap();
     const std::shared_ptr<DescriptorHeap>& GetSRVHeap();
+
+    uint32 GetCBVSRVUAVDescriptorSize() const;
 
     DirectX::GraphicsMemory& GetGraphicsMemory() const;
 
@@ -91,6 +82,10 @@ public:
     virtual std::shared_ptr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) override;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateDefaultWidgetRenderingProxy() override;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateTextWidgetRenderingProxy() override;
+    virtual std::unique_ptr<WidgetRenderingProxy> CreateViewportWidgetRenderingProxy() override;
+
+    virtual void RegisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) override;
+    virtual void UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) override;
 
     virtual void OnWindowDestroyed(Window* window) override;
 
@@ -105,7 +100,9 @@ private:
     std::vector<std::shared_ptr<DX12Window>> _windows;
 
     ComPtr<IDXGIFactory> _dxgiFactory = nullptr;
-    ComPtr<ID3D12Device> _device;
+    ComPtr<DX12Device> _device;
+    ComPtr<DXCompiler> _compiler;
+    ComPtr<IDxcUtils> _dxcUtils;
 
     ComPtr<ID3D12Fence> _mainFence;
     uint64 _mainFenceValue = 0;
@@ -114,8 +111,6 @@ private:
     uint64 _copyFenceValue = 0;
 
     ComPtr<ID3D12CommandQueue> _commandQueue;
-    std::vector<DX12CommandList> _availableCommandLists;
-    std::vector<DX12CommandList> _closedCommandLists;
 
     ComPtr<ID3D12CommandQueue> _copyCommandQueue;
     LockFreeQueue<DX12CopyCommandList> _availableCopyCommandLists;
@@ -129,6 +124,14 @@ private:
     uint32 _cbvSrvUavDescriptorSize = 0;
 
     DirectX::GraphicsMemory* _graphicsMemory;
+
+    struct InstanceBufferData
+    {
+        StaticMeshRenderingSystem* SMRenderingSystem = nullptr;
+        InstanceBufferUploader Uploader;
+    };
+    
+    DArray<InstanceBufferData> _instanceBufferUploaders;
 
 private:
     void LogAdapters();

@@ -8,14 +8,17 @@
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
-    InitializeReflection();
-    TypeRegistry::Get().LogRegisteredTypes();
+    CoInitialize(nullptr);
     
     wchar_t executablePath[MAX_PATH];
     if (!GetModuleFileNameW(nullptr, executablePath, MAX_PATH))
     {
         return -1;
     }
+
+    const std::filesystem::path libPath = std::filesystem::path(executablePath).parent_path() / L"Libraries";
+    SetDllDirectory(libPath.c_str());
+    
 #if DEBUG
     std::filesystem::path logPath = std::filesystem::path(executablePath).parent_path().parent_path().parent_path().parent_path() / "Engine" / "Logs" / "Log.txt";
 #elif
@@ -28,6 +31,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     {
         return -1;
     }
+    
+    InitializeReflection();
 
     Engine& engine = Engine::Get();
     if (!engine.Initialize(hInstance))
@@ -36,6 +41,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         return 1;
     }
     engine.Run();
+
+    CoUninitialize();
 
     return 0;
 }

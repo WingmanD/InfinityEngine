@@ -1,11 +1,10 @@
 ﻿#pragma once
 
-#include <d3d12.h>
-
 #include "Rendering/MaterialRenderingData.h"
+#include "Rendering/DX12/DX12RenderingCore.h"
 
 class DX12MaterialRenderingData : public MaterialRenderingData
 {
 public:
-    void Apply(ID3D12GraphicsCommandList* commandList) const;    
+    void Apply(DX12GraphicsCommandList* commandList) const;    
 };

@@ -1,13 +1,13 @@
 ﻿#pragma once
 
 #include "Rendering/Widgets/WidgetRenderingProxy.h"
-#include <d3d12.h>
+#include "Rendering/DX12/DX12RenderingCore.h"
 
 class DX12WidgetRenderingProxy : public WidgetRenderingProxy
 {
 public:
-    void SetupDrawing(ID3D12GraphicsCommandList* commandList) const;
+    DX12CommandList SetupDrawing(DX12CommandList& commandList) const;
     
 protected:
-    virtual void SetupDrawingInternal(ID3D12GraphicsCommandList* commandList) const;
+    virtual DX12CommandList SetupDrawingInternal(DX12CommandList& commandList) const;
 };

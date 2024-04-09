@@ -53,6 +53,14 @@ public:
         return GetComponentIndex(*T::StaticType());
     }
 
+    uint16 GetComponentIndexChecked(Type& componentType) const;
+    
+    template <typename T> requires IsA<T, Component>
+    uint16 GetComponentIndexChecked() const
+    {
+        return GetComponentIndexChecked(*T::StaticType());
+    }
+
     uint64 GetID() const;
 
     const auto& GetComponentTypes() const

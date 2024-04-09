@@ -3,13 +3,12 @@
 #include "DX12WidgetRenderingProxy.h"
 #include "Delegate.h"
 #include "SpriteBatch.h"
-#include <d3d12.h>
 #include <memory>
 
 class DX12TextWidgetRenderingProxy : public DX12WidgetRenderingProxy
 {
 public:
-    virtual void SetupDrawingInternal(ID3D12GraphicsCommandList* commandList) const override;
+    virtual DX12CommandList SetupDrawingInternal(DX12CommandList& commandList) const override;
 
     // WidgetRenderingProxy
 public:

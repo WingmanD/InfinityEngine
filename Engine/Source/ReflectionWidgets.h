@@ -108,7 +108,7 @@ std::shared_ptr<Widget> DisableWidget(const std::shared_ptr<Widget>& widget);
     
 std::shared_ptr<Widget> CreatePropertiesWidgetFor(const std::shared_ptr<Object>& object);
 
-std::shared_ptr<Widget> CreateTableForContainer(DArray<std::pair<std::shared_ptr<Widget>, std::function<std::shared_ptr<Widget>()>>>& children, std::function<std::shared_ptr<Widget>()> onAdd);
+std::shared_ptr<Widget> CreateTableForContainer(const std::shared_ptr<Object>& object, PropertyBase& property, DArray<std::pair<std::shared_ptr<Widget>, std::function<std::shared_ptr<Widget>()>>>& children, std::function<std::shared_ptr<Widget>()> onAdd);
 
 template <typename ContainerType> requires IsContainer<ContainerType>
 std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, ContainerType* value)
@@ -144,7 +144,7 @@ std::shared_ptr<Widget> CreateEditableWidgetFor(const std::shared_ptr<Object>& o
         return CreateEditableWidgetFor(object, *propertyPtr, value);
     };
     
-    return CreateTableForContainer(children, onAdd);
+    return CreateTableForContainer(object, property, children, onAdd);
 }
     
 template <typename ContainerType> requires IsContainer<ContainerType>

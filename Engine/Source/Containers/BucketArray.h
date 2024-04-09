@@ -139,7 +139,7 @@ public:
 
     void Clear()
     {
-        _buckets.clear();
+        _buckets.Clear();
     }
 
 private:

@@ -1,5 +1,4 @@
 ﻿#include "DX12Shader.h"
-#include <d3dcompiler.h>
 #include <filesystem>
 #include "Core.h"
 #include "d3dx12/d3dx12.h"
@@ -41,7 +40,7 @@ DX12Shader& DX12Shader::operator=(const DX12Shader& other)
     return *this;
 }
 
-void DX12Shader::Apply(ID3D12GraphicsCommandList* commandList) const
+void DX12Shader::Apply(DX12GraphicsCommandList* commandList) const
 {
     commandList->SetPipelineState(_pso.Get());
     commandList->SetGraphicsRootSignature(_rootSignature.Get());
@@ -62,6 +61,7 @@ bool DX12Shader::Recompile(bool immediate)
     _beingRecompiled = true;
 
     DX12RenderingSubsystem& renderingSubsystem = dynamic_cast<DX12RenderingSubsystem&>(RenderingSubsystem::Get());
+    IDxcUtils& dxcUtils = renderingSubsystem.GetDXCUtils();
 
     LOG(L"Compiling shader {}...", GetName().ToString());
     const std::filesystem::path& importPath = GetImportPath();
@@ -70,16 +70,34 @@ bool DX12Shader::Recompile(bool immediate)
 
     recompiledData->LastCompileTime = last_write_time(importPath);
 
-    const ComPtr<ID3DBlob> vertexShader = CompileShader(importPath, nullptr, "VS", "vs_5_1");
-    if (vertexShader == nullptr)
+    const ComPtr<IDxcResult> vertexShaderResult = CompileShader(importPath, L"VS", L"vs_6_8");
+    if (vertexShaderResult == nullptr)
     {
         _beingRecompiled = false;
         return false;
     }
 
-    const ComPtr<ID3DBlob> pixelShader = CompileShader(importPath, nullptr, "PS", "ps_5_1");
+    ComPtr<ID3DBlob> vertexShader = nullptr;
+    vertexShaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(vertexShader.GetAddressOf()), nullptr);
+    if (vertexShader == nullptr)
+    {
+        LOG(L"Failed to compile shader {} - failed to get vertex shader byte code", GetName().ToString());
+        _beingRecompiled = false;
+        return false;
+    }
+
+    const ComPtr<IDxcResult> pixelShaderResult = CompileShader(importPath, L"PS", L"ps_6_8");
+    if (pixelShaderResult == nullptr)
+    {
+        _beingRecompiled = false;
+        return false;
+    }
+
+    ComPtr<ID3DBlob> pixelShader = nullptr;
+    pixelShaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(pixelShader.GetAddressOf()), nullptr);
     if (pixelShader == nullptr)
     {
+        LOG(L"Failed to compile shader {} - failed to get pixelShader shader byte code", GetName().ToString());
         _beingRecompiled = false;
         return false;
     }
@@ -87,33 +105,45 @@ bool DX12Shader::Recompile(bool immediate)
     std::vector<D3D12_ROOT_PARAMETER> rootParameters;
     std::set<MaterialParameterDescriptor> constantBufferParameterTypes;
 
-    if (!ReflectShaderParameters(vertexShader.Get(), rootParameters, constantBufferParameterTypes))
+    if (!ReflectShaderParameters(vertexShaderResult.Get(), rootParameters, constantBufferParameterTypes))
     {
         LOG(L"Failed to compile shader {} - failed to reflect vertex shader", GetName().ToString());
         _beingRecompiled = false;
         return false;
     }
 
-    if (!ReflectShaderParameters(pixelShader.Get(), rootParameters, constantBufferParameterTypes))
+    if (!ReflectShaderParameters(pixelShaderResult.Get(), rootParameters, constantBufferParameterTypes))
     {
         LOG(L"Failed to compile shader {} - failed to reflect pixel shader", GetName().ToString());
         return false;
     }
 
-    recompiledData->VertexShader = vertexShader;
-    recompiledData->PixelShader = pixelShader;
+    dxcUtils.CreateBlob(
+        vertexShader->GetBufferPointer(),
+        static_cast<uint32>(vertexShader->GetBufferSize()),
+        DXC_CP_ACP,
+        &recompiledData->VertexShader
+    );
+
+    dxcUtils.CreateBlob(
+        pixelShader->GetBufferPointer(),
+        static_cast<uint32>(pixelShader->GetBufferSize()),
+        DXC_CP_ACP,
+        &recompiledData->PixelShader
+    );
 
     D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
     rootSignatureDesc.NumParameters = static_cast<uint32>(rootParameters.size());
-    rootSignatureDesc.pParameters = rootParameters.data();
+    rootSignatureDesc.pParameters = rootParameters.data();  // todo SRV needs to be bound here
     rootSignatureDesc.NumStaticSamplers = 0;
     rootSignatureDesc.pStaticSamplers = nullptr;
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
+    ComPtr<ID3DBlob> serializedRootSignature = nullptr;
     ComPtr<ID3DBlob> errorBlob = nullptr;
     const HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc,
                                                    D3D_ROOT_SIGNATURE_VERSION_1,
-                                                   recompiledData->SerializedRootSignature.GetAddressOf(),
+                                                   serializedRootSignature.GetAddressOf(),
                                                    errorBlob.GetAddressOf());
     if (errorBlob != nullptr)
     {
@@ -136,8 +166,8 @@ bool DX12Shader::Recompile(bool immediate)
 
     HRESULT result = renderingSubsystem.GetDevice()->CreateRootSignature(
         0,
-        recompiledData->SerializedRootSignature->GetBufferPointer(),
-        recompiledData->SerializedRootSignature->GetBufferSize(),
+        serializedRootSignature->GetBufferPointer(),
+        serializedRootSignature->GetBufferSize(),
         IID_PPV_ARGS(&recompiledData->RootSignature));
 
     if (FAILED(result))
@@ -147,6 +177,13 @@ bool DX12Shader::Recompile(bool immediate)
         _beingRecompiled = false;
         return false;
     }
+
+    dxcUtils.CreateBlob(
+        serializedRootSignature->GetBufferPointer(),
+        static_cast<uint32>(serializedRootSignature->GetBufferSize()),
+        DXC_CP_ACP,
+        &recompiledData->SerializedRootSignature
+    );
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
     ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -191,7 +228,7 @@ bool DX12Shader::Recompile(bool immediate)
     std::weak_ptr weakThis = shared_from_this();
     auto lambda = [weakThis, recompiledData](RenderingSubsystem* renderingSubsystem)
     {
-        std::shared_ptr<DX12Shader> shader = std::static_pointer_cast<DX12Shader>(weakThis.lock());
+        const std::shared_ptr<DX12Shader> shader = std::static_pointer_cast<DX12Shader>(weakThis.lock());
         if (shader == nullptr)
         {
             return;
@@ -310,48 +347,58 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
         return Recompile(true);
     }
 
+    const DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
+
+    IDxcUtils& dxcUtils = renderingSubsystem.GetDXCUtils();
+
     bool success = true;
     if (serializedRootSignatureSize > 0ull)
     {
-        const HRESULT result = D3DCreateBlob(serializedRootSignatureSize, _serializedRootSignature.GetAddressOf());
+        const HRESULT result = dxcUtils.CreateBlob(
+            reader.GetCurrentPointer(),
+            static_cast<uint32>(serializedRootSignatureSize),
+            DXC_CP_ACP,
+            _serializedRootSignature.GetAddressOf());
+
         if (FAILED(result))
         {
             LOG(L"Failed to create serialized root signature blob for shader {}!", GetName().ToString());
             success = false;
         }
-        else
-        {
-            reader.Read(static_cast<std::byte*>(_serializedRootSignature->GetBufferPointer()),
-                        serializedRootSignatureSize);
-        }
+
+        reader.Skip(serializedRootSignatureSize);
     }
 
     if (vertexShaderSize > 0ull)
     {
-        const HRESULT result = D3DCreateBlob(vertexShaderSize, _vertexShader.GetAddressOf());
+        const HRESULT result = dxcUtils.CreateBlob(
+            reader.GetCurrentPointer(),
+            static_cast<uint32>(vertexShaderSize),
+            DXC_CP_ACP,
+            _vertexShader.GetAddressOf());
         if (FAILED(result))
         {
             LOG(L"Failed to create vertex shader blob for shader {}!", GetName().ToString());
             success = false;
         }
-        else
-        {
-            reader.Read(static_cast<std::byte*>(_vertexShader->GetBufferPointer()), vertexShaderSize);
-        }
+
+        reader.Skip(vertexShaderSize);
     }
 
     if (pixelShaderSize > 0)
     {
-        const HRESULT result = D3DCreateBlob(pixelShaderSize, _pixelShader.GetAddressOf());
+        const HRESULT result = dxcUtils.CreateBlob(
+            reader.GetCurrentPointer(),
+            static_cast<uint32>(pixelShaderSize),
+            DXC_CP_ACP,
+            _pixelShader.GetAddressOf());
         if (FAILED(result))
         {
             LOG(L"Failed to create pixel shader blob for shader {}!", GetName().ToString());
             success = false;
         }
-        else
-        {
-            reader.Read(static_cast<std::byte*>(_pixelShader->GetBufferPointer()), pixelShaderSize);
-        }
+
+        reader.Skip(pixelShaderSize);
     }
 
     ParameterMap = std::make_unique<DX12MaterialParameterMap>();
@@ -369,8 +416,6 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
             return false;
         }
 
-        const DX12RenderingSubsystem& renderingSubsystem = static_cast<DX12RenderingSubsystem&>(
-            RenderingSubsystem::Get());
         if (!InitializeRootSignature(renderingSubsystem))
         {
             return false;
@@ -423,42 +468,86 @@ std::vector<std::shared_ptr<Asset>> DX12Shader::Import(const std::shared_ptr<Imp
     return {shader};
 }
 
-ComPtr<ID3DBlob> DX12Shader::CompileShader(const std::filesystem::path& shaderPath,
-                                           const D3D_SHADER_MACRO* defines,
-                                           const std::string& entryPoint,
-                                           const std::string& target)
+ComPtr<IDxcResult> DX12Shader::CompileShader(const std::filesystem::path& shaderPath,
+                                             const std::wstring& entryPoint,
+                                             const std::wstring& target,
+                                             const std::vector<D3D_SHADER_MACRO>& defines /*= {}*/)
 {
-    uint32 compileFlags = 0;
-#if defined(DEBUG) || defined(_DEBUG)
-    compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#endif
-
-    ComPtr<ID3DBlob> byteCode = nullptr;
-    ComPtr<ID3DBlob> errors;
-
-    const HRESULT hr = D3DCompileFromFile(shaderPath.c_str(),
-                                          defines,
-                                          D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                                          entryPoint.c_str(),
-                                          target.c_str(),
-                                          compileFlags,
-                                          0,
-                                          &byteCode,
-                                          &errors);
-
-    if (errors != nullptr)
+    std::ifstream fileStream(shaderPath);
+    if (!fileStream.is_open())
     {
-        OutputDebugStringA(static_cast<char*>(errors->GetBufferPointer()));
-    }
-
-    if (FAILED(hr))
-    {
-        LOG(L"Shader compilation failed: {}", shaderPath.wstring());
-
+        LOG(L"Failed to open shader file: {}", shaderPath.wstring());
         return nullptr;
     }
 
-    return byteCode;
+    const std::string contents((std::istreambuf_iterator(fileStream)), std::istreambuf_iterator<char>());
+
+    const DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
+
+    DXCompiler& d3dCompiler = renderingSubsystem.GetD3DCompiler();
+    IDxcUtils& dxcUtils = renderingSubsystem.GetDXCUtils();
+
+    ComPtr<IDxcBlobEncoding> source;
+    dxcUtils.CreateBlob(contents.c_str(), static_cast<uint32>(contents.size()), DXC_CP_UTF8, source.GetAddressOf());
+
+    // todo this is constant, optimize
+    std::vector<LPCWSTR> arguments;
+    arguments.push_back(L"-E");
+    arguments.push_back(entryPoint.c_str());
+
+    arguments.push_back(L"-T");
+    arguments.push_back(target.c_str());
+
+    arguments.push_back(L"-I");
+
+    const std::wstring includePath = shaderPath.parent_path().wstring();
+    arguments.push_back(includePath.c_str());
+
+    arguments.push_back(L"-Qstrip_debug");
+    arguments.push_back(L"-Qstrip_reflect");
+
+    arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS);
+    arguments.push_back(DXC_ARG_DEBUG);
+
+    for (const D3D_SHADER_MACRO& define : defines)
+    {
+        arguments.push_back(L"-D");
+        arguments.push_back(Util::ToWString(define.Name).c_str());
+    }
+
+    DxcBuffer sourceBuffer;
+    sourceBuffer.Ptr = source->GetBufferPointer();
+    sourceBuffer.Size = source->GetBufferSize();
+    sourceBuffer.Encoding = 0;
+
+    IDxcIncludeHandler* includeHandler = nullptr;
+    dxcUtils.CreateDefaultIncludeHandler(&includeHandler);
+
+    ComPtr<IDxcResult> compileResult;
+
+    const HRESULT result = d3dCompiler.Compile(
+        &sourceBuffer,
+        arguments.data(),
+        static_cast<uint32>(arguments.size()),
+        includeHandler,
+        IID_PPV_ARGS(compileResult.GetAddressOf())
+    );
+
+    if (FAILED(result))
+    {
+        LOG(L"Shader compilation failed: {}", shaderPath.wstring());
+        return nullptr;
+    }
+
+    ComPtr<IDxcBlobUtf8> errors;
+    compileResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(errors.GetAddressOf()), nullptr);
+    if (errors != nullptr && errors->GetStringLength() > 0)
+    {
+        LOG(L"ERROR: {}", Util::ToWString(static_cast<char*>(errors->GetBufferPointer())));
+        return nullptr;
+    }
+
+    return compileResult;
 }
 
 bool DX12Shader::InitializeRootSignature(const DX12RenderingSubsystem& renderingSubsystem)
@@ -525,12 +614,21 @@ bool DX12Shader::InitializePSO(const DX12RenderingSubsystem& renderingSubsystem)
     return true;
 }
 
-bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
-                                         std::set<MaterialParameterDescriptor>& constantBufferParameterTypes)
+bool DX12Shader::ReflectShaderParameters(IDxcResult* compileResult, std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
+                                         std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const
 {
-    ID3D12ShaderReflection* shaderReflection = nullptr;
-    D3DReflect(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), IID_ID3D12ShaderReflection,
-               reinterpret_cast<void**>(&shaderReflection));
+    ComPtr<IDxcBlob> reflectionData;
+    compileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(reflectionData.GetAddressOf()), nullptr);
+
+    DxcBuffer reflectionBuffer;
+    reflectionBuffer.Ptr = reflectionData->GetBufferPointer();
+    reflectionBuffer.Size = reflectionData->GetBufferSize();
+    reflectionBuffer.Encoding = 0;
+
+    ComPtr<ID3D12ShaderReflection> shaderReflection;
+    DX12RenderingSubsystem::Get().GetDXCUtils().CreateReflection(&reflectionBuffer,
+                                                                 IID_PPV_ARGS(shaderReflection.GetAddressOf()));
+
 
     if (shaderReflection == nullptr)
     {
@@ -550,11 +648,25 @@ bool DX12Shader::ReflectShaderParameters(ID3DBlob* shaderBlob, std::vector<D3D12
         {
         case D3D_SIT_CBUFFER:
             {
-                if (!ReflectConstantBuffer(shaderReflection, bindDesc, rootParameters, constantBufferParameterTypes))
+                if (!ReflectConstantBuffer(shaderReflection.Get(), bindDesc, rootParameters, constantBufferParameterTypes))
                 {
                     return false;
                 }
 
+                break;
+            }
+        case D3D_SIT_STRUCTURED:
+            {
+                D3D12_ROOT_PARAMETER parameter = {};
+                parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+                parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
+                parameter.Descriptor.RegisterSpace = bindDesc.Space;
+                parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+                rootParameters.push_back(parameter);
+
+                // todo fill out SRV parameter descriptions, just as we did with constant buffers
+                // we need to know which index to use for instance buffer, but also for material parameter buffer for later
+                
                 break;
             }
         case D3D_SIT_TEXTURE:
@@ -588,7 +700,8 @@ bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
     ID3D12ShaderReflectionConstantBuffer* cbReflection = shaderReflection->GetConstantBufferByIndex(bindDesc.BindPoint);
     if (cbReflection == nullptr)
     {
-        LOG(L"Failed to reflect constant buffer {} in shader {}!", Util::ToWString(bindDesc.Name), GetName().ToString());
+        LOG(L"Failed to reflect constant buffer {} in shader {}!", Util::ToWString(bindDesc.Name),
+            GetName().ToString());
         return false;
     }
 

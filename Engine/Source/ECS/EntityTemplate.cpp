@@ -4,8 +4,8 @@ void EntityTemplate::InitializeEntity(Entity& entity) const
 {
     for (int32 i = 0; i < _componentEntries.Count(); ++i)
     {
-        Component* component = entity.Get(i);
-        *component = *_componentEntries[i];
+        Component& component = entity.Get(i);
+        component.Copy(*_componentEntries[i]);
     }
 }
 

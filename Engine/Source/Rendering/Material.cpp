@@ -35,9 +35,9 @@ std::shared_ptr<Shader> Material::GetShader() const
     return _shader;
 }
 
-MaterialParameterMap& Material::GetParameterMap() const
+MaterialParameterMap* Material::GetParameterMap() const
 {
-    return *_materialParameterMap.get();
+    return _materialParameterMap.get();
 }
 
 MaterialRenderingData* Material::GetRenderingData() const

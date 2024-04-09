@@ -5,10 +5,10 @@
 bool DX12MaterialParameterRenderingData::Initialize(MaterialParameter* parameter)
 {
     DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
-    return ConstantBuffer::CreateInPlace(_constantBuffer, parameter, renderingSubsystem.GetDevice(), renderingSubsystem.GetCBVHeap());
+    return ConstantBuffer<MaterialParameter>::CreateInPlace(_constantBuffer, parameter, 1, renderingSubsystem.GetDevice(), renderingSubsystem.GetCBVHeap());
 }
 
-ConstantBuffer& DX12MaterialParameterRenderingData::GetConstantBuffer()
+ConstantBuffer<MaterialParameter>& DX12MaterialParameterRenderingData::GetConstantBuffer()
 {
     return _constantBuffer;
 }

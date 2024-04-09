@@ -1,10 +1,12 @@
 ﻿#include "Game.h"
-#include "ECS/Components/CStaticMesh.h"
-#include "ECS/Components/CTransform.h"
 #include "ECS/EntityTemplate.h"
+#include "ECS/Components/CCamera.h"
+#include "ECS/Components/CStaticMesh.h"
+#include "ECS/Systems/CameraSystem.h"
 #include "ECS/Systems/PathfindingSystem.h"
 #include "ECS/Systems/StaticMeshRenderingSystem.h"
 #include "Engine/Subsystems/GameplaySubsystem.h"
+#include "Rendering/Widgets/ViewportWidget.h"
 
 bool Game::Startup(PassKey<GameplaySubsystem>)
 {
@@ -31,16 +33,19 @@ bool Game::OnStartup()
 
     std::shared_ptr<EntityTemplate> templateAsset = AssetManager::Get().FindAssetByName<EntityTemplate>(
         Name(L"EntityTemplateTest"));
+    templateAsset->Load();
     
     GameplaySubsystem& gameplaySubsystem = GameplaySubsystem::Get();
-    gameplaySubsystem.GetWorlds().ForEach([&templateAsset](World& world)
+    gameplaySubsystem.GetWorlds().ForEach([&templateAsset, &gameplaySubsystem](World& world)
     {
-        world.CreateEntity(templateAsset);
-        
         world.AddSystem<PathfindingSystem>();
+        world.AddSystem<CameraSystem>();
         world.AddSystem<StaticMeshRenderingSystem>();
         
-        return true;
+        Entity& entity = world.CreateEntity(templateAsset);
+        gameplaySubsystem.GetMainViewport()->SetCamera(&entity.Get<CCamera>(templateAsset->GetArchetype()));
+        
+        return false;
     });
 
     return true;

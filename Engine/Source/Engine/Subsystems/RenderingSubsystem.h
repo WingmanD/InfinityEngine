@@ -10,6 +10,7 @@
 class World;
 class Window;
 class StaticMeshRenderingData;
+class StaticMeshRenderingSystem;
 class MaterialRenderingData;
 class MaterialParameterRenderingData;
 class MaterialParameterMap;
@@ -35,6 +36,10 @@ public:
     virtual std::shared_ptr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) = 0;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateDefaultWidgetRenderingProxy() = 0;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateTextWidgetRenderingProxy() = 0;
+    virtual std::unique_ptr<WidgetRenderingProxy> CreateViewportWidgetRenderingProxy() = 0;
+
+    virtual void RegisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) = 0;
+    virtual void UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) = 0;
 
     virtual void OnWindowDestroyed(Window* window) = 0;
 

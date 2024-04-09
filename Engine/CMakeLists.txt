@@ -33,9 +33,10 @@ set_target_properties(Engine PROPERTIES UNITY_BUILD_BATCH_SIZE 8)
 
 if(MSVC)
     target_compile_options(Engine PRIVATE "/MP")
+    target_link_options(Engine PRIVATE "/DELAYLOAD:dxcompiler.dll")
 endif()
 
-target_link_libraries(Engine PRIVATE "d3d12.lib" "dxgi.lib" "d3dcompiler.lib" "dxguid.lib" DirectXTK12 ${CONAN_LIBS})
+target_link_libraries(Engine PRIVATE "d3d12.lib" "dxgi.lib" ${D3DCOMPILER_SOURCE_DIR}/lib/x64/dxcompiler.lib "dxguid.lib" DirectXTK12 ${CONAN_LIBS})
 
 # run ReflectionTool pre-build
 add_custom_command(
@@ -46,21 +47,21 @@ add_custom_command(
 )
 
 set(SOURCE_DIR "${AGILITYSDK_SOURCE_DIR}/build/native/bin/x64")
-set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/D3D12")
+set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/Libraries")
 
 add_custom_command(TARGET Engine POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                    "${SOURCE_DIR}" "${DEST_DIR}")
                    
 set(SOURCE_DIR "${D3DCOMPILER_SOURCE_DIR}/bin/x64")
-set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/D3D12")
+set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/Libraries")
 
 add_custom_command(TARGET Engine POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                    "${SOURCE_DIR}" "${DEST_DIR}")
 
 set(SOURCE_DIR "${D3DCOMPILERPDB_SOURCE_DIR}/symbols/x64")
-set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/D3D12")
+set(DEST_DIR "${CMAKE_BINARY_DIR}/Engine/bin/Libraries")
 
 add_custom_command(TARGET Engine POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory

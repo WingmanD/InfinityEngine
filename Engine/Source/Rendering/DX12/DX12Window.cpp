@@ -1,14 +1,8 @@
 ﻿#include "DX12Window.h"
-#include "Engine/Engine.h"
 #include "DX12RenderingSubsystem.h"
-#include "DX12RenderTarget.h"
-#include "DX12Shader.h"
-#include "DX12StaticMeshRenderingData.h"
 #include "DX12WidgetRenderingProxy.h"
-#include "Rendering/StaticMeshRenderingData.h"
-#include "MaterialParameterTypes.h"
+#include "DX12ViewportWidgetRenderingProxy.h"
 #include <DirectXColors.h>
-#include <numbers>
 
 DX12Window::DX12Window(uint32 width, uint32 height, const std::wstring& title) :
     Window(width, height, title)
@@ -52,12 +46,12 @@ bool DX12Window::Initialize()
 
     RequestResize(GetWidth(), GetHeight());
 
-    AssetManager& assetManager = Engine::Get().GetAssetManager();
-    _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(Name(L"SwarmDrone"));
-    if (_staticMeshTest != nullptr)
-    {
-        _staticMeshTest->Load();
-    }
+    // AssetManager& assetManager = Engine::Get().GetAssetManager();
+    // _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(Name(L"SwarmDrone"));
+    // if (_staticMeshTest != nullptr)
+    // {
+    //     _staticMeshTest->Load();
+    // }
 
     return true;
 }
@@ -70,9 +64,8 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
         return;
     }
 
-    DX12RenderingSubsystem& renderingSubsystem = GetDX12RenderingSubsystem();
-    DX12CommandList dx12CommandList = renderingSubsystem.RequestCommandList();
-    ID3D12GraphicsCommandList* commandList = dx12CommandList.CommandList.Get();
+    DX12CommandList dx12CommandList = RequestUninitializedCommandList();
+    DX12GraphicsCommandList* commandList = dx12CommandList.CommandList.Get();
 
     const PendingResize& pendingResize = GetPendingResize();
     if (pendingResize.IsValid)
@@ -80,7 +73,7 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
         ResizeImplementation(commandList);
     }
 
-    FrameBuffer& frameBuffer = _frameBuffers[_currentFrameBufferIndex];
+    const FrameBuffer& frameBuffer = _frameBuffers[_currentFrameBufferIndex];
 
     const CD3DX12_RESOURCE_BARRIER transitionPresentToTarget = CD3DX12_RESOURCE_BARRIER::Transition(
         frameBuffer.RenderTargetView.Get(),
@@ -100,71 +93,28 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
                                        0,
                                        nullptr);
     commandList->OMSetRenderTargets(1, &frameBuffer.RTVDescriptorHandle, true, &_depthStencilView);
-
-    {
-        if (_staticMeshTest != nullptr)
-        {
-            using namespace DirectX;
-
-            Vector3 pos = Vector3(5.0f, 1.0f, 2.0f);
-            Vector3 target = Vector3(0.0f, 0.0f, 0.0f);
-            Vector3 up = Vector3(0.0f, 0.0f, 1.0f);
-
-            Matrix view = XMMatrixLookAtLH(pos, target, up);
-            Matrix world = Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
-            const float aspectRatio = static_cast<float>(GetWidth()) / static_cast<float>(GetHeight());
-            Matrix proj = XMMatrixPerspectiveFovLH(0.25f * static_cast<float>(std::numbers::pi), aspectRatio, 1.0f,
-                                                   1000.0f);
-
-            Material* material = _staticMeshTest->GetMaterial().get();
-            if (material != nullptr)
-            {
-                PerPassConstants* perPassConstants = material->GetParameter<PerPassConstants>("GPerPassConstants");
-                if (perPassConstants != nullptr)
-                {
-                    //XMStoreFloat4x4(&perPassConstants->World, XMMatrixTranspose(world));
-                    XMStoreFloat4x4(&perPassConstants->ViewProjection, XMMatrixTranspose(view * proj));
-                    perPassConstants->CameraPosition = pos;
-                    perPassConstants->CameraDirection = target - pos;
-                    perPassConstants->CameraDirection.Normalize();
-                }
-
-                if (_staticMeshTest->GetRenderingData()->IsUploaded())
-                {
-                    static_cast<DX12StaticMeshRenderingData*>(_staticMeshTest->GetRenderingData())->SetupDrawing(
-                        commandList, _staticMeshTest->GetMaterial());
-                }
-            }
-        }
-    }
-
-    // when we come to a viewport, we need to give it this command list, and it will take more command lists, after that,
-    // we must request a new command list to render other UI elements to maintain order - UI elements are overlayed
-    // todo think about layers - in that case, if current layer has a viewport, the next layer must have a new command list
-    // note that even like this, we can record viewport commands and the whole UI commands in parallel, but we must maintain order of releasing
-    // command lists
+    
     for (const std::shared_ptr<Layer>& layer : GetLayers())
     {
-        if (layer->RootWidget != nullptr)
+        if (layer->RootWidget == nullptr)
         {
-            commandList->ClearDepthStencilView(_depthStencilView,
-                                               D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-                                               1.0f,
-                                               0,
-                                               0,
-                                               nullptr);
-            dynamic_cast<DX12WidgetRenderingProxy&>(layer->RootWidget->GetRenderingProxy()).SetupDrawing(commandList);
+            continue;
         }
+        
+        commandList->ClearDepthStencilView(_depthStencilView,
+                                           D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                                           1.0f,
+                                           0,
+                                           0,
+                                           nullptr);
+        dx12CommandList = layer->RootWidget->GetRenderingProxy<DX12WidgetRenderingProxy>().SetupDrawing(dx12CommandList);
+        commandList = dx12CommandList.CommandList.Get();
+    
     }
+    
+    CloseCommandList(dx12CommandList);
 
-    const CD3DX12_RESOURCE_BARRIER transitionTargetToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
-        frameBuffer.RenderTargetView.Get(),
-        D3D12_RESOURCE_STATE_RENDER_TARGET,
-        D3D12_RESOURCE_STATE_PRESENT);
-
-    // todo this must be in a new command list, as it must be the last thing we do
-    commandList->ResourceBarrier(1, &transitionTargetToPresent);
-    renderingSubsystem.CloseCommandList(dx12CommandList);
+    ExecuteCommandLists();
 }
 
 void DX12Window::Present(PassKey<DX12RenderingSubsystem>)
@@ -174,9 +124,78 @@ void DX12Window::Present(PassKey<DX12RenderingSubsystem>)
     _currentFrameBufferIndex = (_currentFrameBufferIndex + 1) % static_cast<int32>(_frameBuffers.size());
 }
 
+void DX12Window::EndFrame(PassKey<DX12RenderingSubsystem>)
+{
+    while (!_closedCommandLists.IsEmpty())
+    {
+        DX12CommandList& closedCommandList = _closedCommandLists.Back();
+        closedCommandList.Reset();
+
+        _availableCommandLists.Add(closedCommandList);
+        _closedCommandLists.PopBack();
+    }
+}
+
 const D3D12_VIEWPORT& DX12Window::GetViewport() const
 {
     return _fullWindowViewport;
+}
+
+DX12CommandList DX12Window::RequestCommandList()
+{
+    DX12CommandList commandList = RequestCommandListImplementation();
+    
+    commandList.CommandList->RSSetViewports(1, &_fullWindowViewport);
+    commandList.CommandList->RSSetScissorRects(1, &_fullWindowRect);
+
+    return commandList;
+}
+
+DX12CommandList DX12Window::RequestCommandList(const ViewportWidget& viewport)
+{
+    DX12CommandList commandList = RequestCommandListImplementation();
+
+    const DX12ViewportWidgetRenderingProxy& renderingProxy = viewport.GetRenderingProxy<DX12ViewportWidgetRenderingProxy>();
+
+    commandList.CommandList->RSSetViewports(1, &renderingProxy.GetViewport());
+    commandList.CommandList->RSSetScissorRects(1, &viewport.GetRect());
+
+    return commandList;
+}
+
+void DX12Window::CloseCommandList(DX12CommandList& commandList)
+{
+    const CD3DX12_RESOURCE_BARRIER transitionTargetToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
+    _frameBuffers[_currentFrameBufferIndex].RenderTargetView.Get(),
+    D3D12_RESOURCE_STATE_RENDER_TARGET,
+    D3D12_RESOURCE_STATE_PRESENT);
+
+    commandList.CommandList->ResourceBarrier(1, &transitionTargetToPresent);
+    
+    commandList.Close();
+    _closedCommandLists.Add(commandList);
+}
+
+void DX12Window::ExecuteCommandLists()
+{
+    static std::vector<ID3D12CommandList*> commandLists;
+    commandLists.clear();
+
+    for (DX12CommandList& commandList : _closedCommandLists)
+    {
+        if (commandList.State != DX12CommandList::ECommandListState::Closed)
+        {
+            continue;
+        }
+
+        commandLists.push_back(commandList.CommandList.Get());
+        commandList.State = DX12CommandList::ECommandListState::Executing;
+    }
+
+    const DX12RenderingSubsystem& renderingSubsystem = GetDX12RenderingSubsystem();
+    renderingSubsystem.GetCommandQueue()->ExecuteCommandLists(
+        static_cast<uint32>(commandLists.size()),
+        commandLists.data());
 }
 
 DX12RenderingSubsystem& DX12Window::GetDX12RenderingSubsystem() const
@@ -184,10 +203,10 @@ DX12RenderingSubsystem& DX12Window::GetDX12RenderingSubsystem() const
     return dynamic_cast<DX12RenderingSubsystem&>(RenderingSubsystem::Get());
 }
 
-void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
+void DX12Window::ResizeImplementation(DX12GraphicsCommandList* commandList)
 {
     DX12RenderingSubsystem& renderingSubsystem = GetDX12RenderingSubsystem();
-    ID3D12Device* device = renderingSubsystem.GetDevice();
+    DX12Device* device = renderingSubsystem.GetDevice();
 
     PendingResize& pendingResize = GetPendingResize();
     pendingResize.IsValid = false;
@@ -300,4 +319,58 @@ void DX12Window::ResizeImplementation(ID3D12GraphicsCommandList* commandList)
     _fullWindowRect = {0, 0, static_cast<LONG>(width), static_cast<LONG>(height)};
 
     OnResized();
+}
+
+DX12CommandList DX12Window::RequestCommandListImplementation()
+{
+    DX12CommandList commandList = RequestUninitializedCommandList();
+    
+    const FrameBuffer& frameBuffer = _frameBuffers[_currentFrameBufferIndex];
+    
+    const CD3DX12_RESOURCE_BARRIER transitionPresentToTarget = CD3DX12_RESOURCE_BARRIER::Transition(
+    frameBuffer.RenderTargetView.Get(),
+    D3D12_RESOURCE_STATE_PRESENT,
+    D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+    commandList.CommandList->ResourceBarrier(1, &transitionPresentToTarget);
+    
+    commandList.CommandList->OMSetRenderTargets(
+        1,
+        &frameBuffer.RTVDescriptorHandle,
+        true,
+        &_depthStencilView);
+
+    return commandList;
+}
+
+DX12CommandList DX12Window::RequestUninitializedCommandList()
+{
+    DX12CommandList commandList;
+
+    const DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
+    DX12Device* device = renderingSubsystem.GetDevice();
+
+    if (_availableCommandLists.IsEmpty())
+    {
+        ThrowIfFailed(device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            IID_PPV_ARGS(commandList.CommandAllocator.GetAddressOf())));
+
+        ThrowIfFailed(device->CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            commandList.CommandAllocator.Get(),
+            nullptr,
+            IID_PPV_ARGS(commandList.CommandList.GetAddressOf())));
+    }
+    else
+    {
+        commandList = _availableCommandLists.Back();
+        _availableCommandLists.PopBack();
+    }
+
+    ID3D12DescriptorHeap* descriptorHeaps[] = {DX12RenderingSubsystem::Get().GetCBVHeap()->GetHeap().Get()};
+    commandList.CommandList->SetDescriptorHeaps(1, descriptorHeaps);
+
+    return commandList;
 }

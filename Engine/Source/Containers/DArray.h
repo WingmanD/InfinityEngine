@@ -305,7 +305,7 @@ class DArray
 {
 public:
     using type = T;
-    
+
     using ValueType = T;
     using AllocatorType = Allocator;
     using SizeType = std::size_t;
@@ -516,7 +516,7 @@ public:
 
     DArray& operator=(DArray&& other) noexcept
     {
-        if (_data == other._data)
+        if (this == &other)
         {
             return *this;
         }
@@ -569,6 +569,12 @@ public:
         }
 
         return true;
+    }
+    
+    template <std::size_t N = SSO_SIZE, std::enable_if_t<N == 0, size_t> = 0>
+    Pointer GetData()
+    {
+        return _data;
     }
 
     Reference operator[](SizeType index)

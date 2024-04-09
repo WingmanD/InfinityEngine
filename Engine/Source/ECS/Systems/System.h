@@ -35,7 +35,7 @@ public:
 protected:
     virtual void Initialize();
     virtual void OnEntityCreated(const Archetype& archetype, Entity& entity);   // todo refactor, this call should be scheduled
-    virtual void Tick(double deltaTime) = 0;
+    virtual void Tick(double deltaTime);
     virtual void OnEntityDestroyed(const Archetype& archetype, Entity& entity);
     virtual void Shutdown();
 

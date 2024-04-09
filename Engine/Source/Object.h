@@ -18,7 +18,7 @@ class Object : public IValidateable, public ISerializeable, public std::enable_s
 {
 public:
     friend class IValidateable;
-    
+
 public:
     Object() = default;
 
@@ -44,19 +44,21 @@ public:
     }
 
     virtual std::shared_ptr<Object> Duplicate() const;
-
+    
     /*
      * Duplicate the object at the specified memory location.
      * NOTE: You must allocate memory for the object yourself and keep track of its lifetime.
      */
     virtual Object* DuplicateAt(void* ptr) const;
+    
+    virtual void Copy(const Object& other);
 
     virtual bool Serialize(MemoryWriter& writer) const;
     virtual bool Deserialize(MemoryReader& reader) override;
 
     virtual void OnPropertyChanged(Name propertyName);
 
-    virtual ~Object() = default;
+    virtual ~Object() override = default;
 
     void Destroy();
 

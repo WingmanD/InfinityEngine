@@ -26,6 +26,11 @@ Object* Object::DuplicateAt(void* ptr) const
     return new(ptr) Object(*this);
 }
 
+void Object::Copy(const Object& other)
+{
+    *this = other;
+}
+
 bool Object::Serialize(MemoryWriter& writer) const
 {
     return true;

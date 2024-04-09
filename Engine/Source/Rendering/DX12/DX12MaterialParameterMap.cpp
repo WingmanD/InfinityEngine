@@ -1,10 +1,9 @@
 ﻿#include "DX12MaterialParameterMap.h"
 #include "ConstantBuffer.h"
 #include "DX12MaterialParameterRenderingData.h"
-#include "DX12MaterialRenderingData.h"
 #include "MaterialParameterTypes.h"
 
-void DX12MaterialParameterMap::Bind(ID3D12GraphicsCommandList* commandList) const
+void DX12MaterialParameterMap::Bind(DX12GraphicsCommandList* commandList) const
 {
     for (const MaterialParameterBinding& binding : GetParameters())
     {
@@ -13,7 +12,7 @@ void DX12MaterialParameterMap::Bind(ID3D12GraphicsCommandList* commandList) cons
             continue;
         }
 
-        ConstantBuffer& constantBuffer = static_cast<DX12MaterialParameterRenderingData*>(binding.Parameter->GetRenderingData())->GetConstantBuffer();
+        ConstantBuffer<MaterialParameter>& constantBuffer = static_cast<DX12MaterialParameterRenderingData*>(binding.Parameter->GetRenderingData())->GetConstantBuffer();
         if (binding.Parameter->IsDirty())
         {
             constantBuffer.Update();

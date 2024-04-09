@@ -447,7 +447,7 @@ void Widget::SetMaterial(const std::shared_ptr<Material>& material)
 
     if (_material != nullptr)
     {
-        _material->GetParameterMap().SetSharedParameter("GWindowGlobals", GetParentWindow()->GetWindowGlobals(), true);
+        _material->GetParameterMap()->SetSharedParameter("GWindowGlobals", GetParentWindow()->GetWindowGlobals(), true);
 
         UpdateMaterialParameters();
     }
@@ -1067,7 +1067,7 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
 {
     if (_material != nullptr && newWindow != nullptr)
     {
-        _material->GetParameterMap().SetSharedParameter("GWindowGlobals", newWindow->GetWindowGlobals(), true);
+        _material->GetParameterMap()->SetSharedParameter("GWindowGlobals", newWindow->GetWindowGlobals(), true);
     }
 
     RenderingProxy->OnWindowChanged(oldWindow, newWindow);
@@ -1083,6 +1083,10 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
     {
         widget->SetWindow(newWindow);
     }
+}
+
+void Widget::OnWidgetRectChanged()
+{
 }
 
 void Widget::OnChildAdded(const std::shared_ptr<Widget>& child)
@@ -1249,6 +1253,8 @@ void Widget::UpdateWidgetRect()
         _widgetRect.right = static_cast<LONG>(maxSS.x);
         _widgetRect.bottom = static_cast<LONG>(minSS.y);
     }
+
+    OnWidgetRectChanged();
 }
 
 void Widget::Pressed()

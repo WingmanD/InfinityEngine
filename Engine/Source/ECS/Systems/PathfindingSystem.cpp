@@ -4,8 +4,13 @@
 
 void PathfindingSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
 {
-    CPathfinding* pathfinding = entity.Get<CPathfinding>(archetype);
-    CTransform* transform = entity.Get<CTransform>(archetype);
+    CPathfinding* pathfinding = entity.GetChecked<CPathfinding>(archetype);
+    if (pathfinding == nullptr)
+    {
+        return;
+    }
+
+    const CTransform* transform = entity.GetChecked<CTransform>(archetype);
 
     // todo testing only
     // pathfinding->Destination = transform->ComponentTransform.GetWorldLocation();
@@ -19,19 +24,19 @@ void PathfindingSystem::Tick(double deltaTime)
         const Archetype& archetype = entityList->GetArchetype();
         entityList->ForEach([&archetype, deltaTime](Entity& entity)
         {
-            const CPathfinding* pathfinding = entity.Get<CPathfinding>(archetype);
-            CTransform* transform = entity.Get<CTransform>(archetype);
+            const CPathfinding& pathfinding = entity.Get<CPathfinding>(archetype);
+            CTransform& transform = entity.Get<CTransform>(archetype);
 
-            if (Vector3::Distance(transform->ComponentTransform.GetWorldLocation(), pathfinding->Destination) < 0.1f)
+            if (Vector3::Distance(transform.ComponentTransform.GetWorldLocation(), pathfinding.Destination) < 0.1f)
             {
                 return true;
             }
 
-            Vector3 direction = pathfinding->Destination - transform->ComponentTransform.GetWorldLocation();
+            Vector3 direction = pathfinding.Destination - transform.ComponentTransform.GetWorldLocation();
             direction.Normalize();
 
-            transform->ComponentTransform.SetWorldLocation(
-                transform->ComponentTransform.GetWorldLocation() + direction * pathfinding->Speed * static_cast<float>(deltaTime));
+            transform.ComponentTransform.SetWorldLocation(
+                transform.ComponentTransform.GetWorldLocation() + direction * pathfinding.Speed * static_cast<float>(deltaTime));
 
             return true;
         });

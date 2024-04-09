@@ -237,6 +237,10 @@ public: \
     {{ \
         return new(ptr) {}(*this); \
     }} \
+    virtual void Copy(const Object& other) override \
+    {{ \
+        ConditionalCopyAssign(*this, dynamic_cast<const {}&>(other)); \
+    }} \
     {}
     std::shared_ptr<{}> SharedFromThis() \
     {{ \
@@ -258,6 +262,7 @@ private:
                    createTypeFunction,
                    dataOffsetDefinition,
                    propertyMapDefinition.view(),
+                   typeInfo.Name,
                    typeInfo.Name,
                    typeInfo.Name,
                    serialization.view(),

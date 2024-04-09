@@ -201,6 +201,31 @@ void EditableTextBox::OnFocusChangedInternal(bool focused)
                                 c = L',';
                                 break;
                             }
+                        case EKey::Minus:
+                            {
+                                c = L'-';
+                                break;
+                            }
+                        case EKey::Equals:
+                            {
+                                c = L'=';
+                                break;
+                            }
+                        case EKey::Slash:
+                            {
+                                c = L'/';
+                                break;
+                            }
+                        case EKey::Backslash:
+                            {
+                                c = L'\\';
+                                break;
+                            }
+                        case EKey::Semicolon:
+                            {
+                                c = L';';
+                                break;
+                            }
                         default:
                             break;
                     }

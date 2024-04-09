@@ -1,12 +1,13 @@
 ﻿#pragma once
 
-#include "ConstantBuffer.h"
 #include "PassKey.h"
+#include "Rendering/DX12/DX12RenderingCore.h"
 #include "Rendering/StaticMesh.h"
 #include "Rendering/Window.h"
 #include <dxgi.h>
 #include <d3d12.h>
 
+class ViewportWidget;
 using Microsoft::WRL::ComPtr;
 
 class DX12RenderingSubsystem;
@@ -22,8 +23,14 @@ public:
     virtual bool Initialize() override;
     void Render(PassKey<DX12RenderingSubsystem>);
     void Present(PassKey<DX12RenderingSubsystem>);
+    void EndFrame(PassKey<DX12RenderingSubsystem>);
 
     const D3D12_VIEWPORT& GetViewport() const;
+
+    DX12CommandList RequestCommandList();
+    DX12CommandList RequestCommandList(const ViewportWidget& viewport);
+    void CloseCommandList(DX12CommandList& commandList);
+    void ExecuteCommandLists();
 
 protected:
     struct FrameBuffer
@@ -50,6 +57,11 @@ private:
 
     std::shared_ptr<StaticMesh> _staticMeshTest = nullptr;
 
+    DArray<DX12CommandList> _availableCommandLists;
+    DArray<DX12CommandList> _closedCommandLists;
+
 private:
-    void ResizeImplementation(ID3D12GraphicsCommandList* commandList);
+    void ResizeImplementation(DX12GraphicsCommandList* commandList);
+    DX12CommandList RequestCommandListImplementation();
+    DX12CommandList RequestUninitializedCommandList();
 };

@@ -1395,6 +1395,8 @@ std::shared_ptr<Widget> ReflectionWidgets::CreatePropertiesWidgetFor(const std::
 }
 
 std::shared_ptr<Widget> ReflectionWidgets::CreateTableForContainer(
+    const std::shared_ptr<Object>& object,
+    PropertyBase& property,
     DArray<std::pair<std::shared_ptr<Widget>, std::function<std::shared_ptr<Widget>()>>>& children,
     std::function<std::shared_ptr<Widget>()> onAdd)
 {
@@ -1431,11 +1433,12 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateTableForContainer(
         const std::shared_ptr<Button> removeButton = row->AddChild<Button>();
         removeButton->SetText(L"x");
         std::function<std::shared_ptr<Widget>()>& onRemoved = child.second;
-        removeButton->OnReleased.Add([onRemoved, verticalBox]()
+        removeButton->OnReleased.Add([onRemoved, verticalBox, object, property]()
         {
             const std::shared_ptr<Widget> parent = verticalBox->GetParentWidget();
             verticalBox->DestroyWidget();
             parent->AddChild(onRemoved());
+            object->OnPropertyChanged(property.GetDisplayName());
         });
 
         table->AddRow(row);
@@ -1444,11 +1447,12 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateTableForContainer(
     const std::shared_ptr<Button> button = verticalBox->AddChild<Button>();
     button->SetText(L"+");
     button->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-    button->OnReleased.Add([onAdd, verticalBox]()
+    button->OnReleased.Add([onAdd, verticalBox, object, property]()
     {
         const std::shared_ptr<Widget> parent = verticalBox->GetParentWidget();
         verticalBox->DestroyWidget();
         parent->AddChild(onAdd());
+        object->OnPropertyChanged(property.GetDisplayName());
     });
 
     return verticalBox;

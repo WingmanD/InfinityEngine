@@ -59,6 +59,12 @@ public:
 
     StaticMeshRenderingData* GetRenderingData() const;
 
+    template <typename T> requires IsA<T, StaticMeshRenderingData>
+    T* GetRenderingData() const
+    {
+        return static_cast<T*>(_renderingData.get());
+    }
+
     // Asset
 public:
     virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;

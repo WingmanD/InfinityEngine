@@ -3,7 +3,6 @@
 #include "Object.h"
 #include "PassKey.h"
 #include "Name.h"
-#include <string>
 #include "Asset.reflection.h"
 
 class Importer;
@@ -66,10 +65,10 @@ private:
     PROPERTY(Edit, DisplayName = "Name")
     Name _name;
 
-    PROPERTY(DisplayName = "Import Path")
+    PROPERTY(Visible, DisplayName = "Import Path")
     std::filesystem::path _importPath;
 
-    PROPERTY(DisplayName = "Asset Path")
+    PROPERTY(Visible, DisplayName = "Asset Path")
     std::filesystem::path _assetPath;
 
     bool _isLoaded = false;

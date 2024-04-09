@@ -1,6 +1,29 @@
 ﻿#include "CCamera.h"
 #include "Math/Math.h"
 
+Transform& CCamera::GetTransform()
+{
+    _isViewMatrixDirty = true;
+    _isViewProjectionMatrixDirty = true;
+    
+    return _transform;
+}
+
+const Transform& CCamera::GetTransform() const
+{
+    return _transform;
+}
+
+std::shared_ptr<ViewportWidget> CCamera::GetViewport() const
+{
+    return _viewport.lock();
+}
+
+void CCamera::SetViewport(const std::shared_ptr<ViewportWidget>& viewport)
+{
+    _viewport = viewport;
+}
+
 float CCamera::GetHorizontalFieldOfView() const
 {
     return _horizontalFieldOfView;
@@ -57,7 +80,7 @@ Matrix CCamera::GetViewMatrix()
 {
     if (_isViewMatrixDirty)
     {
-        _viewMatrix = CameraTransform.GetWorldMatrix().Invert();
+        _viewMatrix = GetTransform().GetWorldMatrix().Invert();
         _isViewMatrixDirty = false;
     }
 

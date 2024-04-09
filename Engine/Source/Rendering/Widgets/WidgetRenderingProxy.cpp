@@ -18,6 +18,10 @@ void WidgetRenderingProxy::OnTransformChanged()
 {
 }
 
+void WidgetRenderingProxy::OnWidgetRectChanged()
+{
+}
+
 Widget& WidgetRenderingProxy::GetOwningWidget() const
 {
     return *_owningWidget;

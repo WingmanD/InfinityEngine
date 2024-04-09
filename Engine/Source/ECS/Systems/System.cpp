@@ -58,6 +58,10 @@ void SystemBase::OnEntityCreated(const Archetype& archetype, Entity& entity)
 {
 }
 
+void SystemBase::Tick(double deltaTime)
+{
+}
+
 void SystemBase::OnEntityDestroyed(const Archetype& archetype, Entity& entity)
 {
 }

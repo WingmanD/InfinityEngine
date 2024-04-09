@@ -15,6 +15,26 @@ MemoryReader& MemoryReader::Read(std::byte* destination, uint64 size)
     return *this;
 }
 
+std::byte* MemoryReader::GetCurrentPointer()
+{
+    return _bytes.data() + _index;
+}
+
+void MemoryReader::Skip(uint64 size)
+{
+    if (GetNumRemainingBytes() < size)
+    {
+        LOG(L"MemoryReader::Skip Attempted to skip more bytes than available: requested {}, available {}",
+            size,
+            GetNumRemainingBytes());
+        
+        DEBUG_BREAK();
+        return;
+    }
+
+    _index += static_cast<int64>(size);
+}
+
 bool MemoryReader::ReadFromFile(std::ifstream& file, uint64 numBytesToRead)
 {
     if (file.fail())

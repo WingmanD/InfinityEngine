@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <concepts>
 #include <cstdint>
 #include <memory>
@@ -13,6 +14,9 @@ __nop();
 #define DEBUG _DEBUG
 
 #endif
+
+#define RETURN_IF(condition) if (condition) return
+#define RETURNF_IF(condition) if (condition) return false
 
 template <typename Derived, typename Base>
 concept IsA = std::derived_from<Derived, Base>;
@@ -55,6 +59,19 @@ concept IsIEContainer = requires(const T& container)
 
 template <typename T>
 constexpr bool IsConst = std::is_const_v<std::remove_reference_t<T>>;
+
+template <typename T>
+void ConditionalCopyAssign(T& lhs, const T& rhs)
+{
+    if constexpr (std::is_copy_assignable_v<T>)
+    {
+        lhs = rhs;
+    }
+    else
+    {
+       assert(false && "Attempting to copy an object that doesn't have a copy assignment operator.");
+    }
+}
 
 typedef int8_t int8;
 typedef uint8_t uint8;

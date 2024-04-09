@@ -5,13 +5,14 @@
 #include "Rendering/Widgets/Widget.h"
 #include <queue>
 
-void DX12WidgetRenderingProxy::SetupDrawing(ID3D12GraphicsCommandList* commandList) const
+DX12CommandList DX12WidgetRenderingProxy::SetupDrawing(DX12CommandList& commandList) const
 {
     Widget& widget = GetOwningWidget();
 
+    DX12CommandList currentCommandList = commandList;
     if (widget.IsVisible() && widget.GetMaterial() != nullptr)
     {
-        SetupDrawingInternal(commandList);
+        currentCommandList = SetupDrawingInternal(currentCommandList);
     }
 
     static std::queue<std::shared_ptr<Widget>> queue;
@@ -25,7 +26,7 @@ void DX12WidgetRenderingProxy::SetupDrawing(ID3D12GraphicsCommandList* commandLi
         DX12WidgetRenderingProxy& proxy = dynamic_cast<DX12WidgetRenderingProxy&>(child->GetRenderingProxy());
         if (child->IsVisible() && child->GetMaterial() != nullptr)
         {
-            proxy.SetupDrawingInternal(commandList);
+            currentCommandList = proxy.SetupDrawingInternal(currentCommandList);
         }
 
         for (const std::shared_ptr<Widget>& childWidget : child->GetChildren())
@@ -33,17 +34,21 @@ void DX12WidgetRenderingProxy::SetupDrawing(ID3D12GraphicsCommandList* commandLi
             queue.push(childWidget);
         }
     }
+
+    return currentCommandList;
 }
 
-void DX12WidgetRenderingProxy::SetupDrawingInternal(ID3D12GraphicsCommandList* commandList) const
+DX12CommandList DX12WidgetRenderingProxy::SetupDrawingInternal(DX12CommandList& commandList) const
 {
-    commandList->RSSetScissorRects(1, &GetOwningWidget().GetRect());
+    commandList.CommandList->RSSetScissorRects(1, &GetOwningWidget().GetRect());
 
     const StaticMeshInstance& meshInstance = GetOwningWidget().GetQuadMesh();
 
-    StaticMeshRenderingData* renderingData = meshInstance.GetMesh()->GetRenderingData();
-    if (renderingData->IsUploaded()) // todo remove this check after implementing SM instancing completely
+    const DX12StaticMeshRenderingData* renderingData = meshInstance.GetMesh()->GetRenderingData<DX12StaticMeshRenderingData>();
+    if (renderingData->IsUploaded())
     {
-        static_cast<DX12StaticMeshRenderingData*>(renderingData)->SetupDrawing(commandList, meshInstance.GetMaterial());
+        renderingData->DrawDirect(commandList.CommandList.Get(), meshInstance.GetMaterial());
     }
+
+    return commandList;
 }

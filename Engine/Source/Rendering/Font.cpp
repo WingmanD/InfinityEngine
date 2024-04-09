@@ -71,7 +71,7 @@ bool Font::Initialize()
     std::filesystem::path fontPath = _bitmapPathBase;
 
     DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
-    ID3D12Device* device = renderingSubsystem.GetDevice();
+    DX12Device* device = renderingSubsystem.GetDevice();
 
     const std::shared_ptr<DescriptorHeap> descriptorHeap = renderingSubsystem.GetCBVHeap();
 

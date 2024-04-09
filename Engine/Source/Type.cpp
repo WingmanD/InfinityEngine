@@ -193,6 +193,11 @@ std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Objec
 
     ForEachProperty([&table, &object](PropertyBase* prop)
     {
+        if (prop->GetEditorVisibility() == PropertyBase::EEditorVisibility::None)
+        {
+            return true;
+        }
+        
         const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
         if (!row->Initialize())
         {

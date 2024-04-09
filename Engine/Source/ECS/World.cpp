@@ -34,9 +34,15 @@ void World::DestroyEntityAsync(Entity& entity)
 
 Entity& World::CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate)
 {
-    Entity& entity = CreateEntity(entityTemplate->GetArchetype());
+    assert(entityTemplate != nullptr);
+
+    const Archetype& archetype = entityTemplate->GetArchetype();
+    
+    Entity& entity = CreateEntityInternal(archetype);
     entityTemplate->InitializeEntity(entity);
     
+    OnEntityCreated(entity, archetype);
+
     return entity;
 }
 
@@ -50,21 +56,8 @@ void World::CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, 
 
 Entity& World::CreateEntity(const Archetype& archetype)
 {
-    EntityList& entityList = GetEntityList(archetype);
-
-    Entity& entity = *entityList.AddDefault();
-    for (const Archetype::QualifiedComponentType& qualifiedType : archetype.GetComponentTypes())
-    {
-        AddComponentInternal(entity, *qualifiedType.Type, qualifiedType.Name);
-    }
-
-    for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
-    {
-        if (system->GetArchetype().IsSubsetOf(archetype) || system->GetArchetype().IsSupersetOf(archetype))
-        {
-            system->CallOnEntityCreated(archetype, entity, {});
-        }
-    }
+    Entity& entity = CreateEntityInternal(archetype);
+    OnEntityCreated(entity, archetype);
 
     return entity;
 }
@@ -127,7 +120,7 @@ void World::Query(ECSQuery& query, const Archetype& archetype)
     _entityListGraph.Query(query, archetype);
 }
 
-void World::Initialize()
+void World::Initialize(PassKey<GameplaySubsystem>)
 {
 }
 
@@ -140,7 +133,7 @@ void World::Tick(double deltaTime, PassKey<GameplaySubsystem>)
     _eventQueue.ProcessEvents();
 }
 
-void World::Shutdown()
+void World::Shutdown(PassKey<GameplaySubsystem>)
 {
     _systemScheduler.Shutdown();
 }
@@ -158,6 +151,30 @@ void World::SetValidImplementation(bool valid)
 bool World::IsValidImplementation() const
 {
     return _isValid;
+}
+
+Entity& World::CreateEntityInternal(const Archetype& archetype)
+{
+    EntityList& entityList = GetEntityList(archetype);
+
+    Entity& entity = *entityList.AddDefault();
+    for (const Archetype::QualifiedComponentType& qualifiedType : archetype.GetComponentTypes())
+    {
+        AddComponentInternal(entity, *qualifiedType.Type, qualifiedType.Name);
+    }
+
+    return entity;
+}
+
+void World::OnEntityCreated(Entity& entity, const Archetype& archetype) const
+{
+    for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
+    {
+        if (system->GetArchetype().IsSubsetOf(archetype) || system->GetArchetype().IsSupersetOf(archetype))
+        {
+            system->CallOnEntityCreated(archetype, entity, {});
+        }
+    }
 }
 
 SharedObjectPtr<Component> World::AddComponentInternal(Entity& entity, Type& componentType, Name name)

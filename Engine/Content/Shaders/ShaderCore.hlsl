@@ -6,7 +6,10 @@ struct PerPassConstants
     float Time;
 };
 
-struct StaticMeshConstants
+struct SMInstance
 {
-    float4x4 Transform;
+    float4x4 World;
+    uint64_t MeshID;
+    uint64_t MaterialID;
+    uint MaterialIndex;
 };

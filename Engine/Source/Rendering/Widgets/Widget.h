@@ -229,6 +229,12 @@ public:
     
     WidgetRenderingProxy& GetRenderingProxy() const;
 
+    template <typename T> requires IsA<T, WidgetRenderingProxy>
+    T& GetRenderingProxy() const
+    {
+        return dynamic_cast<T&>(GetRenderingProxy());
+    }
+
     const BoundingBox2D& GetBoundingBox() const;
 
     void SetInputCompatibility(EWidgetInputCompatibility value);
@@ -276,12 +282,12 @@ protected:
 
     void SetVisibilityInternal(bool value, bool recursive = false);
     void SetCollisionEnabledInternal(bool value, bool recursive = false);
-
-
+    
     void EnableCollisionForTree();
     void DisableCollisionForTree();
 
     virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow);
+    virtual void OnWidgetRectChanged();
 
     virtual void OnChildAdded(const std::shared_ptr<Widget>& child);
     virtual void OnChildRemoved(const std::shared_ptr<Widget>& child);

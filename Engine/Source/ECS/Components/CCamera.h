@@ -4,16 +4,19 @@
 #include "Math/Transform.h"
 #include "CCamera.reflection.h"
 
+class ViewportWidget;
 REFLECTED()
 class CCamera : public Component
 {
     GENERATED()
-
+    
 public:
-    PROPERTY(Edit, Serialize)
-    Transform CameraTransform;
+    Transform& GetTransform();
+    const Transform& GetTransform() const;
 
-public:
+    std::shared_ptr<ViewportWidget> GetViewport() const;
+    void SetViewport(const std::shared_ptr<ViewportWidget>& viewport);
+    
     float GetHorizontalFieldOfView() const;
     void SetHorizontalFieldOfView(float horizontalFieldOfView);
 
@@ -31,6 +34,11 @@ public:
     Matrix GetViewProjectionMatrix();
 
 private:
+    PROPERTY(Edit, Serialize)
+    Transform _transform;
+
+    std::weak_ptr<ViewportWidget> _viewport;
+    
     Matrix _viewMatrix;
     Matrix _projectionMatrix;
     Matrix _viewProjectionMatrix;

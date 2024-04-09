@@ -1,5 +1,4 @@
 ﻿#include "MaterialParameterMap.h"
-#include <ranges>
 #include "MaterialParameterTypes.h"
 #include "MemoryReader.h"
 #include "MemoryWriter.h"

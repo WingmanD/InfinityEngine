@@ -2,7 +2,6 @@
 
 #include "SystemScheduler.h"
 #include "ECS/Components/Component.h"
-#include "ECS/EntityList.h"
 #include "ECS/EntityListGraph.h"
 #include "Containers/EventQueue.h"
 #include "Containers/ObjectTypeMap.h"
@@ -34,9 +33,9 @@ public:
     template <typename Func>
     void CreateEntityAsync(const Archetype& archetype, Func onCreated)
     {
-        _eventQueue.Enqueue([this, archetype, onCreated](World* world)
+        _eventQueue.Enqueue([archetype, onCreated](World* world)
         {
-            Entity& newEntity = CreateEntity(archetype);
+            Entity& newEntity = world->CreateEntity(archetype);
             onCreated(newEntity);
         });
     }
@@ -44,11 +43,11 @@ public:
     template <typename Func>
     void CreateEntityAsync(const Archetype& archetype, uint32 count, Func onCreated)
     {
-        _eventQueue.Enqueue([this, archetype, onCreated, count](World* world)
+        _eventQueue.Enqueue([archetype, onCreated, count](World* world)
         {
             for (uint32 i = 0; i < count; ++i)
             {
-                Entity& newEntity = CreateEntity(archetype);
+                Entity& newEntity = world->CreateEntity(archetype);
                 onCreated(newEntity);
             }
         });
@@ -59,9 +58,9 @@ public:
     template <typename Func>
     void DestroyEntityAsync(Entity& entity, Func onDestroyed)
     {
-        _eventQueue.Enqueue([this, &entity, onDestroyed](World* world)
+        _eventQueue.Enqueue([&entity, onDestroyed](World* world)
         {
-            DestroyEntity(entity);
+            world->DestroyEntity(entity);
             onDestroyed();
         });
     }
@@ -72,9 +71,9 @@ public:
     template <typename Func>
     void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, Func onCreated)
     {
-        _eventQueue.Enqueue([this, entityTemplate, onCreated](World* world)
+        _eventQueue.Enqueue([entityTemplate, onCreated](World* world)
         {
-            Entity& newEntity = CreateEntity(entityTemplate);
+            Entity& newEntity = world->CreateEntity(entityTemplate);
             onCreated(newEntity);
         });
     }
@@ -82,11 +81,11 @@ public:
     template <typename Func>
     void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, uint32 count, Func onCreated)
     {
-        _eventQueue.Enqueue([this, entityTemplate, onCreated, count](World* world)
+        _eventQueue.Enqueue([entityTemplate, onCreated, count](World* world)
         {
             for (uint32 i = 0; i < count; ++i)
             {
-                Entity& newEntity = CreateEntity(entityTemplate);
+                Entity& newEntity = world->CreateEntity(entityTemplate);
                 onCreated(newEntity);
             }
         });
@@ -144,9 +143,9 @@ public:
         Query(query, archetype);
     }
 
-    void Initialize();
+    void Initialize(PassKey<GameplaySubsystem>);
     void Tick(double deltaTime, PassKey<GameplaySubsystem>);
-    void Shutdown();
+    void Shutdown(PassKey<GameplaySubsystem>);
 
     EventQueue<World>& GetEventQueue();
 
@@ -165,6 +164,9 @@ private:
     bool IsValidImplementation() const;
 
 private:
+    Entity& CreateEntityInternal(const Archetype& archetype);
+    void OnEntityCreated(Entity& entity, const Archetype& archetype) const;
     SharedObjectPtr<Component> AddComponentInternal(Entity& entity, Type& componentType, Name name);
+
     EntityList& GetEntityList(const Archetype& archetype);
 };

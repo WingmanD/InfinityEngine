@@ -1,6 +1,7 @@
 ﻿#include "DescriptorHeap.h"
+#include "Core.h"
 
-DescriptorHeap::DescriptorHeap(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_DESC& description)
+DescriptorHeap::DescriptorHeap(DX12Device* device, const D3D12_DESCRIPTOR_HEAP_DESC& description)
 {
     ThrowIfFailed(device->CreateDescriptorHeap(&description, IID_PPV_ARGS(_heap.GetAddressOf())));
 

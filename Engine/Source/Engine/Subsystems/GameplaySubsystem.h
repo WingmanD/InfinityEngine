@@ -3,6 +3,7 @@
 #include "EngineSubsystem.h"
 #include "ECS/World.h"
 
+class ViewportWidget;
 class Game;
 
 class GameplaySubsystem : public EngineSubsystem
@@ -12,13 +13,16 @@ public:
     
     GameplaySubsystem() = default;
 
-    bool StartGame();
+    bool StartGame(const std::shared_ptr<ViewportWidget>& viewport);
     void StopGame();
 
     std::shared_ptr<Game> GetGame() const;
 
     // todo temporary
     BucketArray<World>& GetWorlds();
+
+    // todo temporary
+    std::shared_ptr<ViewportWidget> GetMainViewport() const;
 
     // EngineSubsystem
 protected:
@@ -29,4 +33,7 @@ protected:
 private:
     BucketArray<World> _worlds;
     std::shared_ptr<Game> _game;
+
+    // todo temporary until we implement players
+    std::weak_ptr<ViewportWidget> _viewport;
 };

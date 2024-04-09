@@ -16,8 +16,18 @@
 #include <string>
 #include <vector>
 
-extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 613; }
-extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
+#include "DX12ViewportWidgetRenderingProxy.h"
+#include "ECS/Systems/StaticMeshRenderingSystem.h"
+#include "Rendering/InstanceBuffer.h"
+#include "Rendering/Widgets/ViewportWidget.h"
+
+extern "C" {
+__declspec(dllexport) extern const UINT D3D12SDKVersion = 613;
+}
+
+extern "C" {
+__declspec(dllexport) extern const char* D3D12SDKPath = ".\\Libraries\\";
+}
 
 DX12RenderingSubsystem& DX12RenderingSubsystem::Get()
 {
@@ -45,39 +55,6 @@ void DX12RenderingSubsystem::WaitForGPU() const
 ID3D12CommandQueue* DX12RenderingSubsystem::GetCommandQueue() const
 {
     return _commandQueue.Get();
-}
-
-DX12CommandList DX12RenderingSubsystem::RequestCommandList()
-{
-    if (_availableCommandLists.empty())
-    {
-        DX12CommandList commandList;
-
-        ThrowIfFailed(_device->CreateCommandAllocator(
-            D3D12_COMMAND_LIST_TYPE_DIRECT,
-            IID_PPV_ARGS(commandList.CommandAllocator.GetAddressOf())));
-
-        ThrowIfFailed(_device->CreateCommandList(
-            0,
-            D3D12_COMMAND_LIST_TYPE_DIRECT,
-            commandList.CommandAllocator.Get(),
-            nullptr,
-            IID_PPV_ARGS(commandList.CommandList.GetAddressOf())));
-
-        return commandList;
-    }
-
-    // todo this part must be thread safe - use LockFreeQueue
-    DX12CommandList commandList = _availableCommandLists.back();
-    _availableCommandLists.pop_back();
-
-    return commandList;
-}
-
-void DX12RenderingSubsystem::CloseCommandList(const DX12CommandList& commandList)
-{
-    commandList.CommandList->Close();
-    _closedCommandLists.push_back(commandList);
 }
 
 ID3D12CommandQueue* DX12RenderingSubsystem::GetCopyCommandQueue() const
@@ -124,7 +101,7 @@ void DX12RenderingSubsystem::ReturnCopyCommandList(DX12CopyCommandList& commandL
 }
 
 ComPtr<ID3D12Resource> DX12RenderingSubsystem::CreateDefaultBuffer(
-    ID3D12GraphicsCommandList10* commandList,
+    DX12GraphicsCommandList* commandList,
     const void* data,
     uint64 byteSize,
     ComPtr<ID3D12Resource>& uploadBuffer) const
@@ -176,11 +153,65 @@ ComPtr<ID3D12Resource> DX12RenderingSubsystem::CreateDefaultBuffer(
             D3D12_RESOURCE_STATE_COPY_DEST,
             D3D12_RESOURCE_STATE_COMMON);
         UpdateSubresources<1>(commandList, buffer.Get(), uploadBuffer.Get(), 0, 0, 1, &subResourceData);
-        commandList->ResourceBarrier(1,
-                                     &transition);
+        commandList->ResourceBarrier(1, &transition);
     }
 
     return buffer;
+}
+
+void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
+{
+    const std::shared_ptr<DX12Window> window = std::dynamic_pointer_cast<DX12Window>(viewport.GetParentWindow());
+    
+    DX12CommandList commandListStruct = window->RequestCommandList(viewport);
+    DX12GraphicsCommandList* commandList = commandListStruct.CommandList.Get();
+
+    // todo use multiple command lists, write to them in parallel after we get the results from the compute shader, if
+    // the results require many draw calls
+
+    for (InstanceBufferData& instanceBufferUploader : _instanceBufferUploaders)
+    {
+        // todo check if system's world is visible - we need to know which world the camera belongs to
+        instanceBufferUploader.Uploader.Update(commandList);
+    }
+
+    window->CloseCommandList(commandListStruct);
+    window->ExecuteCommandLists();
+
+    DX12CommandList commandListStructDraw = window->RequestCommandList();
+    DX12GraphicsCommandList* commandListDraw = commandListStructDraw.CommandList.Get();
+    
+    const AssetManager& assetManager = Engine::Get().GetAssetManager();
+    for (InstanceBufferData& instanceBufferUploader : _instanceBufferUploaders)
+    {
+        InstanceBuffer& instanceBuffer = instanceBufferUploader.Uploader.GetInstanceBuffer();
+        if (instanceBuffer.Count() == 0)
+        {
+            continue;
+        }
+
+        // todo multiple meshes after sorting on GPU and everything
+        // todo bind instance buffer and material buffers, once they are implemented - that should be done in the shader
+        // but for instance buffers, we need to bind them here somehow, because shader does not know which instance buffer to use
+        // todo bind PerPassConstants - rename that as well
+        const std::shared_ptr<StaticMesh> staticMesh = assetManager.FindAsset<StaticMesh>(instanceBuffer[0].MeshID);
+        std::shared_ptr<Material> material = assetManager.FindAsset<Material>(instanceBuffer[0].MaterialID);
+        std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
+
+        const DX12StaticMeshRenderingData* renderingData = staticMesh->GetRenderingData<DX12StaticMeshRenderingData>();
+        renderingData->SetupDrawing(commandListDraw, material);
+        commandListDraw->SetGraphicsRootShaderResourceView(0, instanceBufferUploader.Uploader.GetBuffer().GetGPUVirtualAddress());
+        // todo bind material buffer
+
+        commandListDraw->DrawIndexedInstanced(static_cast<uint32>(staticMesh->GetIndices().size()),
+                                              static_cast<uint32>(instanceBuffer.Count()),
+                                              0,
+                                              0,
+                                              0);
+    }
+
+    window->CloseCommandList(commandListStructDraw);
+    window->ExecuteCommandLists();
 }
 
 bool DX12RenderingSubsystem::IsMSAAEnabled() const
@@ -213,9 +244,19 @@ IDXGIFactory* DX12RenderingSubsystem::GetDXGIFactory() const
     return _dxgiFactory.Get();
 }
 
-ID3D12Device* DX12RenderingSubsystem::GetDevice() const
+DX12Device* DX12RenderingSubsystem::GetDevice() const
 {
     return _device.Get();
+}
+
+DXCompiler& DX12RenderingSubsystem::GetD3DCompiler() const
+{
+    return *_compiler.Get();
+}
+
+IDxcUtils& DX12RenderingSubsystem::GetDXCUtils() const
+{
+    return *_dxcUtils.Get();
 }
 
 DescriptorHeap& DX12RenderingSubsystem::GetRTVHeap()
@@ -236,6 +277,11 @@ const std::shared_ptr<DescriptorHeap>& DX12RenderingSubsystem::GetCBVHeap()
 const std::shared_ptr<DescriptorHeap>& DX12RenderingSubsystem::GetSRVHeap()
 {
     return _srvHeap;
+}
+
+uint32 DX12RenderingSubsystem::GetCBVSRVUAVDescriptorSize() const
+{
+    return _cbvSrvUavDescriptorSize;
 }
 
 DirectX::GraphicsMemory& DX12RenderingSubsystem::GetGraphicsMemory() const
@@ -295,7 +341,7 @@ bool DX12RenderingSubsystem::Initialize()
 #endif
     ThrowIfFailed(CreateDXGIFactory(IID_PPV_ARGS(&_dxgiFactory)));
 
-    ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&_device)));
+    ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&_device)));
 
     ThrowIfFailed(_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_mainFence)));
     ThrowIfFailed(_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_copyFence)));
@@ -326,21 +372,21 @@ bool DX12RenderingSubsystem::Initialize()
     _rtvHeap = DescriptorHeap(_device.Get(), rtvHeapDesc);
 
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-    dsvHeapDesc.NumDescriptors = 10;
+    dsvHeapDesc.NumDescriptors = 16;
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     dsvHeapDesc.NodeMask = 0;
     _dsvHeap = DescriptorHeap(_device.Get(), dsvHeapDesc);
 
     D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
-    cbvHeapDesc.NumDescriptors = 1024;
+    cbvHeapDesc.NumDescriptors = 8192;
     cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     cbvHeapDesc.NodeMask = 0;
     _cbvHeap = std::make_shared<DescriptorHeap>(_device.Get(), cbvHeapDesc);
 
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc;
-    srvHeapDesc.NumDescriptors = 1024;
+    srvHeapDesc.NumDescriptors = 8192;
     srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     srvHeapDesc.NodeMask = 0;
@@ -352,15 +398,19 @@ bool DX12RenderingSubsystem::Initialize()
         D3D12_COMMAND_LIST_TYPE_DIRECT,
         IID_PPV_ARGS(commandList.CommandAllocator.GetAddressOf())));
 
-    ThrowIfFailed(_device->CreateCommandList(
-        0,
-        D3D12_COMMAND_LIST_TYPE_DIRECT,
-        commandList.CommandAllocator.Get(),
-        nullptr,
-        IID_PPV_ARGS(commandList.CommandList.GetAddressOf())));
-    _availableCommandLists.push_back(commandList);
-
     _graphicsMemory = new DirectX::DX12::GraphicsMemory(_device.Get());
+
+    if (FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&_compiler))))
+    {
+        LOG(L"Failed to create DXC compiler!");
+        return false;
+    }
+
+    if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&_dxcUtils))))
+    {
+        LOG(L"Failed to create DXC utils!");
+        return false;
+    }
 
     return true;
 }
@@ -374,20 +424,14 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
 {
     GetEventQueue().ProcessEvents();
 
-    for (std::shared_ptr<DX12Window>& window : _windows)
-{
+    for (const std::shared_ptr<DX12Window>& window : _windows)
+    {
         window->Tick(deltaTime);
     }
 
     HandleCopyLists();
 
-    // todo multiple descriptor heaps
-    ID3D12DescriptorHeap* descriptorHeaps[] = {_cbvHeap->GetHeap().Get()};
-    _availableCommandLists[0].CommandList->SetDescriptorHeaps(1, descriptorHeaps);
-    // todo the line above crashes because the StaticMeshRenderingSystem consumed the command list
-    // we need to link cameras/viewports and windows - command lists must be executed in order of window presentation
-    
-    for (std::shared_ptr<DX12Window>& window : _windows)
+    for (const std::shared_ptr<DX12Window>& window : _windows)
     {
         // the reason we can't use the thread pool currently is the command list request/close that is not multi-threaded, also, command lists must be executed in order of windows
         // GetEngine()->GetThreadPool().EnqueueTask([window, weakThis]()
@@ -397,30 +441,14 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
 
         window->Render({});
 
-        static std::vector<ID3D12CommandList*> commandLists;
-        commandLists.clear();
-
-        for (const DX12CommandList& commandList : _closedCommandLists)
-        {
-            commandLists.push_back(commandList.CommandList.Get());
-        }
-
-        _commandQueue->ExecuteCommandLists(static_cast<uint32>(commandLists.size()), commandLists.data());
-
         window->Present({});
 
         ++_mainFenceValue;
         ThrowIfFailed(_commandQueue->Signal(_mainFence.Get(), _mainFenceValue));
 
         WaitForGPU();
-        while (!_closedCommandLists.empty())
-        {
-            DX12CommandList& commandList = _closedCommandLists.back();
-            commandList.Reset();
 
-            _availableCommandLists.push_back(commandList);
-            _closedCommandLists.pop_back();
-        }
+        window->EndFrame({});
     }
 
     _graphicsMemory->Commit(GetCommandQueue());
@@ -448,7 +476,7 @@ void DX12RenderingSubsystem::ForEachWindow(std::function<bool(Window*)> callback
         {
             break;
         }
-    } 
+    }
 }
 
 std::unique_ptr<StaticMeshRenderingData> DX12RenderingSubsystem::CreateStaticMeshRenderingData()
@@ -484,6 +512,30 @@ std::unique_ptr<WidgetRenderingProxy> DX12RenderingSubsystem::CreateDefaultWidge
 std::unique_ptr<WidgetRenderingProxy> DX12RenderingSubsystem::CreateTextWidgetRenderingProxy()
 {
     return std::make_unique<DX12TextWidgetRenderingProxy>();
+}
+
+std::unique_ptr<WidgetRenderingProxy> DX12RenderingSubsystem::CreateViewportWidgetRenderingProxy()
+{
+    return std::make_unique<DX12ViewportWidgetRenderingProxy>();
+}
+
+void DX12RenderingSubsystem::RegisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system)
+{
+    InstanceBufferData& newBinding = _instanceBufferUploaders.Emplace(system, InstanceBufferUploader());
+
+    if (!newBinding.Uploader.Initialize(system->GetInstanceBuffer()))
+    {
+        LOG(L"Could not initialize instance buffer uploader!");
+        DEBUG_BREAK();
+    }
+}
+
+void DX12RenderingSubsystem::UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system)
+{
+    _instanceBufferUploaders.RemoveIfSwap([system](const InstanceBufferData& data)
+    {
+        return data.SMRenderingSystem == system;
+    });
 }
 
 void DX12RenderingSubsystem::OnWindowDestroyed(Window* window)

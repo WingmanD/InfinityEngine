@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "MathFwd.h"
 #include <numbers>
 #include <random>
 
@@ -17,6 +18,12 @@ namespace Math
     {
         constexpr T mul = T(180.0) / static_cast<T>(std::numbers::pi);
         return radians * mul;
+    }
+
+    template <typename T>
+    constexpr T RoundToNearest(T value, T multiple)
+    {
+        return static_cast<T>(std::floor(static_cast<double>(value) / static_cast<double>(multiple) + 0.5));
     }
 
     Vector3 ToDegrees(const Vector3& radians);

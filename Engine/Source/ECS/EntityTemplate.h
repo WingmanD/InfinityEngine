@@ -24,7 +24,7 @@ protected:
     virtual void OnPropertyChanged(Name propertyName) override;
 
 private:
-    PROPERTY(Serialize, DisplayName = "Components")
+    PROPERTY(Edit, Serialize, DisplayName = "Components")
     DArray<ObjectEntry<Component>> _componentEntries;
 
     PROPERTY(Serialize)

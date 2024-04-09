@@ -1,7 +1,7 @@
 #include "ShaderCore.hlsl"
 
+StructuredBuffer<SMInstance> GInstanceBuffer: register(t0);
 ConstantBuffer<PerPassConstants> GPerPassConstants: register(b0);
-ConstantBuffer<StaticMeshConstants> GStaticMeshConstants: register(b1);
 
 struct VertexIn
 {
@@ -14,26 +14,26 @@ struct VertexIn
 struct VertexOut
 {
     float4 PositionCS : SV_POSITION;
-    nointerpolation float4 PositionWS : POSITION;
+    nointerpolation float4 PositionWS : POSITION; 
     nointerpolation float3 Normal : NORMAL;
     float4 VertexColor : COLOR;
     float2 UV : UV;
 };
 
-VertexOut VS(VertexIn vIn)
+VertexOut VS(VertexIn vIn, uint instanceID : SV_InstanceID)
 {
     VertexOut vOut;
-
-    vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GStaticMeshConstants.Transform);
-    vOut.PositionCS = mul(float4(vIn.PositionLS, 1.0f), mul(GPerPassConstants.ViewProjection, GStaticMeshConstants.Transform));
-    vOut.Normal = mul(float4(vIn.Normal, 0.0f), GStaticMeshConstants.Transform).xyz;
+    
+    vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GInstanceBuffer[instanceID].World);
+    vOut.PositionCS = mul(float4(vIn.PositionLS, 1.0f), mul(GPerPassConstants.ViewProjection, GInstanceBuffer[instanceID].World));
+    vOut.Normal = mul(float4(vIn.Normal, 0.0f), GInstanceBuffer[instanceID].World).xyz;
     vOut.VertexColor = vIn.VertexColor;
     vOut.UV = vIn.UV;
 
     return vOut;
 }
 
-float4 PS(VertexOut pIn) : SV_Target
+float4 PS(VertexOut pIn/*, uint instanceID : SV_InstanceID*/) : SV_Target
 {
     const float3 lightPosition = float3(2.0f, 1.0f, 3.0f);
     const float3 lightColor = float3(1.0f, 1.0f, 1.0f);

@@ -1,8 +1,9 @@
 ﻿#include "EditorWidget.h"
 #include "AssetBrowser.h"
 #include "Button.h"
-#include "CanvasPanel.h"
+#include "FlowBox.h"
 #include "Game.h"
+#include "ViewportWidget.h"
 #include "Engine/Engine.h"
 
 bool EditorWidget::Initialize()
@@ -14,7 +15,7 @@ bool EditorWidget::Initialize()
 
     SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
-    const std::shared_ptr<CanvasPanel> mainTab = AddTab<CanvasPanel>(L"Infinity Engine", false);
+    const std::shared_ptr<FlowBox> mainTab = AddTab<FlowBox>(L"Infinity Engine", false);
     if (!mainTab)
     {
         return false;
@@ -22,27 +23,48 @@ bool EditorWidget::Initialize()
 
     mainTab->SetVisibility(false);
     mainTab->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+    mainTab->SetDirection(EFlowBoxDirection::Vertical);
 
-    const std::shared_ptr<AssetBrowser> assetBrowser = mainTab->AddChild<AssetBrowser>();
-    if (!assetBrowser)
+    const std::shared_ptr<FlowBox> toolbar = mainTab->AddChild<FlowBox>();
+    if (toolbar == nullptr)
     {
         return false;
     }
 
-    assetBrowser->SetAnchor(EWidgetAnchor::TopLeft);
-    assetBrowser->SetSelfAnchor(EWidgetAnchor::TopLeft);
-
-    std::shared_ptr<Button> playButton = mainTab->AddChild<Button>();
+    std::shared_ptr<Button> playButton = toolbar->AddChild<Button>();
     if (!playButton)
     {
         return false;
     }
 
     playButton->SetText(L"Play");
-    playButton->SetAnchor(EWidgetAnchor::TopCenter);
-    playButton->SetSelfAnchor(EWidgetAnchor::TopCenter);
 
-    playButton->OnReleased.Add([playButton]()
+    const std::shared_ptr<FlowBox> horizontalBox = mainTab->AddChild<FlowBox>();
+    if (horizontalBox == nullptr)
+    {
+        return false;
+    }
+
+    horizontalBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+    horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
+
+    const std::shared_ptr<AssetBrowser> assetBrowser = horizontalBox->AddChild<AssetBrowser>();
+    if (!assetBrowser)
+    {
+        return false;
+    }
+
+    assetBrowser->SetFillMode(EWidgetFillMode::FillY);
+
+    const std::shared_ptr<ViewportWidget> viewport = horizontalBox->AddChild<ViewportWidget>();
+    if (viewport == nullptr)
+    {
+        return false;
+    }
+
+    viewport->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+
+    playButton->OnReleased.Add([playButton, viewport]()
     {
         GameplaySubsystem& gameplaySubsystem = Engine::Get().GetGameplaySubsystem();
 
@@ -51,14 +73,14 @@ bool EditorWidget::Initialize()
             if (game->IsRunning())
             {
                 gameplaySubsystem.StopGame();
-            
+
                 playButton->SetText(L"Play");
-            
+
                 return;
             }
         }
-        
-        if (gameplaySubsystem.StartGame())
+
+        if (gameplaySubsystem.StartGame(viewport))
         {
             playButton->SetText(L"Stop");
         }

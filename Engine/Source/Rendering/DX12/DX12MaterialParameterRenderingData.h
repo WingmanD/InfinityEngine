@@ -8,8 +8,8 @@ class DX12MaterialParameterRenderingData : public MaterialParameterRenderingData
 public:
     virtual bool Initialize(MaterialParameter* parameter) override;
     
-    ConstantBuffer& GetConstantBuffer();
+    ConstantBuffer<MaterialParameter>& GetConstantBuffer();
     
 private:
-    ConstantBuffer _constantBuffer{};
+    ConstantBuffer<MaterialParameter> _constantBuffer{};
 };

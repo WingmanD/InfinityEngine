@@ -22,7 +22,7 @@ public:
     void AddComponent(const SharedObjectPtr<Component>& newComponent, PassKey<World>);
     void RemoveComponent(uint16 index, PassKey<World>);
 
-    Component* Get(uint16 index);
+    Component& Get(uint16 index);
     
     /*
      * Get component at index.
@@ -31,19 +31,28 @@ public:
      * and that it exists.
      */
     template <typename ComponentType> requires IsA<ComponentType, Component>
-    ComponentType* Get(uint16 index)
+    ComponentType& Get(uint16 index)
     {
-        ComponentType* component = static_cast<ComponentType*>(Get(index));
-        assert(component != nullptr);
-
-        return component;
+        return static_cast<ComponentType&>(Get(index));
     }
 
     template <typename ComponentType> requires IsA<ComponentType, Component>
-    ComponentType* Get(const Archetype& archetype)
+    ComponentType& Get(const Archetype& archetype)
     {
         uint16 index = archetype.GetComponentIndex<ComponentType>();
         return Get<ComponentType>(index);
+    }
+
+    template <typename ComponentType> requires IsA<ComponentType, Component>
+    ComponentType* GetChecked(const Archetype& archetype)
+    {
+        uint16 index = archetype.GetComponentIndexChecked<ComponentType>();
+        if (index == std::numeric_limits<uint16>::max())
+        {
+            return nullptr;
+        }
+        
+        return &Get<ComponentType>(index);
     }
 
     void Destroy();

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "Core.h"
-#include "d3dx12/d3dx12.h"
+#include "CoreMinimal.h"
+#include "Rendering/DX12/DX12RenderingCore.h"
 #include <wrl/client.h>
 #include <vector>
 
@@ -11,7 +11,7 @@ class DescriptorHeap
 {
 public:
     DescriptorHeap() = default;
-    DescriptorHeap(ID3D12Device* device, const D3D12_DESCRIPTOR_HEAP_DESC& description);
+    DescriptorHeap(DX12Device* device, const D3D12_DESCRIPTOR_HEAP_DESC& description);
     virtual ~DescriptorHeap() = default;
 
     D3D12_CPU_DESCRIPTOR_HANDLE RequestHeapResourceHandle();
