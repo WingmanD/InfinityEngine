@@ -4,17 +4,10 @@
 
 void PathfindingSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
 {
-    CPathfinding* pathfinding = entity.GetChecked<CPathfinding>(archetype);
-    if (pathfinding == nullptr)
-    {
-        return;
-    }
-
-    const CTransform* transform = entity.GetChecked<CTransform>(archetype);
-
-    // todo testing only
-    // pathfinding->Destination = transform->ComponentTransform.GetWorldLocation();
-    pathfinding->Destination = transform->ComponentTransform.GetWorldLocation() + Math::RandomUnitVector() * Math::Random(0.0f, 10.0f);
+    CPathfinding& pathfinding = entity.Get<CPathfinding>(archetype);
+    const CTransform& transform = entity.Get<CTransform>(archetype);
+    
+    pathfinding.Destination = transform.ComponentTransform.GetWorldLocation() + Math::RandomUnitVector() * Math::Random(0.0f, 10.0f);
 }
 
 void PathfindingSystem::Tick(double deltaTime)

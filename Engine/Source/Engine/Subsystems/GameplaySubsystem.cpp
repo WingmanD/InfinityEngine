@@ -11,16 +11,27 @@ GameplaySubsystem& GameplaySubsystem::Get()
 
 bool GameplaySubsystem::StartGame(const std::shared_ptr<ViewportWidget>& viewport)
 {
-    const Type* gameType = ProjectSettings::Get()->GetGameType();
-    if (gameType == nullptr)
+    std::shared_ptr<ProjectSettings> projectSettings = ProjectSettings::Get();
+
+    const std::shared_ptr<Game>& game = projectSettings->GetGame();
+    if (game == nullptr)
     {
-        LOG(L"Could not start game - game type is not set in project settings.");
-        return false;
+        const Type* gameType = projectSettings->GetGameType();
+        if (gameType == nullptr)
+        {
+            LOG(L"Could not start game - game type is not set in project settings.");
+            return false;
+        }
+        _game = gameType->NewObject<Game>();
+    }
+    else
+    {
+        _game = game->DuplicateObject<Game>();
     }
 
     _viewport = viewport;
 
-    _game = gameType->NewObject<Game>();
+    _worlds.AddDefault();
 
     return _game->Startup({});
 }
@@ -71,8 +82,7 @@ bool GameplaySubsystem::Initialize()
         return false;
     }
 
-    World* mainWorld = _worlds.AddDefault();
-    return mainWorld->IsValid();
+    return true;
 }
 
 void GameplaySubsystem::Tick(double deltaTime)

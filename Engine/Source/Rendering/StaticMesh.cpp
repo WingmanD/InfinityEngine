@@ -56,7 +56,7 @@ bool StaticMesh::Initialize()
         MaterialParameterMap* paramMap = _material->GetParameterMap();
         if (paramMap != nullptr)
         {
-            paramMap->SetSharedParameter("GPerPassConstants", renderingSubsystem.GetPerPassConstants(), true);
+            paramMap->SetSharedParameter("GScene", renderingSubsystem.GetScene(), true);
         }
     }
 
@@ -122,7 +122,7 @@ void StaticMesh::SetMaterial(const std::shared_ptr<Material>& material)
     _material = material;
 
     const RenderingSubsystem& renderingSubsystem = RenderingSubsystem::Get();
-    _material->GetParameterMap()->SetSharedParameter("GPerPassConstants", renderingSubsystem.GetPerPassConstants(), true);
+    _material->GetParameterMap()->SetSharedParameter("GPerPassConstants", renderingSubsystem.GetScene(), true);
 
     MarkDirtyForAutosave();
 }

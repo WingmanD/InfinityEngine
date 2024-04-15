@@ -265,7 +265,7 @@ Vector3 Transform::GetUpVector() const
 
 const Matrix& Transform::GetWorldMatrix() const
 {
-    if (!_isWorldMatrixDirty)
+    if (!IsWorldMatrixDirty())
     {
         return _worldMatrix;
     }
@@ -285,6 +285,16 @@ const Matrix& Transform::GetWorldMatrix() const
     mutableThis->_isWorldMatrixDirty = false;
 
     return _worldMatrix;
+}
+
+bool Transform::IsWorldMatrixDirty() const
+{
+    if (_parent != nullptr)
+    {
+        return _isWorldMatrixDirty || _parent->IsWorldMatrixDirty();
+    }
+
+    return _isWorldMatrixDirty;
 }
 
 MemoryWriter& operator<<(MemoryWriter& writer, const Transform& transform)

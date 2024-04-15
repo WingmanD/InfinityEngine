@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="DArray&lt;*,*,*&gt;">
+        <DisplayString Condition="$T2 &gt; 0">SSO data: {(_count &lt; $T2) ? _count : $T2}</DisplayString>
+        <DisplayString Condition="_count &gt; $T2">Dynamic data: {_count - $T2}</DisplayString>
+        <DisplayString>Count: {_count})</DisplayString>
+        <DisplayString>Capacity: {_capacity})</DisplayString>
+        <Expand>
+            <ExpandedItem Condition="$T2 == 0">($T1*)_data,[_count]</ExpandedItem>
+            <ArrayItems Condition="$T2 &gt; 0 &amp;&amp; _count &lt;= $T2">
+                <Size>((_count &lt; $T2) ? _count : $T2)</Size>
+                <ValuePointer>($T1*)_ssoBuffer</ValuePointer>
+            </ArrayItems>
+            <ArrayItems Condition="$T2 &gt; 0 &amp;&amp; _count &gt; $T2">
+                <Size>_count - $T2</Size>
+                <ValuePointer>_data</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+</AutoVisualizer>

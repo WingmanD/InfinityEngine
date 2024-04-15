@@ -46,13 +46,6 @@ bool DX12Window::Initialize()
 
     RequestResize(GetWidth(), GetHeight());
 
-    // AssetManager& assetManager = Engine::Get().GetAssetManager();
-    // _staticMeshTest = assetManager.FindAssetByName<StaticMesh>(Name(L"SwarmDrone"));
-    // if (_staticMeshTest != nullptr)
-    // {
-    //     _staticMeshTest->Load();
-    // }
-
     return true;
 }
 
@@ -159,6 +152,17 @@ DX12CommandList DX12Window::RequestCommandList(const ViewportWidget& viewport)
 
     commandList.CommandList->RSSetViewports(1, &renderingProxy.GetViewport());
     commandList.CommandList->RSSetScissorRects(1, &viewport.GetRect());
+
+    commandList.CommandList->ClearRenderTargetView(_frameBuffers[_currentFrameBufferIndex].RTVDescriptorHandle,
+        DirectX::Colors::Black,
+        1,
+        &viewport.GetRect());
+    commandList.CommandList->ClearDepthStencilView(_depthStencilView,
+                                       D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                                       1.0f,
+                                       0,
+                                       1,
+                                       &viewport.GetRect());
 
     return commandList;
 }

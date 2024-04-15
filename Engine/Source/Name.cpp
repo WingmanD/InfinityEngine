@@ -24,11 +24,6 @@ const std::wstring& Name::ToString() const
     return NameRegistry::Get().ToString(*this);
 }
 
-constexpr std::strong_ordering Name::operator<=>(const Name& other) const
-{
-    return _id <=> other._id;
-}
-
 MemoryReader& operator>>(MemoryReader& reader, Name& name)
 {
     std::wstring nameString;

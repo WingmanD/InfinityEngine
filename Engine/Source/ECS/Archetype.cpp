@@ -96,12 +96,12 @@ uint64 Archetype::GetID() const
     return _id;
 }
 
-int32 Archetype::SubsetIntersectionSize(const Archetype& rhs) const
+uint32 Archetype::StrictSubsetIntersectionSize(const Archetype& rhs) const
 {
     auto itA = rhs._componentTypeList.begin();
     auto itB = _componentTypeList.begin();
 
-    int32 intersectCount = 0;
+    uint32 intersectCount = 0;
     while (itA != rhs._componentTypeList.end() && itB != _componentTypeList.end())
     {
         if (*itA->Type == *itB->Type)
@@ -116,14 +116,28 @@ int32 Archetype::SubsetIntersectionSize(const Archetype& rhs) const
     return intersectCount;
 }
 
+uint32 Archetype::SubsetIntersectionSize(const Archetype& rhs) const
+{
+    uint32 intersectCount = 0;
+    for (const QualifiedComponentType& componentTypeList : _componentTypeList)
+    {
+        if (rhs.HasComponent(*componentTypeList.Type))
+        {
+            ++intersectCount;
+        }
+    }
+
+    return intersectCount;
+}
+
 bool Archetype::IsSubsetOf(const Archetype& rhs) const
 {
-    return SubsetIntersectionSize(rhs) != 0;
+    return SubsetIntersectionSize(rhs) == std::min(_componentTypeList.Count(), rhs._componentTypeList.Count());
 }
 
 bool Archetype::IsSupersetOf(const Archetype& rhs) const
 {
-    return rhs.IsSubsetOf(*this); // todo check this
+    return rhs.IsSubsetOf(*this);
 }
 
 Archetype Archetype::Difference(const Archetype& rhs) const

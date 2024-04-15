@@ -35,7 +35,7 @@ private:
 };
 
 REFLECTED(DataStart = "ViewProjection")
-struct PerPassConstants : public MaterialParameter
+struct Scene : public MaterialParameter
 {
     GENERATED()
 
@@ -48,7 +48,7 @@ public:
     float Time = 0.0f;
 
 public:
-    PerPassConstants()
+    Scene()
     {
         Shared = true;
     }

@@ -1,4 +1,4 @@
-struct PerPassConstants
+struct Scene
 {
     float4x4 ViewProjection;
     float3 CameraPosition;

@@ -17,14 +17,13 @@ DX12CommandList DX12ViewportWidgetRenderingProxy::SetupDrawingInternal(DX12Comma
     {
         return commandList;
     }
-
-    commandList.CommandList->RSSetScissorRects(1, &widget.GetRect());
-    commandList.CommandList->RSSetViewports(1, &_viewport);
-
+    
+    const std::shared_ptr<DX12Window> window = std::dynamic_pointer_cast<DX12Window>(widget.GetParentWindow());
+    window->CloseCommandList(commandList);
+    
     DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
     renderingSubsystem.DrawScene(widget);
 
-    const std::shared_ptr<DX12Window> window = std::dynamic_pointer_cast<DX12Window>(widget.GetParentWindow());
     return window->RequestCommandList();
 }
 

@@ -68,7 +68,8 @@ public:
         return _componentTypeList;
     }
 
-    int32 SubsetIntersectionSize(const Archetype& rhs) const;
+    uint32 StrictSubsetIntersectionSize(const Archetype& rhs) const;
+    uint32 SubsetIntersectionSize(const Archetype& rhs) const;
     bool IsSubsetOf(const Archetype& rhs) const;
     bool IsSupersetOf(const Archetype& rhs) const;
 

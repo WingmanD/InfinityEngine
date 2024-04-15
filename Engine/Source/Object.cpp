@@ -18,7 +18,10 @@ Type* Object::GetType() const
 
 std::shared_ptr<Object> Object::Duplicate() const
 {
-    return std::shared_ptr<Object>(ClassBucketArray.Add(*this), ObjectDeleter());
+    std::shared_ptr<Object> newObject =  std::shared_ptr<Object>(ClassBucketArray.Add(*this), ObjectDeleter());
+    newObject->Copy(*this);
+
+    return newObject;
 }
 
 Object* Object::DuplicateAt(void* ptr) const

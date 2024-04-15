@@ -54,6 +54,7 @@ public:
     Vector3 GetUpVector() const;
     
     const Matrix& GetWorldMatrix() const;
+    bool IsWorldMatrixDirty() const;
 
     friend MemoryWriter& operator<<(MemoryWriter& writer, const Transform& transform);
     friend MemoryReader& operator>>(MemoryReader& reader, Transform& transform);

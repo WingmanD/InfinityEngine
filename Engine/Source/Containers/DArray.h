@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include <cassert>
-#include <format>
 #include <functional>
 #include <memory>
 
@@ -153,6 +152,11 @@ public:
         return _currentPtr;
     }
 
+    operator DArrayRandomAccessIterator<const T, SSO_SIZE>() const
+    {
+        return DArrayRandomAccessIterator<const T, SSO_SIZE>(_index, _ssoStartPtr, _dataStartPtr);
+    }
+
 private:
     Pointer _currentPtr;
     Pointer _ssoStartPtr;
@@ -294,6 +298,11 @@ public:
     Pointer operator->()
     {
         return _ptr;
+    }
+
+    operator DArrayRandomAccessIterator<const T, 0>() const
+    {
+        return DArrayRandomAccessIterator<const T, 0>(_ptr);
     }
 
 private:
@@ -570,8 +579,8 @@ public:
 
         return true;
     }
-    
-    template <std::size_t N = SSO_SIZE, std::enable_if_t<N == 0, size_t> = 0>
+
+    template <std::size_t N = SSO_SIZE, std::enable_if_t<N == 0, size_t>  = 0>
     Pointer GetData()
     {
         return _data;
@@ -599,12 +608,12 @@ public:
 
     Reference Back()
     {
-        return GetElement(_count - 1);
+        return GetElement(std::max(0ull, _count - 1));
     }
 
     ConstReference Back() const
     {
-        return GetElementConst(_count - 1);
+        return GetElementConst(std::max(0ull, _count - 1));
     }
 
     Iterator begin()
@@ -711,6 +720,11 @@ public:
 
         if constexpr (SSO_SIZE > 0)
         {
+            if (newCapacityActual <= SSO_SIZE)
+            {
+                return;
+            }
+            
             Pointer newData = _allocator.allocate(newCapacityActual - SSO_SIZE);
 
             if (_capacity > SSO_SIZE && _data != nullptr)
@@ -924,6 +938,21 @@ public:
         return Back();
     }
 
+    template <typename InputIterator>
+    void Append(const InputIterator& start, const InputIterator& end)
+    {
+        for (auto it = start; it != end; ++it)
+        {
+            Add(*it);
+        }
+    }
+
+    template <typename ContainerType>
+    void Append(const ContainerType& container)
+    {
+        Append(container.begin(), container.end());
+    }
+
     void PopBack()
     {
         assert(_count > 0);
@@ -973,6 +1002,11 @@ public:
         return end();
     }
 
+    ConstIterator Find(ConstReference value) const
+    {
+        return const_cast<DArray*>(this)->Find(value);
+    }
+
     Iterator FindIf(const std::function<bool(ConstReference)>& predicate)
     {
         if constexpr (SSO_SIZE > 0)
@@ -999,7 +1033,12 @@ public:
         return end();
     }
 
-    SizeType IndexOf(ConstReference value)
+    ConstIterator FindIf(const std::function<bool(ConstReference)>& predicate) const
+    {
+        return const_cast<DArray*>(this)->FindIf(predicate);
+    }
+
+    SizeType IndexOf(ConstReference value) const
     {
         const SizeType index = Find(value) - begin();
         if (index < _count)
@@ -1010,14 +1049,14 @@ public:
         return INDEX_NONE;
     }
 
-    bool Contains(ConstReference value)
+    bool Contains(ConstReference value) const
     {
-        return Find(value) != end();
+        return Find(value) != cend();
     }
 
-    bool ContainsIf(const std::function<bool(ConstReference)>& predicate)
+    bool ContainsIf(const std::function<bool(ConstReference)>& predicate) const
     {
-        return FindIf(predicate) != end();
+        return FindIf(predicate) != cend();
     }
 
     void RemoveAt(SizeType index)

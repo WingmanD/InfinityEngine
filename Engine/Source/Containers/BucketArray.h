@@ -140,6 +140,7 @@ public:
     void Clear()
     {
         _buckets.Clear();
+        _availableBucketIndices.Clear();
     }
 
 private:

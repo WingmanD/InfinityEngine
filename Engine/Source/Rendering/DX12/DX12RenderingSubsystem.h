@@ -1,11 +1,10 @@
 ﻿#pragma once
 
-#include "Engine/Subsystems/RenderingSubsystem.h"
 #include "DescriptorHeap.h"
 #include "GraphicsMemory.h"
-#include "InstanceBufferUploader.h"
-#include "Rendering/DX12/DX12RenderingCore.h"
 #include "ThreadPool.h"
+#include "Engine/Subsystems/RenderingSubsystem.h"
+#include "Rendering/DX12/DX12RenderingCore.h"
 #include <dxgi.h>
 
 class ViewportWidget;
@@ -125,13 +124,7 @@ private:
 
     DirectX::GraphicsMemory* _graphicsMemory;
 
-    struct InstanceBufferData
-    {
-        StaticMeshRenderingSystem* SMRenderingSystem = nullptr;
-        InstanceBufferUploader Uploader;
-    };
-    
-    DArray<InstanceBufferData> _instanceBufferUploaders;
+    DArray<StaticMeshRenderingSystem*> _staticMeshRenderingSystems;
 
 private:
     void LogAdapters();

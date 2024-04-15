@@ -30,20 +30,22 @@ bool Game::IsRunning() const
 bool Game::OnStartup()
 {
     LOG(L"Game started!");
-
-    std::shared_ptr<EntityTemplate> templateAsset = AssetManager::Get().FindAssetByName<EntityTemplate>(
-        Name(L"EntityTemplateTest"));
-    templateAsset->Load();
     
     GameplaySubsystem& gameplaySubsystem = GameplaySubsystem::Get();
-    gameplaySubsystem.GetWorlds().ForEach([&templateAsset, &gameplaySubsystem](World& world)
+    gameplaySubsystem.GetWorlds().ForEach([&gameplaySubsystem, this](World& world)
     {
         world.AddSystem<PathfindingSystem>();
         world.AddSystem<CameraSystem>();
         world.AddSystem<StaticMeshRenderingSystem>();
         
-        Entity& entity = world.CreateEntity(templateAsset);
-        gameplaySubsystem.GetMainViewport()->SetCamera(&entity.Get<CCamera>(templateAsset->GetArchetype()));
+        Entity& entity = world.CreateEntity(_playerTemplate);
+        gameplaySubsystem.GetMainViewport()->SetCamera(&entity.Get<CCamera>(_playerTemplate->GetArchetype()));
+        Transform& cameraEntityTransform = entity.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
+        cameraEntityTransform.SetWorldLocation({-5.0f, 0.0f, 1.0f});
+        
+        Entity& meshEntity = world.CreateEntity(_enemyTemplate);
+        Transform& transform = meshEntity.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
+        transform.SetWorldLocation({0.0f, 0.0f, 0.0f});
         
         return false;
     });

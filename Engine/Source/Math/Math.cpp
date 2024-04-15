@@ -21,7 +21,7 @@ Vector3 Math::RandomUnitVector()
 Matrix Math::CreatePerspectiveMatrix(float horizontalFOV, float aspectRatio, float nearClipPlane, float farClipPlane)
 {
     Matrix perspective;
-    XMStoreFloat4x4(&perspective,DirectX::XMMatrixPerspectiveFovLH(horizontalFOV, aspectRatio, nearClipPlane, farClipPlane));
+    XMStoreFloat4x4(&perspective,DirectX::XMMatrixPerspectiveFovLH(ToRadians(horizontalFOV / 2.0f), aspectRatio, nearClipPlane, farClipPlane));
     return perspective;
 }
 

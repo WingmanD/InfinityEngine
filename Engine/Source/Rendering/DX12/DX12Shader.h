@@ -39,6 +39,7 @@ public:
 
     //void Apply(DX12GraphicsCommandList* commandList, PassKey<DX12RenderingSubsystem>);
     void Apply(DX12GraphicsCommandList* commandList) const;
+    uint32 GetStructuredBufferSlotIndex(Name name) const;
 
     const D3D12_ROOT_SIGNATURE_DESC& GetRootSignatureDesc(PassKey<DX12RenderingSubsystem>) const;
     
@@ -59,6 +60,17 @@ protected:
                                           const std::vector<D3D_SHADER_MACRO>& defines = {});
 
 private:
+    struct StructuredBufferParameter
+    {
+        Name BufferName;
+        uint32 SlotIndex;
+
+        auto operator<=>(const StructuredBufferParameter& other) const
+        {
+            return BufferName <=> other.BufferName;
+        }
+    };
+    
     struct RecompiledData
     {
         ComPtr<IDxcBlobEncoding> SerializedRootSignature;
@@ -72,7 +84,10 @@ private:
 
         std::filesystem::file_time_type LastCompileTime;
         std::unique_ptr<MaterialParameterMap> ParameterMap;
+        DArray<StructuredBufferParameter, 4> StructuredBufferParameterTypes;
     };
+
+    DArray<StructuredBufferParameter, 4> _structuredBufferParameters;
 
     std::atomic<bool> _beingRecompiled = false;
     
@@ -93,6 +108,6 @@ private:
     bool InitializeRootSignature(const DX12RenderingSubsystem& renderingSubsystem);
     bool InitializePSO(const DX12RenderingSubsystem& renderingSubsystem);
 
-    bool ReflectShaderParameters(IDxcResult* compileResult, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const;
+    bool ReflectShaderParameters(IDxcResult* compileResult, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes, std::set<StructuredBufferParameter>& structuredBufferParameterTypes) const;
     bool ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const;
 };

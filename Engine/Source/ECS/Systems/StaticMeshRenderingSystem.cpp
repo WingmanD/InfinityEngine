@@ -1,5 +1,6 @@
 ﻿#include "StaticMeshRenderingSystem.h"
 #include "ECS/Entity.h"
+#include "ECS/EntityList.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 
 InstanceBuffer& StaticMeshRenderingSystem::GetInstanceBuffer()
@@ -27,10 +28,11 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
     }
 
     SMInstance instanceData;
-    instanceData.World = staticMesh.MeshTransform.GetWorldMatrix();
+    instanceData.World = staticMesh.MeshTransform.GetWorldMatrix().Transpose();
     instanceData.MeshID = staticMesh.Mesh->GetAssetID();
     instanceData.MaterialID = staticMesh.MaterialOverride->GetAssetID();
 
+    _instanceBuffer.Reserve(_instanceBuffer.Count() + 1);
     const size_t instanceID = _instanceBuffer.Emplace(std::move(instanceData));
     staticMesh.InstanceID = instanceID;
 
@@ -39,6 +41,19 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
 
 void StaticMeshRenderingSystem::Tick(double deltaTime)
 {
+    for (EntityList* entityList : GetQuery().GetEntityLists())
+    {
+        const Archetype& archetype = entityList->GetArchetype();
+        entityList->ForEach([&archetype, this](Entity& entity)
+        {
+            const CStaticMesh& staticMesh = entity.Get<CStaticMesh>(archetype);
+
+            // todo optimize, this should be an event
+            _instanceBuffer[staticMesh.InstanceID].World = staticMesh.MeshTransform.GetWorldMatrix().Transpose();
+            
+            return true;
+        });
+    }
 }
 
 void StaticMeshRenderingSystem::OnEntityDestroyed(const Archetype& archetype, Entity& entity)

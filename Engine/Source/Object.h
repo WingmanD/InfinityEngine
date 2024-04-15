@@ -38,7 +38,7 @@ public:
     }
 
     template <typename T> requires std::is_base_of_v<Object, T>
-    std::shared_ptr<T> Duplicate() const
+    std::shared_ptr<T> DuplicateObject() const
     {
         return std::dynamic_pointer_cast<T>(Duplicate());
     }

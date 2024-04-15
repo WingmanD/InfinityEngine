@@ -5,7 +5,7 @@ Transform& CCamera::GetTransform()
 {
     _isViewMatrixDirty = true;
     _isViewProjectionMatrixDirty = true;
-    
+
     return _transform;
 }
 
@@ -80,7 +80,11 @@ Matrix CCamera::GetViewMatrix()
 {
     if (_isViewMatrixDirty)
     {
-        _viewMatrix = GetTransform().GetWorldMatrix().Invert();
+        const Vector3 location = _transform.GetWorldLocation();
+        const Vector3 forward = _transform.GetForwardVector();
+        const Vector3 up = _transform.GetUpVector();
+
+        _viewMatrix = XMMatrixLookToLH(location, forward, up);
         _isViewMatrixDirty = false;
     }
 

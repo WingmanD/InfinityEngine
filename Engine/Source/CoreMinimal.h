@@ -61,6 +61,15 @@ template <typename T>
 constexpr bool IsConst = std::is_const_v<std::remove_reference_t<T>>;
 
 template <typename T>
+void ConditionalCopyAssignUnchecked(T& lhs, const T& rhs)
+{
+    if constexpr (std::is_copy_assignable_v<T>)
+    {
+        lhs = rhs;
+    }
+}
+
+template <typename T>
 void ConditionalCopyAssign(T& lhs, const T& rhs)
 {
     if constexpr (std::is_copy_assignable_v<T>)

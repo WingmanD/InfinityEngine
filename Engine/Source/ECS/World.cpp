@@ -78,7 +78,7 @@ void World::DestroyEntity(Entity& entity)
 
     for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
     {
-        if (system->GetArchetype().IsSubsetOf(archetype) || system->GetArchetype().IsSupersetOf(archetype))
+        if (system->GetArchetype().IsSubsetOf(archetype))
         {
             system->CallOnEntityDestroyed(archetype, entity, {});
         }
@@ -170,7 +170,7 @@ void World::OnEntityCreated(Entity& entity, const Archetype& archetype) const
 {
     for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
     {
-        if (system->GetArchetype().IsSubsetOf(archetype) || system->GetArchetype().IsSupersetOf(archetype))
+        if (archetype.IsSubsetOf(system->GetArchetype()))
         {
             system->CallOnEntityCreated(archetype, entity, {});
         }
@@ -194,7 +194,7 @@ EntityList& World::GetEntityList(const Archetype& archetype)
     {
         for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
         {
-            if (system->GetArchetype().IsSubsetOf(archetype) || system->GetArchetype().IsSupersetOf(archetype))
+            if (system->GetArchetype().IsSubsetOf(archetype))
             {
                 system->UpdateQuery({});
             }

@@ -16,8 +16,8 @@ const Archetype& EntityListGraph::Node::GetArchetype() const
 
 void EntityListGraph::Node::AddChild(Node* child, PassKey<EntityListGraph>)
 {
-    Children.Add(this);
-    child->Parents.Add(child);
+    Children.Add(child);
+    child->Parents.Add(this);
 }
 
 void EntityListGraph::Node::AddChildByArchetype(Node* newChild, PassKey<EntityListGraph>)
@@ -69,6 +69,7 @@ EntityListGraph::Node* EntityListGraph::AddArchetype(const Archetype& type)
     if (bestMatchNode == nullptr)
     {
         _root->AddChildByArchetype(node, {});
+        _archetypeToNodeMap[type.GetID()] = node;
         return node;
     }
 
@@ -129,17 +130,20 @@ void EntityListGraph::Query(ECSQuery& query, const Archetype& archetype)
 {
     query.Clear({});
 
+    Node* archetypeNode = _root;
     const auto it = _archetypeToNodeMap.find(archetype.GetID());
-    if (it == _archetypeToNodeMap.end())
+    if (it != _archetypeToNodeMap.end())
     {
-        return;
+        archetypeNode = it->second;
     }
-
-    Node* archetypeNode = it->second;
-    query.AddEntityList(&archetypeNode->EntityList, {});
 
     Traverse(archetypeNode, [&](Node* node)
     {
+        if (!archetype.IsSubsetOf(node->GetArchetype()))
+        {
+            return node == _root;
+        }
+
         query.AddEntityList(&node->EntityList, {});
         return true;
     });
@@ -173,17 +177,10 @@ EntityListGraph::EntityListResult EntityListGraph::GetOrCreateEntityListFor(cons
 
 EntityListGraph::Node* EntityListGraph::FindBestMatch(const Archetype& type)
 {
-    std::pair<int32, Node*> bestMatch = {0, nullptr};
+    std::pair<uint32, Node*> bestMatch = {0, nullptr};
     Traverse(_root, [&bestMatch, &type](Node* root)
     {
-        int32 intersectCount = root->GetArchetype().SubsetIntersectionSize(type);
-        // todo verify that Intersect returns only subset intersection
-
-        if (intersectCount == 0)
-        {
-            return false;
-        }
-
+        uint32 intersectCount = root->GetArchetype().StrictSubsetIntersectionSize(type);
         if (intersectCount > bestMatch.first)
         {
             bestMatch = {intersectCount, root};

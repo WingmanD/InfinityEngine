@@ -17,6 +17,8 @@
 #include <vector>
 
 #include "DX12ViewportWidgetRenderingProxy.h"
+#include "DynamicGPUBufferUploader.h"
+#include "ECS/Components/CCamera.h"
 #include "ECS/Systems/StaticMeshRenderingSystem.h"
 #include "Rendering/InstanceBuffer.h"
 #include "Rendering/Widgets/ViewportWidget.h"
@@ -163,44 +165,62 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
 {
     const std::shared_ptr<DX12Window> window = std::dynamic_pointer_cast<DX12Window>(viewport.GetParentWindow());
     
-    DX12CommandList commandListStruct = window->RequestCommandList(viewport);
+    DX12CommandList commandListStruct = window->RequestCommandList();
     DX12GraphicsCommandList* commandList = commandListStruct.CommandList.Get();
 
     // todo use multiple command lists, write to them in parallel after we get the results from the compute shader, if
     // the results require many draw calls
 
-    for (InstanceBufferData& instanceBufferUploader : _instanceBufferUploaders)
+    for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
     {
         // todo check if system's world is visible - we need to know which world the camera belongs to
-        instanceBufferUploader.Uploader.Update(commandList);
+        renderingSystem->GetInstanceBuffer().GetProxy<DynamicGPUBufferUploader<SMInstance>>()->Update(commandList);
     }
 
     window->CloseCommandList(commandListStruct);
     window->ExecuteCommandLists();
 
-    DX12CommandList commandListStructDraw = window->RequestCommandList();
+    {
+        using namespace DirectX;
+
+        const std::shared_ptr<Scene> scene = GetScene();
+        CCamera* camera = viewport.GetCamera();
+        const Transform& cameraTransform = camera->GetTransform();  // todo this triggers recalculation of matrices
+        
+        scene->ViewProjection = camera->GetViewProjectionMatrix().Transpose();
+        scene->CameraPosition = cameraTransform.GetWorldLocation();
+        scene->CameraDirection = cameraTransform.GetForwardVector();
+        scene->MarkAsDirty();
+    }
+    
+    DX12CommandList commandListStructDraw = window->RequestCommandList(viewport);
     DX12GraphicsCommandList* commandListDraw = commandListStructDraw.CommandList.Get();
     
     const AssetManager& assetManager = Engine::Get().GetAssetManager();
-    for (InstanceBufferData& instanceBufferUploader : _instanceBufferUploaders)
+    for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
     {
-        InstanceBuffer& instanceBuffer = instanceBufferUploader.Uploader.GetInstanceBuffer();
+        // todo check if system's world is visible - we need to know which world the camera belongs to
+        InstanceBuffer& instanceBuffer = renderingSystem->GetInstanceBuffer();
         if (instanceBuffer.Count() == 0)
         {
             continue;
         }
+        
+        DynamicGPUBufferUploader<SMInstance>* uploader = instanceBuffer.GetProxy<DynamicGPUBufferUploader<SMInstance>>();
 
         // todo multiple meshes after sorting on GPU and everything
         // todo bind instance buffer and material buffers, once they are implemented - that should be done in the shader
-        // but for instance buffers, we need to bind them here somehow, because shader does not know which instance buffer to use
-        // todo bind PerPassConstants - rename that as well
         const std::shared_ptr<StaticMesh> staticMesh = assetManager.FindAsset<StaticMesh>(instanceBuffer[0].MeshID);
-        std::shared_ptr<Material> material = assetManager.FindAsset<Material>(instanceBuffer[0].MaterialID);
-        std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
+        const std::shared_ptr<Material> material = assetManager.FindAsset<Material>(instanceBuffer[0].MaterialID);
+        const std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
 
         const DX12StaticMeshRenderingData* renderingData = staticMesh->GetRenderingData<DX12StaticMeshRenderingData>();
         renderingData->SetupDrawing(commandListDraw, material);
-        commandListDraw->SetGraphicsRootShaderResourceView(0, instanceBufferUploader.Uploader.GetBuffer().GetGPUVirtualAddress());
+
+        commandListDraw->SetGraphicsRootShaderResourceView(
+            shader->GetStructuredBufferSlotIndex(Name(L"GInstanceBuffer")),
+            uploader->GetStructuredBuffer().GetGPUVirtualAddress()
+        );
         // todo bind material buffer
 
         commandListDraw->DrawIndexedInstanced(static_cast<uint32>(staticMesh->GetIndices().size()),
@@ -332,7 +352,7 @@ bool DX12RenderingSubsystem::Initialize()
         return false;
     }
 
-#if DEBUG
+#if DEBUG && !GPU_DEBUG
     {
         ComPtr<ID3D12Debug> debugController;
         ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
@@ -422,6 +442,8 @@ void DX12RenderingSubsystem::Shutdown()
 
 void DX12RenderingSubsystem::Tick(double deltaTime)
 {
+    RenderingSubsystem::Tick(deltaTime);
+    
     GetEventQueue().ProcessEvents();
 
     for (const std::shared_ptr<DX12Window>& window : _windows)
@@ -441,13 +463,13 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
 
         window->Render({});
 
-        window->Present({});
 
         ++_mainFenceValue;
         ThrowIfFailed(_commandQueue->Signal(_mainFence.Get(), _mainFenceValue));
 
         WaitForGPU();
 
+        window->Present({});
         window->EndFrame({});
     }
 
@@ -521,21 +543,14 @@ std::unique_ptr<WidgetRenderingProxy> DX12RenderingSubsystem::CreateViewportWidg
 
 void DX12RenderingSubsystem::RegisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system)
 {
-    InstanceBufferData& newBinding = _instanceBufferUploaders.Emplace(system, InstanceBufferUploader());
+    system->GetInstanceBuffer().SetProxy(std::make_unique<DynamicGPUBufferUploader<SMInstance>>());
 
-    if (!newBinding.Uploader.Initialize(system->GetInstanceBuffer()))
-    {
-        LOG(L"Could not initialize instance buffer uploader!");
-        DEBUG_BREAK();
-    }
+    _staticMeshRenderingSystems.Add(system);
 }
 
 void DX12RenderingSubsystem::UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system)
 {
-    _instanceBufferUploaders.RemoveIfSwap([system](const InstanceBufferData& data)
-    {
-        return data.SMRenderingSystem == system;
-    });
+    _staticMeshRenderingSystems.Remove(system);
 }
 
 void DX12RenderingSubsystem::OnWindowDestroyed(Window* window)

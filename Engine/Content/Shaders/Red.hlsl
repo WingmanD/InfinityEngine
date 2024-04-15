@@ -1,4 +1,4 @@
-struct PerPassConstants
+struct Scene
 {
     float4x4 World;
     float4x4 ViewProjection;
@@ -7,7 +7,7 @@ struct PerPassConstants
     float Time;
 };
 
-ConstantBuffer<PerPassConstants> GPerPassConstants: register(b0);
+ConstantBuffer<Scene> GPerPassConstants: register(b0);
 
 struct VertexIn
 {

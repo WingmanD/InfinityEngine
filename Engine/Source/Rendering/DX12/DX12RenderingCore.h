@@ -4,6 +4,8 @@
 #include <dxcapi.h>
 #include <functional>
 
+#define GPU_DEBUG 0
+
 using Microsoft::WRL::ComPtr;
 
 using DX12Device = ID3D12Device14;

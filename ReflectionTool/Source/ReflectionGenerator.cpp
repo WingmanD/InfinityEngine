@@ -230,7 +230,10 @@ public: \
     \
     virtual std::shared_ptr<Object> Duplicate() const override \
     {{ \
-        return std::shared_ptr<{}>(ClassBucketArray.Add(*this), ObjectDeleter());\
+        auto newObject = std::shared_ptr<{}>(ClassBucketArray.Add(*this), ObjectDeleter()); \
+        ConditionalCopyAssignUnchecked(*newObject.get(), *this); \
+       \
+        return newObject;\
     }} \
     \
     virtual Object* DuplicateAt(void* ptr) const override \

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "UtilMacros.h"
-#include "Containers/ManagedBuffer.h"
+#include "Containers/DynamicGPUBuffer.h"
 #include "Math/MathFwd.h"
 
 struct SMInstance
@@ -16,6 +16,8 @@ struct SMInstance
     uint32 MaterialIndex;
 };
 
-class InstanceBuffer : public ManagedBuffer<SMInstance>
+class InstanceBuffer : public DynamicGPUBuffer<SMInstance>
 {
+public:
+    InstanceBuffer() = default;
 };

@@ -25,8 +25,8 @@ bool RenderingSubsystem::PostInitialize()
 {
     EngineSubsystem::PostInitialize();
 
-    _perPassConstants = std::make_unique<PerPassConstants>();
-    if (!_perPassConstants->Initialize())
+    _scene = std::make_unique<Scene>();
+    if (!_scene->Initialize())
     {
         LOG(L"Failed to initialize global material parameters!");
         DEBUG_BREAK();
@@ -43,16 +43,10 @@ EventQueue<RenderingSubsystem>& RenderingSubsystem::GetEventQueue()
 
 void RenderingSubsystem::Tick(double deltaTime)
 {
-    _perPassConstants->Time += static_cast<float>(deltaTime);
-    // todo camera
-    // XMStoreFloat4x4(&_perPassConstants->World, XMMatrixTranspose(world));
-    // XMStoreFloat4x4(&_perPassConstants->ViewProjection, XMMatrixTranspose(view * proj));
-    // _perPassConstants->CameraPosition = pos;
-    // _perPassConstants->CameraDirection = target - pos;
-    // _perPassConstants->CameraDirection.Normalize();
+    _scene->Time += static_cast<float>(deltaTime);
 }
 
-std::shared_ptr<PerPassConstants> RenderingSubsystem::GetPerPassConstants() const
+std::shared_ptr<Scene> RenderingSubsystem::GetScene() const
 {
-    return _perPassConstants;
+    return _scene;
 }

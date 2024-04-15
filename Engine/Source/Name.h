@@ -16,7 +16,11 @@ public:
     uint64 GetID() const;
     const std::wstring& ToString() const;
 
-    constexpr std::strong_ordering operator<=>(const Name& other) const;
+    constexpr std::strong_ordering operator<=>(const Name& other) const
+    {
+        return _id <=> other._id;
+    }
+    
     constexpr bool operator==(const Name&) const = default;
 
 private:

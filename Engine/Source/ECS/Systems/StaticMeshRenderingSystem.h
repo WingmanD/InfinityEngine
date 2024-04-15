@@ -23,5 +23,5 @@ protected:
 
 private:
     DArray<CStaticMesh*> _registeredMeshComponents;
-    InstanceBuffer _instanceBuffer;
+    InstanceBuffer _instanceBuffer{};
 };

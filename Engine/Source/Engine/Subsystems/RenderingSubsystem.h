@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include "Core.h"
 #include "Containers/EventQueue.h"
 #include "Engine/Subsystems/EngineSubsystem.h"
 #include "Filesystem/ShaderChangeListener.h"
+#include "Rendering/InstanceBuffer.h"
 #include "Rendering/Widgets/WidgetRenderingProxy.h"
 #include <memory>
 
@@ -16,7 +16,7 @@ class MaterialParameterRenderingData;
 class MaterialParameterMap;
 class Texture;
 class RenderTarget;
-struct PerPassConstants;
+struct Scene;
 
 class RenderingSubsystem : public EngineSubsystem
 {
@@ -47,7 +47,7 @@ public:
 
     EventQueue<RenderingSubsystem>& GetEventQueue();
 
-    std::shared_ptr<PerPassConstants> GetPerPassConstants() const;
+    std::shared_ptr<Scene> GetScene() const;
 
 protected:
     virtual bool Initialize() override;
@@ -57,5 +57,5 @@ protected:
 private:
     EventQueue<RenderingSubsystem> _eventQueue;
     std::unique_ptr<ShaderChangeListener> _shaderChangeListener;
-    std::shared_ptr<PerPassConstants> _perPassConstants = nullptr;
+    std::shared_ptr<Scene> _scene = nullptr;
 };

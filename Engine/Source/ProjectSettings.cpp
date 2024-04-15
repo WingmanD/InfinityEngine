@@ -11,3 +11,8 @@ Type* ProjectSettings::GetGameType() const
 {
     return _gameType;
 }
+
+std::shared_ptr<Game> ProjectSettings::GetGame() const
+{
+    return _game;
+}

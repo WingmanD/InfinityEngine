@@ -26,6 +26,18 @@ namespace Math
         return static_cast<T>(std::floor(static_cast<double>(value) / static_cast<double>(multiple) + 0.5));
     }
 
+    template <typename T> requires std::is_integral_v<T>
+    constexpr T NextPowerOfTwo(T value)
+    {
+        --value;
+        for (size_t i = 1; i < sizeof(T) * 8; i *= 2)
+        {
+            value |= value >> i;
+        }
+
+        return ++value;
+    }
+
     Vector3 ToDegrees(const Vector3& radians);
     Vector3 ToRadians(const Vector3& degrees);
 

@@ -1,11 +1,13 @@
 ﻿#include "DX12Shader.h"
-#include <filesystem>
 #include "Core.h"
+#include "DX12RenderingCore.h"
 #include "d3dx12/d3dx12.h"
 #include "DX12MaterialParameterMap.h"
 #include "DX12RenderingSubsystem.h"
-#include "Util.h"
 #include "Engine/Subsystems/AssetManager.h"
+#include "Util.h"
+#include <filesystem>
+#include <atlstr.h>
 
 std::vector<D3D12_INPUT_ELEMENT_DESC> DX12Shader::_inputLayout = {
     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -44,6 +46,22 @@ void DX12Shader::Apply(DX12GraphicsCommandList* commandList) const
 {
     commandList->SetPipelineState(_pso.Get());
     commandList->SetGraphicsRootSignature(_rootSignature.Get());
+}
+
+uint32 DX12Shader::GetStructuredBufferSlotIndex(Name name) const
+{
+    auto it = _structuredBufferParameters.FindIf([&name](const StructuredBufferParameter& parameter)
+    {
+        return parameter.BufferName == name;
+    });
+
+    if (it != _structuredBufferParameters.end())
+    {
+        return it->SlotIndex;
+    }
+
+    DEBUG_BREAK();
+    return -1;
 }
 
 const D3D12_ROOT_SIGNATURE_DESC& DX12Shader::GetRootSignatureDesc(PassKey<DX12RenderingSubsystem>) const
@@ -104,15 +122,18 @@ bool DX12Shader::Recompile(bool immediate)
 
     std::vector<D3D12_ROOT_PARAMETER> rootParameters;
     std::set<MaterialParameterDescriptor> constantBufferParameterTypes;
+    std::set<StructuredBufferParameter> structuredBufferParameterTypes;
 
-    if (!ReflectShaderParameters(vertexShaderResult.Get(), rootParameters, constantBufferParameterTypes))
+    if (!ReflectShaderParameters(vertexShaderResult.Get(), rootParameters, constantBufferParameterTypes,
+                                 structuredBufferParameterTypes))
     {
         LOG(L"Failed to compile shader {} - failed to reflect vertex shader", GetName().ToString());
         _beingRecompiled = false;
         return false;
     }
 
-    if (!ReflectShaderParameters(pixelShaderResult.Get(), rootParameters, constantBufferParameterTypes))
+    if (!ReflectShaderParameters(pixelShaderResult.Get(), rootParameters, constantBufferParameterTypes,
+                                 structuredBufferParameterTypes))
     {
         LOG(L"Failed to compile shader {} - failed to reflect pixel shader", GetName().ToString());
         return false;
@@ -134,7 +155,7 @@ bool DX12Shader::Recompile(bool immediate)
 
     D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
     rootSignatureDesc.NumParameters = static_cast<uint32>(rootParameters.size());
-    rootSignatureDesc.pParameters = rootParameters.data();  // todo SRV needs to be bound here
+    rootSignatureDesc.pParameters = rootParameters.data(); // todo SRV needs to be bound here
     rootSignatureDesc.NumStaticSamplers = 0;
     rootSignatureDesc.pStaticSamplers = nullptr;
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -225,6 +246,8 @@ bool DX12Shader::Recompile(bool immediate)
         return false;
     }
 
+    recompiledData->StructuredBufferParameterTypes.Append(structuredBufferParameterTypes);
+
     std::weak_ptr weakThis = shared_from_this();
     auto lambda = [weakThis, recompiledData](RenderingSubsystem* renderingSubsystem)
     {
@@ -242,6 +265,7 @@ bool DX12Shader::Recompile(bool immediate)
         shader->_pixelShader = std::move(recompiledData->PixelShader);
         shader->_lastCompileTime = std::move(recompiledData->LastCompileTime);
         shader->ParameterMap = std::move(recompiledData->ParameterMap);
+        shader->_structuredBufferParameters = std::move(recompiledData->StructuredBufferParameterTypes);
         shader->_beingRecompiled = false;
 
         shader->MarkDirtyForAutosave();
@@ -318,6 +342,8 @@ bool DX12Shader::Serialize(MemoryWriter& writer) const
     {
         ParameterMap->Serialize(writer);
     }
+
+    writer << _structuredBufferParameters;
 
     return true;
 }
@@ -407,6 +433,8 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
         success = false;
         ParameterMap = nullptr;
     }
+
+    reader >> _structuredBufferParameters;
 
     if (success)
     {
@@ -503,11 +531,16 @@ ComPtr<IDxcResult> DX12Shader::CompileShader(const std::filesystem::path& shader
     const std::wstring includePath = shaderPath.parent_path().wstring();
     arguments.push_back(includePath.c_str());
 
+#if GPU_DEBUG
+    arguments.push_back(L"-Qembed_debug");
+    arguments.push_back(DXC_ARG_DEBUG);
+    arguments.push_back(DXC_ARG_SKIP_OPTIMIZATIONS);
+#else
     arguments.push_back(L"-Qstrip_debug");
     arguments.push_back(L"-Qstrip_reflect");
+#endif
 
     arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS);
-    arguments.push_back(DXC_ARG_DEBUG);
 
     for (const D3D_SHADER_MACRO& define : defines)
     {
@@ -614,8 +647,10 @@ bool DX12Shader::InitializePSO(const DX12RenderingSubsystem& renderingSubsystem)
     return true;
 }
 
-bool DX12Shader::ReflectShaderParameters(IDxcResult* compileResult, std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
-                                         std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const
+bool DX12Shader::ReflectShaderParameters(IDxcResult* compileResult,
+                                         std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
+                                         std::set<MaterialParameterDescriptor>& constantBufferParameterTypes,
+                                         std::set<StructuredBufferParameter>& structuredBufferParameterTypes) const
 {
     ComPtr<IDxcBlob> reflectionData;
     compileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(reflectionData.GetAddressOf()), nullptr);
@@ -628,7 +663,6 @@ bool DX12Shader::ReflectShaderParameters(IDxcResult* compileResult, std::vector<
     ComPtr<ID3D12ShaderReflection> shaderReflection;
     DX12RenderingSubsystem::Get().GetDXCUtils().CreateReflection(&reflectionBuffer,
                                                                  IID_PPV_ARGS(shaderReflection.GetAddressOf()));
-
 
     if (shaderReflection == nullptr)
     {
@@ -648,7 +682,8 @@ bool DX12Shader::ReflectShaderParameters(IDxcResult* compileResult, std::vector<
         {
         case D3D_SIT_CBUFFER:
             {
-                if (!ReflectConstantBuffer(shaderReflection.Get(), bindDesc, rootParameters, constantBufferParameterTypes))
+                if (!ReflectConstantBuffer(shaderReflection.Get(), bindDesc, rootParameters,
+                                           constantBufferParameterTypes))
                 {
                     return false;
                 }
@@ -657,16 +692,21 @@ bool DX12Shader::ReflectShaderParameters(IDxcResult* compileResult, std::vector<
             }
         case D3D_SIT_STRUCTURED:
             {
-                D3D12_ROOT_PARAMETER parameter = {};
-                parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
-                parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
-                parameter.Descriptor.RegisterSpace = bindDesc.Space;
-                parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-                rootParameters.push_back(parameter);
-
-                // todo fill out SRV parameter descriptions, just as we did with constant buffers
-                // we need to know which index to use for instance buffer, but also for material parameter buffer for later
+                StructuredBufferParameter structuredBufferParameter;
+                structuredBufferParameter.BufferName = Name(Util::ToWString(bindDesc.Name));
+                structuredBufferParameter.SlotIndex = static_cast<uint32>(rootParameters.size());
+                const auto result = structuredBufferParameterTypes.insert(structuredBufferParameter);
                 
+                if (result.second)
+                {
+                    D3D12_ROOT_PARAMETER parameter = {};
+                    parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+                    parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
+                    parameter.Descriptor.RegisterSpace = bindDesc.Space;
+                    parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+                    rootParameters.push_back(parameter);
+                }
+
                 break;
             }
         case D3D_SIT_TEXTURE:
@@ -683,7 +723,8 @@ bool DX12Shader::ReflectShaderParameters(IDxcResult* compileResult, std::vector<
             }
         default:
             {
-                LOG(L"Unsupported shader resource type '{}' in shader {}!", Util::ToWString(bindDesc.Name), GetName().ToString());
+                LOG(L"Unsupported shader resource type '{}' in shader {}!", Util::ToWString(bindDesc.Name),
+                    GetName().ToString());
                 break;
             }
         }
@@ -732,7 +773,7 @@ bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
         MaterialParameterDescriptor parameterType;
         parameterType.Name = bufferDesc.Name;
         parameterType.ParameterType = TypeRegistry::Get().FindTypeByName(typeDesc.Name);
-        parameterType.SlotIndex = bindDesc.BindPoint;
+        parameterType.SlotIndex = static_cast<uint32>(rootParameters.size());
 
         const auto result = constantBufferParameterTypes.insert(parameterType);
         if (result.second)
