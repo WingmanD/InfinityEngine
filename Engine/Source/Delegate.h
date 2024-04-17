@@ -79,5 +79,5 @@ private:
     std::vector<FunctionWrapper> _functions;
     std::map<uint64, size_t> _handleIDToIndex;
 
-    IDGenerator _idGenerator;
+    IDGenerator<uint64> _idGenerator;
 };

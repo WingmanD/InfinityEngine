@@ -210,11 +210,8 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
 
         // todo multiple meshes after sorting on GPU and everything
         // todo bind instance buffer and material buffers, once they are implemented - that should be done in the shader
-        //const std::shared_ptr<StaticMesh> staticMesh = assetManager.FindAsset<StaticMesh>(instanceBuffer[0].MeshID);
-        //const std::shared_ptr<Material> material = assetManager.FindAsset<Material>(instanceBuffer[0].MaterialID);
-        
-        const std::shared_ptr<StaticMesh> staticMesh = assetManager.FindAssetByName<StaticMesh>(Name(L"SwarmDrone"));
-        const std::shared_ptr<Material> material = assetManager.FindAssetByName<Material>(Name(L"DefaultMaterial"));
+        const std::shared_ptr<StaticMesh> staticMesh = StaticMesh::GetMeshByID(instanceBuffer[0].MeshID);
+        const std::shared_ptr<Material> material = Material::GetMaterialByID(instanceBuffer[0].MaterialID);
         
         const std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
 

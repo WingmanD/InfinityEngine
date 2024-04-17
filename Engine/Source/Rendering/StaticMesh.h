@@ -36,8 +36,11 @@ class StaticMesh : public Asset
     GENERATED()
 
 public:
+    static std::shared_ptr<StaticMesh> GetMeshByID(uint32 meshID);
+    
+public:
     StaticMesh();
-
+    
     StaticMesh(const StaticMesh& other);
     StaticMesh& operator=(const StaticMesh& other);
 
@@ -57,6 +60,8 @@ public:
     void SetMaterial(const std::shared_ptr<Material>& material);
     [[nodiscard]] std::shared_ptr<Material> GetMaterial() const;
 
+    uint32 GetMeshID() const;
+
     StaticMeshRenderingData* GetRenderingData() const;
 
     template <typename T> requires IsA<T, StaticMeshRenderingData>
@@ -73,11 +78,17 @@ private:
     bool ImportInternal(const aiMesh* assimpMesh);
 
 private:
+    static IDGenerator<uint32> _meshIDGenerator;
+    static std::unordered_map<uint32, std::weak_ptr<StaticMesh>> _meshIDToStaticMesh;
+
+private:
     std::vector<Vertex> _vertices;
     std::vector<uint32_t> _indices;
 
     PROPERTY(Edit, Load)
     AssetPtr<Material> _material;
+
+    uint32 _meshID = 0;
 
     std::unique_ptr<StaticMeshRenderingData> _renderingData;
 };

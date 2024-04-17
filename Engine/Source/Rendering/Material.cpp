@@ -4,6 +4,14 @@
 #include "Engine/Subsystems/AssetManager.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 
+IDGenerator<uint32> Material::_materialIDGenerator;
+std::unordered_map<uint32, std::weak_ptr<Material>> Material::_materialIDToStaticMesh;
+
+std::shared_ptr<Material> Material::GetMaterialByID(uint32 materialID)
+{
+    return _materialIDToStaticMesh[materialID].lock();
+}
+
 Material::Material(Name name) : Asset(name)
 {
 }
@@ -40,6 +48,11 @@ MaterialParameterMap* Material::GetParameterMap() const
     return _materialParameterMap.get();
 }
 
+uint32 Material::GetMaterialID() const
+{
+    return _materialID;
+}
+
 MaterialRenderingData* Material::GetRenderingData() const
 {
     return _renderingData.get();
@@ -52,6 +65,9 @@ bool Material::Initialize()
         return false;
     }
 
+    _materialID = _materialIDGenerator.GenerateID();
+    _materialIDToStaticMesh[_materialID] = SharedFromThis();
+    
     if (_shader != nullptr)
     {
         _materialParameterMap = _shader->CreateMaterialParameterMap();
@@ -124,7 +140,7 @@ void Material::OnShaderChanged(const std::shared_ptr<Shader>& oldShader /*= null
         std::weak_ptr weakThis = shared_from_this();
         _materialParameterMapChangedHandle = _shader->OnRecompiled.Add([weakThis](const Shader* shader)
         {
-            std::shared_ptr<Material> sharedThis = std::static_pointer_cast<Material>(weakThis.lock());
+            const std::shared_ptr<Material> sharedThis = std::static_pointer_cast<Material>(weakThis.lock());
             if (sharedThis == nullptr)
             {
                 return;

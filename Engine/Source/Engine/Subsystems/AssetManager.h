@@ -93,7 +93,7 @@ protected:
     virtual void Shutdown() override;
 
 private:
-    IDGenerator _idGenerator;
+    IDGenerator<uint64> _idGenerator;
     
     std::unique_ptr<PackageManifest> _manifest;
     std::fstream _assetCache;

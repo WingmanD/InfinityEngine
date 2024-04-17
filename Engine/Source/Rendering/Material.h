@@ -15,12 +15,14 @@ class Material : public Asset
     GENERATED()
 
 public:
+    static std::shared_ptr<Material> GetMaterialByID(uint32 materialID);
+
+public:
     Material() = default;
     Material(Name name);
 
     Material(const Material& other);
 
-public:
     void SetShader(const std::shared_ptr<Shader>& shader);
     [[nodiscard]] std::shared_ptr<Shader> GetShader() const;
 
@@ -38,6 +40,8 @@ public:
 
     [[nodiscard]] MaterialParameterMap* GetParameterMap() const;
 
+    uint32 GetMaterialID() const;
+    
     [[nodiscard]] MaterialRenderingData* GetRenderingData() const;
     
     template <typename T>
@@ -58,11 +62,17 @@ public:
     void OnPropertyChanged(Name propertyName) override;
 
 private:
+    static IDGenerator<uint32> _materialIDGenerator;
+    static std::unordered_map<uint32, std::weak_ptr<Material>> _materialIDToStaticMesh;
+    
+private:
     PROPERTY(Edit, Load, DisplayName = "Shader")
     AssetPtr<Shader> _shader;
 
     DelegateHandle _materialParameterMapChangedHandle{};
     std::unique_ptr<MaterialParameterMap> _materialParameterMap;
+
+    uint32 _materialID = 0;
 
     std::unique_ptr<MaterialRenderingData> _renderingData;
 

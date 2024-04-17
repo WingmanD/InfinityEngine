@@ -8,6 +8,14 @@
 #include "MaterialParameterTypes.h"
 #include "AssetPtr.h"
 
+IDGenerator<uint32> StaticMesh::_meshIDGenerator;
+std::unordered_map<uint32, std::weak_ptr<StaticMesh>> StaticMesh::_meshIDToStaticMesh;
+
+std::shared_ptr<StaticMesh> StaticMesh::GetMeshByID(uint32 meshID)
+{
+    return _meshIDToStaticMesh[meshID].lock();
+}
+
 StaticMesh::StaticMesh()
 {
     SetImporterType(StaticMeshImporter::StaticType());
@@ -36,11 +44,15 @@ StaticMesh& StaticMesh::operator=(const StaticMesh& other)
 
 StaticMesh::StaticMesh(Name name) : Asset(name)
 {
+    SetImporterType(StaticMeshImporter::StaticType());
 }
 
 bool StaticMesh::Initialize()
 {
     RenderingSubsystem& renderingSubsystem = RenderingSubsystem::Get();
+
+    _meshID = _meshIDGenerator.GenerateID();
+    _meshIDToStaticMesh[_meshID] = SharedFromThis();
 
     _renderingData = renderingSubsystem.CreateStaticMeshRenderingData();
     if (_renderingData == nullptr)
@@ -130,6 +142,11 @@ void StaticMesh::SetMaterial(const std::shared_ptr<Material>& material)
 std::shared_ptr<Material> StaticMesh::GetMaterial() const
 {
     return _material;
+}
+
+uint32 StaticMesh::GetMeshID() const
+{
+    return _meshID;
 }
 
 StaticMeshRenderingData* StaticMesh::GetRenderingData() const
