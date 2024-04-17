@@ -9,7 +9,7 @@ struct Scene
 struct SMInstance
 {
     float4x4 World;
-    uint64_t MeshID;
-    uint64_t MaterialID;
+    uint MeshID;
+    uint MaterialID;
     uint MaterialIndex;
 };

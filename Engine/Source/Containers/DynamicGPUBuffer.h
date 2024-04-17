@@ -12,13 +12,13 @@ class DynamicGPUBuffer : public DynamicGpuBufferBase, public BorrowedManagedBuff
 {
 public:
     DynamicGPUBuffer(T* data = nullptr,
-                     size_t capacity = 0,
-                     size_t count = 0) :
+                     uint32 capacity = 0,
+                     uint32 count = 0) :
         BorrowedManagedBuffer<T>(data, capacity, count)
     {
     }
 
-    void Reserve(size_t capacity)
+    void Reserve(uint32 capacity)
     {
         _proxy->Reserve(capacity);
     }
@@ -36,7 +36,7 @@ public:
     }
 
     template <typename U>
-    U* GetProxy()
+    U* GetProxy() const
     {
         return dynamic_cast<U*>(_proxy.get());
     }

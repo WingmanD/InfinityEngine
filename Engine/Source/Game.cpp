@@ -30,23 +30,25 @@ bool Game::IsRunning() const
 bool Game::OnStartup()
 {
     LOG(L"Game started!");
-    
+
     GameplaySubsystem& gameplaySubsystem = GameplaySubsystem::Get();
     gameplaySubsystem.GetWorlds().ForEach([&gameplaySubsystem, this](World& world)
     {
         world.AddSystem<PathfindingSystem>();
         world.AddSystem<CameraSystem>();
         world.AddSystem<StaticMeshRenderingSystem>();
-        
+
         Entity& entity = world.CreateEntity(_playerTemplate);
         gameplaySubsystem.GetMainViewport()->SetCamera(&entity.Get<CCamera>(_playerTemplate->GetArchetype()));
         Transform& cameraEntityTransform = entity.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
         cameraEntityTransform.SetWorldLocation({-5.0f, 0.0f, 1.0f});
-        
+
+        world.CreateEntity(_enemyTemplate);
+
         Entity& meshEntity = world.CreateEntity(_enemyTemplate);
         Transform& transform = meshEntity.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
-        transform.SetWorldLocation({0.0f, 0.0f, 0.0f});
-        
+        transform.SetWorldRotation({0.0f, 0.0f, 45.0f});
+
         return false;
     });
 

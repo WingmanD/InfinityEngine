@@ -46,14 +46,15 @@ public:
         }
     }
 
-    static bool CreateInPlace(StructuredBuffer& buffer, uint32 count, DX12Device& device, std::shared_ptr<DescriptorHeap> srvHeap, uint32 incrementSize)
+    static bool CreateInPlace(StructuredBuffer& buffer, uint32 count, DX12Device& device,
+                              std::shared_ptr<DescriptorHeap> srvHeap)
     {
         buffer._capacity = count;
 
         if constexpr (IsReflectedType<T>)
         {
             Type* type = T::StaticType();
-            
+
             const size_t dataOffset = type->GetDataOffset();
             if (dataOffset == 0)
             {
@@ -143,12 +144,13 @@ public:
         commandList->ResourceBarrier(1, &resourceToCopyDest);
 
         const size_t alignedOffset = Math::RoundToNearest(static_cast<uint32>(offsetIndex) * _bufferByteSize, 256u);
+        const size_t numBytes = (count + offsetIndex - alignedOffset) * _bufferByteSize;
 
         commandList->CopyBufferRegion(_structuredBuffer.Get(),
                                       alignedOffset,
                                       _uploadHeap.Get(),
                                       alignedOffset,
-                                      count * _bufferByteSize);
+                                      numBytes);
 
         const CD3DX12_RESOURCE_BARRIER copyDestToResource = CD3DX12_RESOURCE_BARRIER::Transition(
             _structuredBuffer.Get(),
@@ -210,7 +212,7 @@ private:
 
         _capacity = other._capacity;
         other._capacity = 0;
-        
+
         _bufferByteSize = other._bufferByteSize;
         _isMapped = other._isMapped;
         _structuredBuffer = std::move(other._structuredBuffer);

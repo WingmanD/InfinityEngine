@@ -21,5 +21,5 @@ public:
     PROPERTY(Edit, Serialize)
     Transform MeshTransform;
 
-    uint64 InstanceID = INDEX_NONE;
+    uint32 InstanceID = 0;
 };

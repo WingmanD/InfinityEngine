@@ -463,7 +463,7 @@ void Widget::AddChild(const std::shared_ptr<Widget>& widget, bool invalidateLayo
     InsertChild(widget, _children.size(), invalidateLayout);
 }
 
-void Widget::InsertChild(const std::shared_ptr<Widget>& widget, size_t index, bool invalidateLayout)
+void Widget::InsertChild(const std::shared_ptr<Widget>& widget, size_t index, bool invalidateLayout /*= true*/)
 {
     if (widget == nullptr)
     {

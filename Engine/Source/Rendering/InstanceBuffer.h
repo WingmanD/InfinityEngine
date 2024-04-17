@@ -1,18 +1,13 @@
 ﻿#pragma once
 
-#include "UtilMacros.h"
 #include "Containers/DynamicGPUBuffer.h"
 #include "Math/MathFwd.h"
 
 struct SMInstance
 {
     Matrix World;
-    uint64 MeshID;
-    PADDING()
-    PADDING()
-    uint64 MaterialID;
-    PADDING()
-    PADDING()
+    uint32 MeshID;
+    uint32 MaterialID;
     uint32 MaterialIndex;
 };
 

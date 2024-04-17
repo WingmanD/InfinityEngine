@@ -44,7 +44,6 @@ public:
     Vector3 CameraPosition;
     PADDING()
     Vector3 CameraDirection;
-    PADDING()
     float Time = 0.0f;
 
 public:

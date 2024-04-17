@@ -9,6 +9,7 @@ struct VertexIn
     float3 Normal : NORMAL;
     float4 VertexColor : COLOR;
     float2 UV : UV;
+    uint InstanceID : SV_InstanceID;
 };
 
 struct VertexOut
@@ -21,16 +22,16 @@ struct VertexOut
     uint InstanceID : SV_InstanceID;
 };
 
-VertexOut VS(VertexIn vIn, uint instanceID : SV_InstanceID)
+VertexOut VS(VertexIn vIn)
 {
     VertexOut vOut;
     
-    vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GInstanceBuffer[instanceID].World);
+    vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GInstanceBuffer[vIn.InstanceID].World);
     vOut.PositionCS = mul(vOut.PositionWS, GScene.ViewProjection);
-    vOut.Normal = mul(float4(vIn.Normal, 0.0f), GInstanceBuffer[instanceID].World).xyz;
+    vOut.Normal = mul(float4(vIn.Normal, 0.0f), GInstanceBuffer[vIn.InstanceID].World).xyz;
     vOut.VertexColor = vIn.VertexColor;
-    vOut.UV = vIn.UV * GInstanceBuffer[instanceID].MaterialIndex;
-    vOut.InstanceID = instanceID;
+    vOut.UV = vIn.UV * GInstanceBuffer[vIn.InstanceID].MaterialIndex;
+    vOut.InstanceID = vIn.InstanceID;
 
     return vOut;
 }

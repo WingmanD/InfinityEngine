@@ -4,12 +4,18 @@
 #include <dxcapi.h>
 #include <functional>
 
-#define GPU_DEBUG 0
+#define GPU_DEBUG 1
 
 using Microsoft::WRL::ComPtr;
 
+#if GPU_DEBUG
+using DX12Device = ID3D12Device3;
+using DX12GraphicsCommandList = ID3D12GraphicsCommandList3;
+#else
 using DX12Device = ID3D12Device14;
 using DX12GraphicsCommandList = ID3D12GraphicsCommandList10;
+#endif
+
 using DXCompiler = IDxcCompiler3;
 
 struct DX12CommandList
@@ -21,7 +27,7 @@ public:
         Closed,
         Executing
     };
-    
+
     ComPtr<ID3D12CommandAllocator> CommandAllocator;
     ComPtr<DX12GraphicsCommandList> CommandList;
     ECommandListState State = Ready;
@@ -30,9 +36,9 @@ public:
     void Close()
     {
         CommandList->Close();
-        State = Closed;    
+        State = Closed;
     }
-    
+
     void Reset()
     {
         CommandAllocator->Reset();

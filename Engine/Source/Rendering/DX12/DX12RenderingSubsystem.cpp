@@ -200,7 +200,7 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
     for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
     {
         // todo check if system's world is visible - we need to know which world the camera belongs to
-        InstanceBuffer& instanceBuffer = renderingSystem->GetInstanceBuffer();
+        const InstanceBuffer& instanceBuffer = renderingSystem->GetInstanceBuffer();
         if (instanceBuffer.Count() == 0)
         {
             continue;
@@ -210,8 +210,12 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
 
         // todo multiple meshes after sorting on GPU and everything
         // todo bind instance buffer and material buffers, once they are implemented - that should be done in the shader
-        const std::shared_ptr<StaticMesh> staticMesh = assetManager.FindAsset<StaticMesh>(instanceBuffer[0].MeshID);
-        const std::shared_ptr<Material> material = assetManager.FindAsset<Material>(instanceBuffer[0].MaterialID);
+        //const std::shared_ptr<StaticMesh> staticMesh = assetManager.FindAsset<StaticMesh>(instanceBuffer[0].MeshID);
+        //const std::shared_ptr<Material> material = assetManager.FindAsset<Material>(instanceBuffer[0].MaterialID);
+        
+        const std::shared_ptr<StaticMesh> staticMesh = assetManager.FindAssetByName<StaticMesh>(Name(L"SwarmDrone"));
+        const std::shared_ptr<Material> material = assetManager.FindAssetByName<Material>(Name(L"DefaultMaterial"));
+        
         const std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
 
         const DX12StaticMeshRenderingData* renderingData = staticMesh->GetRenderingData<DX12StaticMeshRenderingData>();
@@ -224,7 +228,7 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         // todo bind material buffer
 
         commandListDraw->DrawIndexedInstanced(static_cast<uint32>(staticMesh->GetIndices().size()),
-                                              static_cast<uint32>(instanceBuffer.Count()),
+                                              instanceBuffer.Count(),
                                               0,
                                               0,
                                               0);
@@ -361,7 +365,12 @@ bool DX12RenderingSubsystem::Initialize()
 #endif
     ThrowIfFailed(CreateDXGIFactory(IID_PPV_ARGS(&_dxgiFactory)));
 
-    ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&_device)));
+    const HRESULT deviceResult = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&_device));
+    if (FAILED(deviceResult))
+    {
+        LOG(L"Failed to create D3D12 device!");
+        return false;
+    }
 
     ThrowIfFailed(_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_mainFence)));
     ThrowIfFailed(_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_copyFence)));

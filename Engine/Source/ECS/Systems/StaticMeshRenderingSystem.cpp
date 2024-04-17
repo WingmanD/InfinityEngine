@@ -27,13 +27,18 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
         staticMesh.MaterialOverride = staticMesh.Mesh->GetMaterial();
     }
 
+    static uint32 statInstanceID = 0;
+    
     SMInstance instanceData;
     instanceData.World = staticMesh.MeshTransform.GetWorldMatrix().Transpose();
-    instanceData.MeshID = staticMesh.Mesh->GetAssetID();
-    instanceData.MaterialID = staticMesh.MaterialOverride->GetAssetID();
+    instanceData.MeshID = statInstanceID;
+    instanceData.MaterialID = statInstanceID;
+    instanceData.MaterialIndex = statInstanceID;
+
+    ++statInstanceID;
 
     _instanceBuffer.Reserve(_instanceBuffer.Count() + 1);
-    const size_t instanceID = _instanceBuffer.Emplace(std::move(instanceData));
+    const uint32 instanceID = _instanceBuffer.Emplace(std::move(instanceData));
     staticMesh.InstanceID = instanceID;
 
     _registeredMeshComponents.Add(&staticMesh);

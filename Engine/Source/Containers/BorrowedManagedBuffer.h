@@ -6,7 +6,7 @@ template <typename T>
 class BorrowedManagedBuffer
 {
 public:
-    BorrowedManagedBuffer(T* data, size_t capacity, size_t count = 0)
+    BorrowedManagedBuffer(T* data, uint32 capacity, uint32 count = 0)
     {
         Initialize(data, capacity, count);
     }
@@ -47,7 +47,7 @@ public:
 
     ~BorrowedManagedBuffer() = default;
 
-    size_t Add(const T& data)
+    uint32 Add(const T& data)
     {
         _data[_count] = data;
         ++_count;
@@ -55,30 +55,30 @@ public:
         return _count;
     }
 
-    size_t Emplace(T&& data)
+    uint32 Emplace(T&& data)
     {
         _data[_count] = std::move(data);
         return _count++;
     }
 
-    void RemoveAtSwap(size_t index)
+    void RemoveAtSwap(uint32 index)
     {
         _data[index] = _data[_count - 1];
         --_count;
     }
 
-    T& operator[](size_t index)
+    T& operator[](uint32 index)
     {
         _dirtyIndices.Add(index);
         return _data[index];
     }
 
-    const T& operator[](size_t index) const
+    const T& operator[](uint32 index) const
     {
         return _data[index];
     }
 
-    void Initialize(T* data, size_t capacity, size_t count)
+    void Initialize(T* data, uint32 capacity, uint32 count)
     {
         _data = data;
         _count = count;
@@ -90,17 +90,17 @@ public:
         return _data;
     }
 
-    size_t Count() const
+    uint32 Count() const
     {
         return _count;
     }
 
-    size_t Capacity() const
+    uint32 Capacity() const
     {
         return _capacity;
     }
 
-    const DArray<size_t>& GetDirtyIndices() const
+    const DArray<uint32>& GetDirtyIndices() const
     {
         return _dirtyIndices;
     }
@@ -112,10 +112,10 @@ public:
 
 private:
     T* _data = nullptr;
-    size_t _count = 0;
-    size_t _capacity = 0;
+    uint32 _count = 0;
+    uint32 _capacity = 0;
 
-    DArray<size_t> _dirtyIndices;
+    DArray<uint32> _dirtyIndices;
 
 private:
     void Swap(BorrowedManagedBuffer& other) noexcept

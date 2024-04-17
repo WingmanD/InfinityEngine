@@ -39,7 +39,7 @@ public:
 
     void Update(DX12GraphicsCommandList* commandList)
     {
-        const DArray<size_t>& dirtyIndices = _owningBuffer->GetDirtyIndices();
+        const DArray<uint32>& dirtyIndices = _owningBuffer->GetDirtyIndices();
         if (dirtyIndices.Count() > 16) // todo optimize, find out the best number  
         {
             _structuredBuffer.Update(commandList);
@@ -75,17 +75,16 @@ public:
 
         DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
         if (!StructuredBuffer<SMInstance>::CreateInPlace(_structuredBuffer,
-                                                           initialCapacity,
-                                                           *renderingSubsystem.GetDevice(),
-                                                           renderingSubsystem.GetCBVHeap(),
-                                                           renderingSubsystem.GetCBVSRVUAVDescriptorSize()))
+                                                         initialCapacity,
+                                                         *renderingSubsystem.GetDevice(),
+                                                         renderingSubsystem.GetCBVHeap()))
         {
             DEBUG_BREAK();
             return false;
         }
 
         _owningBuffer->Initialize(_structuredBuffer.GetData(), initialCapacity, 0ull);
-        
+
         return true;
     }
 
@@ -106,8 +105,7 @@ public:
             newStructuredBuffer,
             newCapacity,
             *renderingSubsystem.GetDevice(),
-            renderingSubsystem.GetCBVHeap(),
-            renderingSubsystem.GetCBVSRVUAVDescriptorSize()))
+            renderingSubsystem.GetCBVHeap()))
         {
             DEBUG_BREAK();
             return;

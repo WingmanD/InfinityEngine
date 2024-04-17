@@ -700,7 +700,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             return nullptr;
         }
 
-        textBox->SetText(std::to_wstring(eulerAngles.x));
+        textBox->SetText(std::to_wstring(eulerAngles.y));
 
         DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
         {
@@ -751,7 +751,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             return nullptr;
         }
 
-        textBox->SetText(std::to_wstring(eulerAngles.x));
+        textBox->SetText(std::to_wstring(eulerAngles.z));
 
         DelegateHandle handle = property.OnChanged.Add([object, textBox, value]()
         {
@@ -1001,7 +1001,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             std::shared_ptr<Widget> child = children[i];
             
             child->RemoveFromParent();
-            row->AddChild(child);
+            row->InsertChild(child, 1);
         }
 
         table->AddRow(row);
@@ -1034,7 +1034,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             std::shared_ptr<Widget> child = children[i];
             
             child->RemoveFromParent();
-            row->AddChild(child);
+            row->InsertChild(child, 1);
         }
 
         table->AddRow(row);
@@ -1067,7 +1067,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             std::shared_ptr<Widget> child = children[i];
             
             child->RemoveFromParent();
-            row->AddChild(child);
+            row->InsertChild(child, 1);
         }
 
         table->AddRow(row);

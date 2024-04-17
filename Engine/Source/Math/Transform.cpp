@@ -198,8 +198,8 @@ Vector3 Transform::GetRelativeRotationEuler() const
 
 void Transform::SetWorldRotation(const Vector3& eulerAngles)
 {
-    SetRelativeRotation(Math::ToRadians(eulerAngles));
-
+    SetRelativeRotation(eulerAngles);
+    
     if (_parent != nullptr)
     {
         Quaternion parentRotationConjugate = Quaternion::CreateFromRotationMatrix(_parent->GetWorldMatrix());

@@ -88,7 +88,7 @@ bool DX12Shader::Recompile(bool immediate)
 
     recompiledData->LastCompileTime = last_write_time(importPath);
 
-    const ComPtr<IDxcResult> vertexShaderResult = CompileShader(importPath, L"VS", L"vs_6_8");
+    const ComPtr<IDxcResult> vertexShaderResult = CompileShader(importPath, L"VS", L"vs_6_6");
     if (vertexShaderResult == nullptr)
     {
         _beingRecompiled = false;
@@ -104,7 +104,7 @@ bool DX12Shader::Recompile(bool immediate)
         return false;
     }
 
-    const ComPtr<IDxcResult> pixelShaderResult = CompileShader(importPath, L"PS", L"ps_6_8");
+    const ComPtr<IDxcResult> pixelShaderResult = CompileShader(importPath, L"PS", L"ps_6_6");
     if (pixelShaderResult == nullptr)
     {
         _beingRecompiled = false;
