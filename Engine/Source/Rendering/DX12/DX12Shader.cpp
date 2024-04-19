@@ -4,10 +4,13 @@
 #include "d3dx12/d3dx12.h"
 #include "DX12MaterialParameterMap.h"
 #include "DX12RenderingSubsystem.h"
+#include "DynamicGPUBufferUploader.h"
 #include "Engine/Subsystems/AssetManager.h"
+#include "MaterialParameterTypes.h"
 #include "Util.h"
 #include <filesystem>
 #include <atlstr.h>
+
 
 std::vector<D3D12_INPUT_ELEMENT_DESC> DX12Shader::_inputLayout = {
     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -42,10 +45,25 @@ DX12Shader& DX12Shader::operator=(const DX12Shader& other)
     return *this;
 }
 
-void DX12Shader::Apply(DX12GraphicsCommandList* commandList) const
+void DX12Shader::Apply(DX12GraphicsCommandList* commandList, PassKey<DX12MaterialRenderingData>) const
 {
     commandList->SetPipelineState(_pso.Get());
     commandList->SetGraphicsRootSignature(_rootSignature.Get());
+}
+
+void DX12Shader::BindInstanceBuffers(DX12GraphicsCommandList& commandList,
+    const DynamicGPUBuffer<SMInstance>& instanceBuffer,
+    const DynamicGPUBuffer<MaterialParameter>& materialBuffer) const
+{
+    commandList.SetGraphicsRootShaderResourceView(
+        _instanceBufferSlotIndex,
+        instanceBuffer.GetProxy<DynamicGPUBufferUploader<SMInstance>>()->GetStructuredBuffer().GetGPUVirtualAddress()
+    );
+
+    commandList.SetGraphicsRootShaderResourceView(
+        _materialBufferSlotIndex,
+        materialBuffer.GetProxy<DynamicGPUBufferUploader<MaterialParameter>>()->GetStructuredBuffer().GetGPUVirtualAddress()
+    );
 }
 
 uint32 DX12Shader::GetStructuredBufferSlotIndex(Name name) const
@@ -268,6 +286,25 @@ bool DX12Shader::Recompile(bool immediate)
         shader->_structuredBufferParameters = std::move(recompiledData->StructuredBufferParameterTypes);
         shader->_beingRecompiled = false;
 
+        for (const StructuredBufferParameter& structuredBufferParameterType : recompiledData->StructuredBufferParameterTypes)
+        {
+            if (structuredBufferParameterType.BufferName == Name(L"GInstanceBuffer"))
+            {
+                shader->_instanceBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+            }
+            else
+            {
+                std::wstring name = structuredBufferParameterType.BufferName.ToString();
+                if (name.starts_with(L"GMP_") || name.starts_with(L"MP_"))
+                {
+                    shader->_materialBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+
+                    shader->MaterialInstanceDataType = TypeRegistry::Get().FindTypeByName(
+                        Util::ToString(name.substr(name.find_first_of(L"_") + 1)));
+                }
+            }
+        } 
+
         shader->MarkDirtyForAutosave();
 
         shader->OnRecompiled.Broadcast(shader.get());
@@ -448,6 +485,25 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
         {
             return false;
         }
+        
+        for (const StructuredBufferParameter& structuredBufferParameterType : _structuredBufferParameters)
+        {
+            if (structuredBufferParameterType.BufferName == Name(L"GInstanceBuffer"))
+            {
+                _instanceBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+            }
+            else
+            {
+                std::wstring name = structuredBufferParameterType.BufferName.ToString();
+                if (name.starts_with(L"GMP_") || name.starts_with(L"MP_"))
+                {
+                    _materialBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+
+                    MaterialInstanceDataType = TypeRegistry::Get().FindTypeByName(
+                        Util::ToString(name.substr(name.find_first_of(L"_") + 1)));
+                }
+            }
+        } 
 
         InitializePSO(renderingSubsystem);
     }
@@ -788,4 +844,20 @@ bool DX12Shader::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
     }
 
     return true;
+}
+
+MemoryReader& operator>>(MemoryReader& reader, DX12Shader::StructuredBufferParameter& parameter)
+{
+    reader >> parameter.BufferName;
+    reader >> parameter.SlotIndex;
+
+    return reader;
+}
+
+MemoryWriter& operator<<(MemoryWriter& writer, const DX12Shader::StructuredBufferParameter& parameter)
+{
+    writer << parameter.BufferName;
+    writer << parameter.SlotIndex;
+
+    return writer;
 }

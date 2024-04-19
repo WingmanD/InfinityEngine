@@ -49,7 +49,7 @@ std::string Util::ToString(const wchar_t* str)
         nullptr,
         0,
         nullptr,
-        nullptr);
+        nullptr) - 1;
 
     std::string result(num, 0);
     WideCharToMultiByte(

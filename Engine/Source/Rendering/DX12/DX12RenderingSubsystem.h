@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Containers/DynamicGPUBuffer.h"
 #include "DescriptorHeap.h"
 #include "GraphicsMemory.h"
 #include "ThreadPool.h"
@@ -85,6 +86,8 @@ public:
 
     virtual void RegisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) override;
     virtual void UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) override;
+
+    void InitializeMaterialInstanceBuffer(DynamicGPUBuffer<MaterialParameter>& instanceBuffer, Type* type) override;
 
     virtual void OnWindowDestroyed(Window* window) override;
 

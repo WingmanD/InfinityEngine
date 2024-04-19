@@ -5,7 +5,6 @@
 #include "Containers/DynamicGPUBuffer.h"
 #include "Rendering/DX12/DX12RenderingSubsystem.h"
 
-struct SMInstance;
 class StaticMeshInstance;
 class DescriptorHeap;
 class InstanceBuffer;
@@ -15,6 +14,11 @@ class DynamicGPUBufferUploader : public IDynamicGPUBufferProxy
 {
 public:
     DynamicGPUBufferUploader() = default;
+
+    DynamicGPUBufferUploader(Type* type)
+    {
+        _type = type;
+    }
 
     DynamicGPUBufferUploader(const DynamicGPUBufferUploader&) = delete;
 
@@ -60,7 +64,7 @@ public:
         return *_owningBuffer;
     }
 
-    StructuredBuffer<SMInstance>& GetStructuredBuffer()
+    StructuredBuffer<T>& GetStructuredBuffer()
     {
         return _structuredBuffer;
     }
@@ -74,16 +78,18 @@ public:
         constexpr uint32 initialCapacity = 16;
 
         DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
-        if (!StructuredBuffer<SMInstance>::CreateInPlace(_structuredBuffer,
-                                                         initialCapacity,
-                                                         *renderingSubsystem.GetDevice(),
-                                                         renderingSubsystem.GetCBVHeap()))
+        if (!StructuredBuffer<T>::CreateInPlace(_structuredBuffer,
+                                                initialCapacity,
+                                                *renderingSubsystem.GetDevice(),
+                                                renderingSubsystem.GetCBVHeap(),
+                                                _type
+        ))
         {
             DEBUG_BREAK();
             return false;
         }
 
-        _owningBuffer->Initialize(_structuredBuffer.GetData(), initialCapacity, 0ull);
+        _owningBuffer->Initialize(_structuredBuffer.GetData(), initialCapacity, 0ull, _type);
 
         return true;
     }
@@ -99,13 +105,15 @@ public:
 
         DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
 
-        StructuredBuffer<SMInstance> newStructuredBuffer;
+        StructuredBuffer<T> newStructuredBuffer;
 
-        if (!StructuredBuffer<SMInstance>::CreateInPlace(
+        if (!StructuredBuffer<T>::CreateInPlace(
             newStructuredBuffer,
             newCapacity,
             *renderingSubsystem.GetDevice(),
-            renderingSubsystem.GetCBVHeap()))
+            renderingSubsystem.GetCBVHeap(),
+            _type
+        ))
         {
             DEBUG_BREAK();
             return;
@@ -114,14 +122,15 @@ public:
         const uint32 count = static_cast<uint32>(_owningBuffer->Count());
         memcpy(newStructuredBuffer.GetData(), _structuredBuffer.GetData(), count * sizeof(T));
 
-        _owningBuffer->Initialize(newStructuredBuffer.GetData(), newCapacity, count);
+        _owningBuffer->Initialize(newStructuredBuffer.GetData(), newCapacity, count, _type);
         _structuredBuffer = std::move(newStructuredBuffer);
     }
 
 private:
-    DynamicGPUBuffer<T>* _owningBuffer;
+    DynamicGPUBuffer<T>* _owningBuffer{};
+    StructuredBuffer<T> _structuredBuffer{};
 
-    StructuredBuffer<SMInstance> _structuredBuffer;
+    Type* _type = nullptr;
 
 private:
     void Swap(DynamicGPUBufferUploader& other) noexcept

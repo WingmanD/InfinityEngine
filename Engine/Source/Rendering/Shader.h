@@ -23,6 +23,13 @@ public:
 
     std::unique_ptr<MaterialParameterMap> CreateMaterialParameterMap() const;
 
+    Type* GetMaterialInstanceDataType() const;
+
+public:
+    bool Serialize(MemoryWriter& writer) const override;
+    bool Deserialize(MemoryReader& reader) override;
+
 protected:
     std::unique_ptr<MaterialParameterMap> ParameterMap;
+    Type* MaterialInstanceDataType = nullptr;
 };

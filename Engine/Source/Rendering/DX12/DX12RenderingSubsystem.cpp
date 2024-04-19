@@ -12,16 +12,15 @@
 #include "ThreadPool.h"
 #include "Engine/Engine.h"
 #include "Rendering/Window.h"
-#include <dxgi1_2.h>
-#include <string>
-#include <vector>
-
 #include "DX12ViewportWidgetRenderingProxy.h"
 #include "DynamicGPUBufferUploader.h"
 #include "ECS/Components/CCamera.h"
 #include "ECS/Systems/StaticMeshRenderingSystem.h"
 #include "Rendering/InstanceBuffer.h"
 #include "Rendering/Widgets/ViewportWidget.h"
+#include <dxgi1_2.h>
+#include <string>
+#include <vector>
 
 extern "C" {
 __declspec(dllexport) extern const UINT D3D12SDKVersion = 613;
@@ -196,7 +195,6 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
     DX12CommandList commandListStructDraw = window->RequestCommandList(viewport);
     DX12GraphicsCommandList* commandListDraw = commandListStructDraw.CommandList.Get();
     
-    const AssetManager& assetManager = Engine::Get().GetAssetManager();
     for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
     {
         // todo check if system's world is visible - we need to know which world the camera belongs to
@@ -205,30 +203,27 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         {
             continue;
         }
-        
-        DynamicGPUBufferUploader<SMInstance>* uploader = instanceBuffer.GetProxy<DynamicGPUBufferUploader<SMInstance>>();
 
         // todo multiple meshes after sorting on GPU and everything
-        // todo bind instance buffer and material buffers, once they are implemented - that should be done in the shader
         const std::shared_ptr<StaticMesh> staticMesh = StaticMesh::GetMeshByID(instanceBuffer[0].MeshID);
         const std::shared_ptr<Material> material = Material::GetMaterialByID(instanceBuffer[0].MaterialID);
-        
         const std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
 
         const DX12StaticMeshRenderingData* renderingData = staticMesh->GetRenderingData<DX12StaticMeshRenderingData>();
         renderingData->SetupDrawing(commandListDraw, material);
 
-        commandListDraw->SetGraphicsRootShaderResourceView(
-            shader->GetStructuredBufferSlotIndex(Name(L"GInstanceBuffer")),
-            uploader->GetStructuredBuffer().GetGPUVirtualAddress()
-        );
-        // todo bind material buffer
+        DynamicGPUBuffer<MaterialParameter>& materialBuffer = renderingSystem->GetMaterialParameterBuffer(instanceBuffer[0].MaterialID);
+        materialBuffer.GetProxy<DynamicGPUBufferUploader<MaterialParameter>>()->Update(commandListDraw);
+        
+        shader->BindInstanceBuffers(*commandListDraw, instanceBuffer, materialBuffer);
 
-        commandListDraw->DrawIndexedInstanced(static_cast<uint32>(staticMesh->GetIndices().size()),
-                                              instanceBuffer.Count(),
-                                              0,
-                                              0,
-                                              0);
+        commandListDraw->DrawIndexedInstanced(
+            static_cast<uint32>(staticMesh->GetIndices().size()),
+            instanceBuffer.Count(),
+            0,
+            0,
+            0
+        );
     }
 
     window->CloseCommandList(commandListStructDraw);
@@ -557,6 +552,11 @@ void DX12RenderingSubsystem::RegisterStaticMeshRenderingSystem(StaticMeshRenderi
 void DX12RenderingSubsystem::UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system)
 {
     _staticMeshRenderingSystems.Remove(system);
+}
+
+void DX12RenderingSubsystem::InitializeMaterialInstanceBuffer(DynamicGPUBuffer<MaterialParameter>& instanceBuffer, Type* type)
+{
+    instanceBuffer.SetProxy(std::make_unique<DynamicGPUBufferUploader<MaterialParameter>>(type));
 }
 
 void DX12RenderingSubsystem::OnWindowDestroyed(Window* window)

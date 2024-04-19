@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "Object.h"
 #include "Rendering/MaterialParameterRenderingData.h"
 #include "UtilMacros.h"
@@ -53,13 +53,17 @@ public:
     }
 };
 
-REFLECTED(DataStart = "Transform")
-struct StaticMeshConstants : public MaterialParameter
+REFLECTED(DataStart = "BaseColor")
+struct DefaultMaterialParameter : public MaterialParameter
 {
     GENERATED()
 
-public:
-    Matrix Transform;
+public:   
+    Color BaseColor = {0.0f, 1.0f, 0.0f, 1.0f};
+    Color EmissiveColor = {0.0f, 0.0f, 0.0f, 1.0f};
+    Color SpecularColor = {1.0f, 1.0f, 1.0f, 1.0f};
+    float SpecularPower = 32.0f;
+    float Metallic = 0.0f;
 };
 
 REFLECTED(DataStart = "Transform")

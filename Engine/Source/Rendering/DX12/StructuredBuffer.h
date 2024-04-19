@@ -47,14 +47,12 @@ public:
     }
 
     static bool CreateInPlace(StructuredBuffer& buffer, uint32 count, DX12Device& device,
-                              std::shared_ptr<DescriptorHeap> srvHeap)
+                              std::shared_ptr<DescriptorHeap> srvHeap, Type* type = nullptr)
     {
         buffer._capacity = count;
 
         if constexpr (IsReflectedType<T>)
         {
-            Type* type = T::StaticType();
-
             const size_t dataOffset = type->GetDataOffset();
             if (dataOffset == 0)
             {
@@ -63,16 +61,8 @@ public:
                     Util::ToWString(type->GetName()));
                 return false;
             }
-
-            if (count != 1)
-            {
-                LOG(L"Constant buffer can only copy data from a single object!");
-                DEBUG_BREAK();
-
-                return false;
-            }
-
-            buffer._bufferByteSize = type->GetSize() - dataOffset;
+            
+            buffer._bufferByteSize = static_cast<uint32>(type->GetSize() - dataOffset);
         }
         else
         {

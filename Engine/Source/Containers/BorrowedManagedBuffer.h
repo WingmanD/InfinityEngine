@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "DArray.h"
+#include "Type.h"
 
 template <typename T>
 class BorrowedManagedBuffer
@@ -49,40 +50,104 @@ public:
 
     uint32 Add(const T& data)
     {
-        _data[_count] = data;
-        ++_count;
+        if constexpr (IsReflectedType<T>)
+        {
+            const Object& object = dynamic_cast<const Object&>(data);
+            const size_t dataOffset = object.GetType()->GetDataOffset();
 
-        return _count;
+            memcpy(reinterpret_cast<std::byte*>(_data) + _count * _elementSize,
+                   &object + dataOffset,
+                   _elementSize);
+        }
+        else
+        {
+            (*this)[_count] = data;
+        }
+        
+        _dirtyIndices.Add(_count);
+        
+        return _count++;
+    }
+
+    uint32 AddDefault()
+    {
+        if constexpr (IsReflectedType<T>)
+        {
+            const Object* object = _type->GetCDO();
+
+            std::byte* dest = reinterpret_cast<std::byte*>(_data) + _count * _elementSize;
+            const std::byte* src = reinterpret_cast<const std::byte*>(object) + _elementDataOffset;
+            memcpy(dest, src, _elementSize);
+        }
+        else
+        {
+            (*this)[_count] = T();
+        }
+        
+        _dirtyIndices.Add(_count);
+        
+        return _count++;
     }
 
     uint32 Emplace(T&& data)
     {
-        _data[_count] = std::move(data);
+        (*this)[_count] = std::move(data);
         return _count++;
     }
 
     void RemoveAtSwap(uint32 index)
     {
-        _data[index] = _data[_count - 1];
+        (*this)[index] = (*this)[_count - 1];
         --_count;
     }
 
     T& operator[](uint32 index)
     {
         _dirtyIndices.Add(index);
-        return _data[index];
+        
+        if constexpr (IsReflectedType<T>)
+        {
+            const int64 offset = index * _elementSize - static_cast<int64>(_elementDataOffset);
+            return reinterpret_cast<T&>(*(reinterpret_cast<std::byte*>(_data) + offset));
+        }
+        else
+        {
+            return _data[index];
+        }
     }
 
     const T& operator[](uint32 index) const
     {
-        return _data[index];
+        if constexpr (IsReflectedType<T>)
+        {
+            const int64 offset = index * _elementSize - _elementDataOffset;
+            return reinterpret_cast<T&>(*(reinterpret_cast<std::byte*>(_data) + offset));
+        }
+        else
+        {
+            return _data[index];
+        }
     }
 
-    void Initialize(T* data, uint32 capacity, uint32 count)
+    void Initialize(T* data, uint32 capacity, uint32 count, const Type* type = nullptr)
     {
         _data = data;
         _count = count;
         _capacity = capacity;
+        _type = type;
+
+        if constexpr (IsReflectedType<T>)
+        {
+            if (_type != nullptr)
+            {
+                _elementDataOffset = static_cast<uint32>(_type->GetDataOffset());
+                _elementSize = static_cast<uint32>(_type->GetSize()) - _elementDataOffset;
+            }
+        }
+        else
+        {
+            _elementSize = sizeof(T);
+        }
     }
 
     T* GetData()
@@ -114,6 +179,9 @@ private:
     T* _data = nullptr;
     uint32 _count = 0;
     uint32 _capacity = 0;
+    uint32 _elementSize = 0;
+    uint32 _elementDataOffset = 0;
+    const Type* _type = nullptr;
 
     DArray<uint32> _dirtyIndices;
 

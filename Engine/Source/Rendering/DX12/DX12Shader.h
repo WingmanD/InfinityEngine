@@ -4,12 +4,15 @@
 #include "Rendering/Shader.h"
 #include "Importer.h"
 #include "Rendering/DX12/DX12RenderingCore.h"
+#include "Containers/DynamicGPUBuffer.h"
 #include <d3d12shader.h>
 #include <set>
 #include <wrl/client.h>
 #include "DX12Shader.reflection.h"
 
+class DX12MaterialRenderingData;
 struct MaterialParameterDescriptor;
+struct SMInstance;
 using Microsoft::WRL::ComPtr;
 
 class RenderingSubsystem;
@@ -31,14 +34,29 @@ class DX12Shader : public Shader
     GENERATED()
 
 public:
+    struct StructuredBufferParameter
+    {
+        Name BufferName;
+        uint32 SlotIndex;
+
+        auto operator<=>(const StructuredBufferParameter& other) const
+        {
+            return BufferName <=> other.BufferName;
+        }
+    };
+
+public:
     DX12Shader();
     DX12Shader(Name name);
 
     DX12Shader(const DX12Shader& other);
     DX12Shader& operator=(const DX12Shader& other);
 
-    //void Apply(DX12GraphicsCommandList* commandList, PassKey<DX12RenderingSubsystem>);
-    void Apply(DX12GraphicsCommandList* commandList) const;
+    void Apply(DX12GraphicsCommandList* commandList, PassKey<DX12MaterialRenderingData>) const;
+    void BindInstanceBuffers(DX12GraphicsCommandList& commandList,
+        const DynamicGPUBuffer<SMInstance>& instanceBuffer,
+        const DynamicGPUBuffer<MaterialParameter>& materialBuffer) const;
+    
     uint32 GetStructuredBufferSlotIndex(Name name) const;
 
     const D3D12_ROOT_SIGNATURE_DESC& GetRootSignatureDesc(PassKey<DX12RenderingSubsystem>) const;
@@ -60,17 +78,6 @@ protected:
                                           const std::vector<D3D_SHADER_MACRO>& defines = {});
 
 private:
-    struct StructuredBufferParameter
-    {
-        Name BufferName;
-        uint32 SlotIndex;
-
-        auto operator<=>(const StructuredBufferParameter& other) const
-        {
-            return BufferName <=> other.BufferName;
-        }
-    };
-    
     struct RecompiledData
     {
         ComPtr<IDxcBlobEncoding> SerializedRootSignature;
@@ -104,6 +111,9 @@ private:
 
     std::filesystem::file_time_type _lastCompileTime;
 
+    uint32 _instanceBufferSlotIndex = 0;
+    uint32 _materialBufferSlotIndex = 0;
+
 private:
     bool InitializeRootSignature(const DX12RenderingSubsystem& renderingSubsystem);
     bool InitializePSO(const DX12RenderingSubsystem& renderingSubsystem);
@@ -111,3 +121,6 @@ private:
     bool ReflectShaderParameters(IDxcResult* compileResult, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes, std::set<StructuredBufferParameter>& structuredBufferParameterTypes) const;
     bool ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const;
 };
+
+MemoryReader& operator>>(MemoryReader& reader, DX12Shader::StructuredBufferParameter& parameter);
+MemoryWriter& operator<<(MemoryWriter& writer, const DX12Shader::StructuredBufferParameter& parameter);

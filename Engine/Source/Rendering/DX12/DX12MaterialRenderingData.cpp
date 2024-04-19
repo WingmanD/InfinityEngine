@@ -7,7 +7,7 @@ void DX12MaterialRenderingData::Apply(DX12GraphicsCommandList* commandList) cons
 {
     const Material& material = GetMaterial();
     const DX12Shader* shader = static_cast<DX12Shader*>(material.GetShader().get());
-    shader->Apply(commandList);
+    shader->Apply(commandList, {});
 
     const DX12MaterialParameterMap& parameterMap = static_cast<DX12MaterialParameterMap&>(*material.GetParameterMap());
     parameterMap.Bind(commandList);

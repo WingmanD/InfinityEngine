@@ -16,6 +16,7 @@ class MaterialParameterRenderingData;
 class MaterialParameterMap;
 class Texture;
 class RenderTarget;
+struct MaterialParameter;
 struct Scene;
 
 class RenderingSubsystem : public EngineSubsystem
@@ -40,6 +41,8 @@ public:
 
     virtual void RegisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) = 0;
     virtual void UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) = 0;
+
+    virtual void InitializeMaterialInstanceBuffer(DynamicGPUBuffer<MaterialParameter>& instanceBuffer, Type* type) = 0;
 
     virtual void OnWindowDestroyed(Window* window) = 0;
 
