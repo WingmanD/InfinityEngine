@@ -1,9 +1,10 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "Containers/DArray.h"
 #include "Name.h"
 #include "ReflectionShared.h"
-#include "Containers/DArray.h"
+#include "Type.h"
 #include <unordered_map>
 
 class Entity;

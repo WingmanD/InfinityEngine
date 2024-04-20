@@ -42,8 +42,20 @@ bool Shader::Serialize(MemoryWriter& writer) const
     }
     else
     {
-        writer << static_cast<uint64>(0);
+        writer << 0ull;
     }
+
+    if (ParameterMap != nullptr)
+    {
+        writer << true;
+        ParameterMap->Serialize(writer);
+    }
+    else
+    {
+        writer << false;
+    }
+
+    writer << _lastCompileTime;
 
     return true;
 }
@@ -55,10 +67,33 @@ bool Shader::Deserialize(MemoryReader& reader)
         return false;
     }
 
+    bool success = true;
+
     uint64 typeID;
     reader >> typeID;
 
     MaterialInstanceDataType = TypeRegistry::Get().FindTypeForID(typeID);
-    
-    return true;
+
+    bool hasParameterMap;
+    reader >> hasParameterMap;
+
+    if (hasParameterMap)
+    {
+        ParameterMap = std::make_unique<MaterialParameterMap>();
+        success &= ParameterMap->Deserialize(reader);
+    }
+
+    reader >> _lastCompileTime;
+
+    return success;
+}
+
+void Shader::SetLastCompileTime(std::filesystem::file_time_type time)
+{
+    _lastCompileTime = time;
+}
+
+std::filesystem::file_time_type Shader::GetLastCompileTime() const
+{
+    return _lastCompileTime;
 }

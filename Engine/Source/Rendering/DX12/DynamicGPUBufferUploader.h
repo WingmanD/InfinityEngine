@@ -78,11 +78,11 @@ public:
         constexpr uint32 initialCapacity = 16;
 
         DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
-        if (!StructuredBuffer<T>::CreateInPlace(_structuredBuffer,
-                                                initialCapacity,
-                                                *renderingSubsystem.GetDevice(),
-                                                renderingSubsystem.GetCBVHeap(),
-                                                _type
+        if (!_structuredBuffer.Initialize(initialCapacity,
+                                          *renderingSubsystem.GetDevice(),
+                                          renderingSubsystem.GetCBVHeap(),
+                                          EStructuredBufferType::ReadOnly,
+                                          _type
         ))
         {
             DEBUG_BREAK();
@@ -107,11 +107,11 @@ public:
 
         StructuredBuffer<T> newStructuredBuffer;
 
-        if (!StructuredBuffer<T>::CreateInPlace(
-            newStructuredBuffer,
+        if (!newStructuredBuffer.Initialize(
             newCapacity,
             *renderingSubsystem.GetDevice(),
             renderingSubsystem.GetCBVHeap(),
+            EStructuredBufferType::ReadOnly,
             _type
         ))
         {

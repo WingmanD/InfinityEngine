@@ -68,10 +68,16 @@ MemoryReader& operator>>(MemoryReader& reader, T& value)
 template <typename T> requires IsIEContainer<T>
 MemoryReader& operator>>(MemoryReader& reader, T& value)
 {
-    uint64 size;
-    reader >> size;
+    uint64 count;
+    reader >> count;
 
-    for (uint64 i = 0; i < size; ++i)
+    if (count * sizeof(T::type) > reader.GetNumRemainingBytes())
+    {
+        DEBUG_BREAK()
+        return reader;
+    }
+
+    for (uint64 i = 0; i < count; ++i)
     {
         auto& newElement = value.Emplace();
         reader >> newElement;

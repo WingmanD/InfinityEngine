@@ -25,6 +25,7 @@ public:
 
     Type* GetMaterialInstanceDataType() const;
 
+    // Asset
 public:
     bool Serialize(MemoryWriter& writer) const override;
     bool Deserialize(MemoryReader& reader) override;
@@ -32,4 +33,11 @@ public:
 protected:
     std::unique_ptr<MaterialParameterMap> ParameterMap;
     Type* MaterialInstanceDataType = nullptr;
+
+protected:
+    void SetLastCompileTime(std::filesystem::file_time_type time);
+    std::filesystem::file_time_type GetLastCompileTime() const;
+    
+private:
+    std::filesystem::file_time_type _lastCompileTime;
 };

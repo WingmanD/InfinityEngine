@@ -8,6 +8,13 @@
 
 using Microsoft::WRL::ComPtr;
 
+enum class EStructuredBufferType : uint8
+{
+    ReadOnly = 1 << 0,
+    UnorderedAccess = 1 << 1,
+};
+ENABLE_ENUM_OPS(EStructuredBufferType)
+
 template <typename T>
 class StructuredBuffer
 {
@@ -42,14 +49,13 @@ public:
 
         if (const std::shared_ptr<DescriptorHeap> sharedHeap = _heap.lock())
         {
-            sharedHeap->FreeHeapResourceHandle(_cpuHandle);
+            sharedHeap->FreeHeapResourceHandle(_srvCpuHandle);
         }
     }
 
-    static bool CreateInPlace(StructuredBuffer& buffer, uint32 count, DX12Device& device,
-                              std::shared_ptr<DescriptorHeap> srvHeap, Type* type = nullptr)
+    bool Initialize(uint32 count, DX12Device& device, std::shared_ptr<DescriptorHeap> heap, EStructuredBufferType bufferType = EStructuredBufferType::ReadOnly, Type* type = nullptr)
     {
-        buffer._capacity = count;
+        _capacity = count;
 
         if constexpr (IsReflectedType<T>)
         {
@@ -62,23 +68,28 @@ public:
                 return false;
             }
             
-            buffer._bufferByteSize = static_cast<uint32>(type->GetSize() - dataOffset);
+            _bufferByteSize = static_cast<uint32>(type->GetSize() - dataOffset);
         }
         else
         {
-            buffer._bufferByteSize = sizeof(T);
+            _bufferByteSize = sizeof(T);
         }
 
         const CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-
-        const CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(buffer._bufferByteSize * count);
+        
+        CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(_bufferByteSize * count);
+        if (HasFlags(bufferType, EStructuredBufferType::UnorderedAccess))
+        {
+            bufferDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        }
+        
         device.CreateCommittedResource(
             &heapProps,
             D3D12_HEAP_FLAG_NONE,
             &bufferDesc,
             D3D12_RESOURCE_STATE_COPY_DEST,
             nullptr,
-            IID_PPV_ARGS(&buffer._structuredBuffer));
+            IID_PPV_ARGS(&_structuredBuffer));
 
         const CD3DX12_HEAP_PROPERTIES uploadHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
         device.CreateCommittedResource(
@@ -87,23 +98,39 @@ public:
             &bufferDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
-            IID_PPV_ARGS(&buffer._uploadHeap));
+            IID_PPV_ARGS(&_uploadHeap));
 
-        buffer._uploadHeap->Map(0, nullptr, reinterpret_cast<void**>(&buffer._data));
+        _uploadHeap->Map(0, nullptr, reinterpret_cast<void**>(&_data));
 
-        buffer._cpuHandle = srvHeap->RequestHeapResourceHandle();
-        buffer._gpuHandle = srvHeap->GetGPUHeapResourceHandle(buffer._cpuHandle);
-        buffer._gpuVirtualAddress = buffer._structuredBuffer->GetGPUVirtualAddress();
+        _srvCpuHandle = heap->RequestHeapResourceHandle();
+        _srvGpuHandle = heap->GetGPUHeapResourceHandle(_srvCpuHandle);
+        _srvGpuVirtualAddress = _structuredBuffer->GetGPUVirtualAddress();
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         srvDesc.Format = DXGI_FORMAT_UNKNOWN;
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
         srvDesc.Buffer.NumElements = count;
-        srvDesc.Buffer.StructureByteStride = buffer._bufferByteSize;
+        srvDesc.Buffer.StructureByteStride = _bufferByteSize;
         srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-        device.CreateShaderResourceView(buffer._structuredBuffer.Get(), &srvDesc, buffer._cpuHandle);
+        device.CreateShaderResourceView(_structuredBuffer.Get(), &srvDesc, _srvCpuHandle);
+
+        if (HasFlags(bufferType, EStructuredBufferType::UnorderedAccess))
+        {
+            D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+            uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+            uavDesc.Buffer.NumElements = count;
+            uavDesc.Buffer.StructureByteStride = _bufferByteSize;
+            uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+            
+            _uavCpuHandle = heap->RequestHeapResourceHandle();
+            _srvGpuHandle = heap->GetGPUHeapResourceHandle(_srvCpuHandle);
+            _srvGpuVirtualAddress = _structuredBuffer->GetGPUVirtualAddress();
+
+            device.CreateUnorderedAccessView(_structuredBuffer.Get(), nullptr, &uavDesc, _uavCpuHandle);
+        }
 
         return true;
     }
@@ -164,19 +191,34 @@ public:
         return _structuredBuffer.Get();
     }
 
-    const D3D12_CPU_DESCRIPTOR_HANDLE& GetCPUHandle() const
+    const D3D12_CPU_DESCRIPTOR_HANDLE& GetSRVCPUHandle() const
     {
-        return _cpuHandle;
+        return _srvCpuHandle;
     }
 
-    const D3D12_GPU_DESCRIPTOR_HANDLE& GetGPUHandle() const
+    const D3D12_GPU_DESCRIPTOR_HANDLE& GetSRVGPUHandle() const
     {
-        return _gpuHandle;
+        return _srvGpuHandle;
     }
 
-    D3D12_GPU_VIRTUAL_ADDRESS GetGPUVirtualAddress() const
+    D3D12_GPU_VIRTUAL_ADDRESS GetSRVGPUVirtualAddress() const
     {
-        return _gpuVirtualAddress;
+        return _srvGpuVirtualAddress;
+    }
+
+    const D3D12_CPU_DESCRIPTOR_HANDLE& GetUAVCPUHandle() const
+    {
+        return _uavCpuHandle;
+    }
+
+    const D3D12_GPU_DESCRIPTOR_HANDLE& GetUAVGPUHandle() const
+    {
+        return _uavGpuHandle;
+    }
+
+    const D3D12_GPU_VIRTUAL_ADDRESS& GetUAVGPUVirtualAddress() const
+    {
+        return _uavGpuVirtualAddress;
     }
 
 private:
@@ -190,9 +232,13 @@ private:
 
     std::weak_ptr<DescriptorHeap> _heap;
 
-    D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle;
-    D3D12_GPU_DESCRIPTOR_HANDLE _gpuHandle;
-    D3D12_GPU_VIRTUAL_ADDRESS _gpuVirtualAddress = 0;
+    D3D12_CPU_DESCRIPTOR_HANDLE _srvCpuHandle;
+    D3D12_GPU_DESCRIPTOR_HANDLE _srvGpuHandle;
+    D3D12_GPU_VIRTUAL_ADDRESS _srvGpuVirtualAddress = 0;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE _uavCpuHandle;
+    D3D12_GPU_DESCRIPTOR_HANDLE _uavGpuHandle;
+    D3D12_GPU_VIRTUAL_ADDRESS _uavGpuVirtualAddress = 0;
 
 private:
     void Swap(StructuredBuffer& other) noexcept
@@ -207,8 +253,13 @@ private:
         _isMapped = other._isMapped;
         _structuredBuffer = std::move(other._structuredBuffer);
         _heap = std::move(other._heap);
-        _cpuHandle = other._cpuHandle;
-        _gpuHandle = other._gpuHandle;
-        _gpuVirtualAddress = other._gpuVirtualAddress;
+        
+        _srvCpuHandle = other._srvCpuHandle;
+        _srvGpuHandle = other._srvGpuHandle;
+        _srvGpuVirtualAddress = other._srvGpuVirtualAddress;
+
+        _uavCpuHandle = other._uavCpuHandle;
+        _uavGpuHandle = other._uavGpuHandle;
+        _uavGpuVirtualAddress = other._uavGpuVirtualAddress;
     }
 };
