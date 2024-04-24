@@ -52,12 +52,12 @@ void DX12Shader::Apply(DX12GraphicsCommandList* commandList, PassKey<DX12Materia
 }
 
 void DX12Shader::BindInstanceBuffers(DX12GraphicsCommandList& commandList,
-                                     const DynamicGPUBuffer<SMInstance>& instanceBuffer,
+                                     const AppendStructuredBuffer<SMInstance>& instanceBuffer,
                                      const DynamicGPUBuffer<MaterialParameter>& materialBuffer) const
 {
     commandList.SetGraphicsRootShaderResourceView(
         _instanceBufferSlotIndex,
-        instanceBuffer.GetProxy<DynamicGPUBufferUploader<SMInstance>>()->GetStructuredBuffer().GetSRVGPUVirtualAddress()
+        instanceBuffer.GetSRVGPUVirtualAddress()
     );
 
     commandList.SetGraphicsRootShaderResourceView(
@@ -539,7 +539,7 @@ ComPtr<IDxcResult> DX12Shader::CompileShader(const std::filesystem::path& shader
     sourceBuffer.Size = source->GetBufferSize();
     sourceBuffer.Encoding = 0;
 
-    IDxcIncludeHandler* includeHandler = nullptr;
+    ComPtr<IDxcIncludeHandler> includeHandler = nullptr;
     dxcUtils.CreateDefaultIncludeHandler(&includeHandler);
 
     ComPtr<IDxcResult> compileResult;
@@ -548,7 +548,7 @@ ComPtr<IDxcResult> DX12Shader::CompileShader(const std::filesystem::path& shader
         &sourceBuffer,
         arguments.data(),
         static_cast<uint32>(arguments.size()),
-        includeHandler,
+        includeHandler.Get(),
         IID_PPV_ARGS(compileResult.GetAddressOf())
     );
 

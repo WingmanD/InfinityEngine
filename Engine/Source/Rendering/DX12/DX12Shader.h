@@ -5,6 +5,7 @@
 #include "PassKey.h"
 #include "Rendering/Shader.h"
 #include "Containers/DynamicGPUBuffer.h"
+#include "Rendering/DX12/StructuredBuffer.h"
 #include "DX12Shader.reflection.h"
 
 class DX12MaterialRenderingData;
@@ -41,7 +42,7 @@ public:
 
     void Apply(DX12GraphicsCommandList* commandList, PassKey<DX12MaterialRenderingData>) const;
     void BindInstanceBuffers(DX12GraphicsCommandList& commandList,
-                             const DynamicGPUBuffer<SMInstance>& instanceBuffer,
+                             const AppendStructuredBuffer<SMInstance>& instanceBuffer,
                              const DynamicGPUBuffer<MaterialParameter>& materialBuffer) const;
 
     virtual bool Recompile(bool immediate = false) override;

@@ -51,9 +51,6 @@ bool StaticMesh::Initialize()
 {
     RenderingSubsystem& renderingSubsystem = RenderingSubsystem::Get();
 
-    _meshID = _meshIDGenerator.GenerateID();
-    _meshIDToStaticMesh[_meshID] = SharedFromThis();
-
     _renderingData = renderingSubsystem.CreateStaticMeshRenderingData();
     if (_renderingData == nullptr)
     {
@@ -220,6 +217,14 @@ std::vector<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Imp
     }
 
     return meshes;
+}
+
+void StaticMesh::PostLoad()
+{
+    Asset::PostLoad();
+
+    _meshID = _meshIDGenerator.GenerateID();
+    _meshIDToStaticMesh[_meshID] = SharedFromThis();
 }
 
 bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)

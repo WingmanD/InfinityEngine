@@ -74,6 +74,10 @@ public:
 public:
     virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
 
+    // Asset
+protected:
+    virtual void PostLoad() override;
+
 private:
     bool ImportInternal(const aiMesh* assimpMesh);
 

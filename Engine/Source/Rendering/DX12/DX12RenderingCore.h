@@ -1,10 +1,11 @@
 ﻿#pragma once
 
+#include "CoreMinimal.h"
 #include "d3dx12/d3dx12.h"
 #include <dxcapi.h>
 #include <functional>
 
-#define GPU_DEBUG 1
+#define GPU_DEBUG 0
 
 using Microsoft::WRL::ComPtr;
 

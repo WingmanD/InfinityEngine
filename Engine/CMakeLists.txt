@@ -11,7 +11,7 @@ conan_basic_setup()
 
 set(_path "${CMAKE_CURRENT_SOURCE_DIR}")
 
-file(GLOB_RECURSE _files "${_path}/Source/*")
+file(GLOB_RECURSE _files "${_path}/Source/*" "${_path}/Visualizers/*")
 list(FILTER _files EXCLUDE REGEX "[A-Za-z0-9]+\.reflection\.h")
 list(FILTER _files EXCLUDE REGEX "[A-Za-z0-9]+\.generated\.h")
 
@@ -32,7 +32,7 @@ target_compile_definitions(Engine PRIVATE "UNICODE" "_UNICODE")
 set_target_properties(Engine PROPERTIES UNITY_BUILD_BATCH_SIZE 8)
 
 if(MSVC)
-    target_compile_options(Engine PRIVATE "/MP")
+    target_compile_options(Engine PRIVATE /bigobj /MP)
     target_link_options(Engine PRIVATE "/DELAYLOAD:dxcompiler.dll")
 endif()
 

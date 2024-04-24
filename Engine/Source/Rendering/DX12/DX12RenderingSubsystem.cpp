@@ -162,6 +162,26 @@ ComPtr<ID3D12Resource> DX12RenderingSubsystem::CreateDefaultBuffer(
 
 void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
 {
+    if (_staticMeshRenderingSystems.IsEmpty())
+    {
+        return;
+    }
+    
+    {
+        const std::shared_ptr<Scene> scene = GetScene();
+        CCamera* camera = viewport.GetCamera();
+        const Transform& cameraTransform = camera->GetTransform(); // todo this triggers recalculation of matrices
+
+        scene->ViewProjection = camera->GetViewProjectionMatrix().Transpose();
+        scene->CameraLocationWS = cameraTransform.GetWorldLocation();
+        scene->CameraForward = cameraTransform.GetForwardVector();
+        scene->CameraUp = cameraTransform.GetUpVector();
+        scene->HorizontalFOV = Math::ToRadians(camera->GetHorizontalFieldOfView() / 2.0f);
+        scene->VerticalFOV = Math::ToRadians((camera->GetHorizontalFieldOfView() / 2.0f) / camera->GetAspectRatio());
+        scene->DrawDistance = camera->GetFarClipPlane();
+        scene->MarkAsDirty();
+    }
+    
     const std::shared_ptr<DX12Window> window = std::dynamic_pointer_cast<DX12Window>(viewport.GetParentWindow());
     
     DX12CommandList commandListStruct = window->RequestCommandList();
@@ -174,56 +194,65 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
     {
         // todo check if system's world is visible - we need to know which world the camera belongs to
         renderingSystem->GetInstanceBuffer().GetProxy<DynamicGPUBufferUploader<SMInstance>>()->Update(commandList);
+
+        // todo multiple systems
+        _cullingWorkGraph.SetInstanceBuffer(&renderingSystem->GetInstanceBuffer());
+        _cullingWorkGraph.Dispatch(commandList, renderingSystem->GetInstanceBuffer().GetData(),
+                                   renderingSystem->GetInstanceBuffer().Count());
+        _cullingWorkGraph.ReadBackVisibleInstances(commandList);
     }
 
     window->CloseCommandList(commandListStruct);
+
     window->ExecuteCommandLists();
+    _commandQueue->Signal(_mainFence.Get(), ++_mainFenceValue);
 
-    {
-        using namespace DirectX;
+    WaitForGPU();   // todo async, we need to pass a the viewport data and make RequestCommandList thread safe
 
-        const std::shared_ptr<Scene> scene = GetScene();
-        CCamera* camera = viewport.GetCamera();
-        const Transform& cameraTransform = camera->GetTransform();  // todo this triggers recalculation of matrices
-        
-        scene->ViewProjection = camera->GetViewProjectionMatrix().Transpose();
-        scene->CameraPosition = cameraTransform.GetWorldLocation();
-        scene->CameraDirection = cameraTransform.GetForwardVector();
-        scene->MarkAsDirty();
-    }
-    
     DX12CommandList commandListStructDraw = window->RequestCommandList(viewport);
     DX12GraphicsCommandList* commandListDraw = commandListStructDraw.CommandList.Get();
-    
-    for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
+
+    const AppendStructuredBuffer<SMInstance>& visibleInstances = _cullingWorkGraph.GetVisibleInstances();
+
+    if (visibleInstances.Count() > 0)
     {
-        // todo check if system's world is visible - we need to know which world the camera belongs to
-        const InstanceBuffer& instanceBuffer = renderingSystem->GetInstanceBuffer();
-        if (instanceBuffer.Count() == 0)
+        const SMInstance& firstInstance = visibleInstances.GetReadBackData()[0];
+
+        const std::shared_ptr<StaticMesh> staticMesh = StaticMesh::GetMeshByID(firstInstance.MeshID);
+        if (staticMesh != nullptr)
         {
-            continue;
+            const std::shared_ptr<Material> material = Material::GetMaterialByID(firstInstance.MaterialID);
+            if (material != nullptr)
+            {
+                const std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
+
+                const DX12StaticMeshRenderingData* renderingData = staticMesh->GetRenderingData<
+                    DX12StaticMeshRenderingData>();
+                renderingData->SetupDrawing(commandListDraw, material);
+
+                const DynamicGPUBuffer<MaterialParameter>& materialBuffer = _staticMeshRenderingSystems[0]->
+                    GetMaterialParameterBuffer(firstInstance.MaterialID);
+                materialBuffer.GetProxy<DynamicGPUBufferUploader<MaterialParameter>>()->Update(commandListDraw);
+                
+                shader->BindInstanceBuffers(*commandListDraw, visibleInstances, materialBuffer);
+
+                commandListDraw->DrawIndexedInstanced(
+                    static_cast<uint32>(staticMesh->GetIndices().size()),
+                    visibleInstances.Count(),
+                    0,
+                    0,
+                    0
+                );
+            }
+            else
+            {
+                LOG(L"Failed to find material with ID: {}", firstInstance.MaterialID);
+            }
         }
-
-        // todo multiple meshes after sorting on GPU and everything
-        const std::shared_ptr<StaticMesh> staticMesh = StaticMesh::GetMeshByID(instanceBuffer[0].MeshID);
-        const std::shared_ptr<Material> material = Material::GetMaterialByID(instanceBuffer[0].MaterialID);
-        const std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
-
-        const DX12StaticMeshRenderingData* renderingData = staticMesh->GetRenderingData<DX12StaticMeshRenderingData>();
-        renderingData->SetupDrawing(commandListDraw, material);
-
-        DynamicGPUBuffer<MaterialParameter>& materialBuffer = renderingSystem->GetMaterialParameterBuffer(instanceBuffer[0].MaterialID);
-        materialBuffer.GetProxy<DynamicGPUBufferUploader<MaterialParameter>>()->Update(commandListDraw);
-        
-        shader->BindInstanceBuffers(*commandListDraw, instanceBuffer, materialBuffer);
-
-        commandListDraw->DrawIndexedInstanced(
-            static_cast<uint32>(staticMesh->GetIndices().size()),
-            instanceBuffer.Count(),
-            0,
-            0,
-            0
-        );
+        else
+        {
+            LOG(L"Failed to find static mesh with ID: {}", firstInstance.MeshID);
+        }
     }
 
     window->CloseCommandList(commandListStructDraw);
@@ -273,6 +302,94 @@ DXCompiler& DX12RenderingSubsystem::GetD3DCompiler() const
 IDxcUtils& DX12RenderingSubsystem::GetDXCUtils() const
 {
     return *_dxcUtils.Get();
+}
+
+ComPtr<ID3DBlob> DX12RenderingSubsystem::CompileDXILLibrary(const std::filesystem::path& libraryPath,
+                                                             const std::wstring& target,
+                                                             const DArray<DxcDefine>& defines /*= {}*/) const
+{
+    std::ifstream fileStream(libraryPath);
+    if (!fileStream.is_open())
+    {
+        LOG(L"Failed to open shader library file: {}", libraryPath.wstring());
+        return nullptr;
+    }
+    
+    const std::string contents((std::istreambuf_iterator(fileStream)), std::istreambuf_iterator<char>());
+
+    DXCompiler& compiler = GetD3DCompiler();
+    IDxcUtils& dxcUtils = GetDXCUtils();
+    
+    ComPtr<IDxcBlobEncoding> source;
+    dxcUtils.CreateBlob(contents.c_str(), static_cast<uint32>(contents.size()), DXC_CP_UTF8, source.GetAddressOf());
+    
+    DxcBuffer sourceBuffer;
+    sourceBuffer.Ptr = source->GetBufferPointer();
+    sourceBuffer.Size = source->GetBufferSize();
+    sourceBuffer.Encoding = 0;
+
+    ComPtr<IDxcIncludeHandler> includeHandler;
+    dxcUtils.CreateDefaultIncludeHandler(&includeHandler);
+
+    
+    std::vector<LPCWSTR> arguments;
+    arguments.push_back(L"-T");
+    arguments.push_back(target.c_str());
+
+    arguments.push_back(L"-I");
+
+    const std::wstring includePath = libraryPath.parent_path().wstring();
+    arguments.push_back(includePath.c_str());
+    
+    arguments.push_back(L"-Qstrip_debug");
+    arguments.push_back(L"-Qstrip_reflect");
+
+    arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS);
+    
+    for (const DxcDefine& define : defines)
+    {
+        arguments.push_back(L"-D");
+        arguments.push_back(define.Name);
+        arguments.push_back(define.Value);
+    }
+
+    ComPtr<IDxcResult> compileResult;
+    HRESULT result = compiler.Compile(
+        &sourceBuffer,
+        arguments.data(),
+        static_cast<uint32>(arguments.size()),
+        includeHandler.Get(),
+        IID_PPV_ARGS(compileResult.GetAddressOf())
+    );
+    
+    if (FAILED(result))
+    {
+        LOG(L"Failed to compile shader library {}!", libraryPath.stem().wstring());
+        return nullptr;
+    }
+
+    ComPtr<ID3DBlob> libraryBlob;
+    compileResult->GetStatus(&result);
+    if (SUCCEEDED(result))
+    {
+        result = compileResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(libraryBlob.GetAddressOf()), nullptr);
+        if (FAILED(result))
+        {
+            LOG(L"Failed to get library compilation result: {}", libraryPath.stem().wstring());
+        }
+    }
+    
+    CComPtr<IDxcBlobEncoding> errors;
+    if (SUCCEEDED(compileResult->GetErrorBuffer(&errors)))
+    {
+        std::wstring errorString = Util::ToWString(static_cast<char*>(errors->GetBufferPointer()));
+        if (!errorString.empty())
+        {
+            LOG(L"ERROR: {}", errorString);
+        }
+    }
+
+    return libraryBlob;
 }
 
 DescriptorHeap& DX12RenderingSubsystem::GetRTVHeap()
@@ -432,6 +549,8 @@ bool DX12RenderingSubsystem::Initialize()
         LOG(L"Failed to create DXC utils!");
         return false;
     }
+    
+    _cullingWorkGraph.Initialize();
 
     return true;
 }
@@ -444,7 +563,7 @@ void DX12RenderingSubsystem::Shutdown()
 void DX12RenderingSubsystem::Tick(double deltaTime)
 {
     RenderingSubsystem::Tick(deltaTime);
-    
+
     GetEventQueue().ProcessEvents();
 
     for (const std::shared_ptr<DX12Window>& window : _windows)
@@ -463,8 +582,7 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
         // });
 
         window->Render({});
-
-
+        
         ++_mainFenceValue;
         ThrowIfFailed(_commandQueue->Signal(_mainFence.Get(), _mainFenceValue));
 
@@ -554,7 +672,8 @@ void DX12RenderingSubsystem::UnregisterStaticMeshRenderingSystem(StaticMeshRende
     _staticMeshRenderingSystems.Remove(system);
 }
 
-void DX12RenderingSubsystem::InitializeMaterialInstanceBuffer(DynamicGPUBuffer<MaterialParameter>& instanceBuffer, Type* type)
+void DX12RenderingSubsystem::InitializeMaterialInstanceBuffer(DynamicGPUBuffer<MaterialParameter>& instanceBuffer,
+                                                              Type* type)
 {
     instanceBuffer.SetProxy(std::make_unique<DynamicGPUBufferUploader<MaterialParameter>>(type));
 }

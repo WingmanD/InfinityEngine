@@ -11,7 +11,7 @@ template <typename T>
 class DynamicGPUBuffer : public DynamicGpuBufferBase, public BorrowedManagedBuffer<T>
 {
 public:
-    DynamicGPUBuffer(T* data = nullptr,
+    explicit DynamicGPUBuffer(T* data = nullptr,
                      uint32 capacity = 0,
                      uint32 count = 0) :
         BorrowedManagedBuffer<T>(data, capacity, count)

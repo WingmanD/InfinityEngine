@@ -5,11 +5,11 @@
 #include "Engine/Subsystems/RenderingSubsystem.h"
 
 IDGenerator<uint32> Material::_materialIDGenerator;
-std::unordered_map<uint32, std::weak_ptr<Material>> Material::_materialIDToStaticMesh;
+std::unordered_map<uint32, std::weak_ptr<Material>> Material::_materialIDToMaterial;
 
 std::shared_ptr<Material> Material::GetMaterialByID(uint32 materialID)
 {
-    return _materialIDToStaticMesh[materialID].lock();
+    return _materialIDToMaterial[materialID].lock();
 }
 
 Material::Material(Name name) : Asset(name)
@@ -64,9 +64,6 @@ bool Material::Initialize()
     {
         return false;
     }
-
-    _materialID = _materialIDGenerator.GenerateID();
-    _materialIDToStaticMesh[_materialID] = SharedFromThis();
     
     if (_shader != nullptr)
     {
@@ -121,6 +118,14 @@ void Material::OnPropertyChanged(Name propertyName)
     {
         OnShaderChanged();
     }
+}
+
+void Material::PostLoad()
+{
+    Asset::PostLoad();
+
+    _materialID = _materialIDGenerator.GenerateID();
+    _materialIDToMaterial[_materialID] = SharedFromThis();
 }
 
 void Material::OnShaderChanged(const std::shared_ptr<Shader>& oldShader /*= nullptr*/)

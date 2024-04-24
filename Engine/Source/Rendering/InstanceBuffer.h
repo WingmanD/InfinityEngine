@@ -7,6 +7,7 @@ struct SMInstance
 {
     Matrix World;
     uint32 MeshID;
+    uint32 LOD;
     uint32 MaterialID;
     uint32 MaterialIndex;
 };

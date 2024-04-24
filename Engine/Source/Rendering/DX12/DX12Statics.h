@@ -8,4 +8,6 @@ namespace DX12Statics
     {
         return (byteSize + 255) & ~255;
     }
+
+    void Transition(DX12GraphicsCommandList* commandList, ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 }

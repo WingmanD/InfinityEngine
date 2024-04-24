@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <atlcomcli.h>
+
 #include "Containers/DynamicGPUBuffer.h"
 #include "DescriptorHeap.h"
 #include "GraphicsMemory.h"
@@ -7,6 +9,8 @@
 #include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Rendering/DX12/DX12RenderingCore.h"
 #include <dxgi.h>
+
+#include "CullingWorkGraph.h"
 
 class ViewportWidget;
 class CCamera;
@@ -37,8 +41,12 @@ public:
     void ReturnCopyCommandList(DX12CopyCommandList& commandList);
     
     ComPtr<ID3D12Resource> CreateDefaultBuffer(DX12GraphicsCommandList* commandList, const void* data,
-                                               UINT64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) const;
+                                               uint64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) const;
 
+    /**
+     * \brief 
+     * \param viewport 
+     */
     void DrawScene(const ViewportWidget& viewport);
 
     bool IsMSAAEnabled() const;
@@ -52,6 +60,8 @@ public:
     DX12Device* GetDevice() const;
     DXCompiler& GetD3DCompiler() const;
     IDxcUtils& GetDXCUtils() const;
+
+    ComPtr<ID3DBlob> CompileDXILLibrary(const std::filesystem::path& libraryPath, const std::wstring& target, const DArray<DxcDefine>& defines = {}) const;
 
     DescriptorHeap& GetRTVHeap();
     DescriptorHeap& GetDSVHeap();
@@ -128,6 +138,8 @@ private:
     DirectX::GraphicsMemory* _graphicsMemory;
 
     DArray<StaticMeshRenderingSystem*> _staticMeshRenderingSystems;
+
+    CullingWorkGraph _cullingWorkGraph;
 
 private:
     void LogAdapters();

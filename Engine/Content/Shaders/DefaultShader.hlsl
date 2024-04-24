@@ -56,7 +56,7 @@ float4 PS(VertexOut pIn) : SV_Target
     const float shininess = GMP_DefaultMaterialParameter[GInstanceBuffer[pIn.InstanceID].MaterialIndex].SpecularPower;
 
     const float3 n = normalize(pIn.Normal);
-    const float3 v = normalize(GScene.CameraPosition - pIn.PositionWS.xyz);
+    const float3 v = normalize(GScene.CameraLocationWS - pIn.PositionWS.xyz);
     
     float3 diffuse = GMP_DefaultMaterialParameter[GInstanceBuffer[pIn.InstanceID].MaterialIndex].BaseColor.xyz;
     float3 specular = GMP_DefaultMaterialParameter[GInstanceBuffer[pIn.InstanceID].MaterialIndex].SpecularColor.xyz;

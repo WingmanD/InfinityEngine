@@ -61,9 +61,13 @@ public:
 public:
     void OnPropertyChanged(Name propertyName) override;
 
+    // Asset
+protected:
+    virtual void PostLoad() override;
+    
 private:
     static IDGenerator<uint32> _materialIDGenerator;
-    static std::unordered_map<uint32, std::weak_ptr<Material>> _materialIDToStaticMesh;
+    static std::unordered_map<uint32, std::weak_ptr<Material>> _materialIDToMaterial;
     
 private:
     PROPERTY(Edit, Load, DisplayName = "Shader")

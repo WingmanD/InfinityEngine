@@ -41,10 +41,13 @@ struct Scene : public MaterialParameter
 
 public:
     Matrix ViewProjection;
-    Vector3 CameraPosition;
-    PADDING()
-    Vector3 CameraDirection;
+    Vector3 CameraLocationWS;
     float Time = 0.0f;
+    Vector3 CameraForward;
+    float HorizontalFOV = 90.0f;
+    Vector3 CameraUp;
+    float VerticalFOV = 90.0f;
+    float DrawDistance = 1000.0f;
 
 public:
     Scene()

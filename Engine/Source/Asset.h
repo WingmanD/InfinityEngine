@@ -54,6 +54,8 @@ public:
     void OnPropertyChanged(Name propertyName) override;
 
 protected:
+    virtual void PostLoad();
+    
     void SetIsLoaded(bool value);
     void MarkDirtyForAutosave() const;
 

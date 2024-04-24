@@ -586,6 +586,12 @@ public:
         return _data;
     }
 
+    template <std::size_t N = SSO_SIZE, std::enable_if_t<N == 0, size_t>  = 0>
+    Pointer GetData() const
+    {
+        return _data;
+    }
+
     Reference operator[](SizeType index)
     {
         return GetElement(index);

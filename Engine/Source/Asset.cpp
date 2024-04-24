@@ -137,6 +137,8 @@ bool Asset::Load()
         return false;
     }
 
+    PostLoad();
+
     return true;
 }
 
@@ -286,6 +288,10 @@ std::vector<std::shared_ptr<Asset>> Asset::Import(const std::shared_ptr<Importer
 void Asset::OnPropertyChanged(Name propertyName)
 {
     MarkDirtyForAutosave();
+}
+
+void Asset::PostLoad()
+{
 }
 
 void Asset::SetIsLoaded(bool value)

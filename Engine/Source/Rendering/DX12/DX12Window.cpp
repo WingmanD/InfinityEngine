@@ -4,6 +4,8 @@
 #include "DX12ViewportWidgetRenderingProxy.h"
 #include <DirectXColors.h>
 
+#include "Rendering/Widgets/ViewportWidget.h"
+
 DX12Window::DX12Window(uint32 width, uint32 height, const std::wstring& title) :
     Window(width, height, title)
 {
