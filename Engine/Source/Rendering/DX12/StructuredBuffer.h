@@ -1,12 +1,11 @@
 ﻿#pragma once
 
 #include "DescriptorHeap.h"
+#include "DX12Statics.h"
 #include "Math/Math.h"
 #include "Object.h"
 #include <d3d12.h>
 #include <wrl/client.h>
-
-#include "DX12Statics.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -80,9 +79,12 @@ public:
         const CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
         
         CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(_bufferByteSize * count);
+        CD3DX12_HEAP_PROPERTIES uploadHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+        
         if (HasFlags(bufferType, EStructuredBufferType::UnorderedAccess))
         {
             bufferDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            uploadHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
         }
         
         device.CreateCommittedResource(
@@ -92,8 +94,7 @@ public:
             D3D12_RESOURCE_STATE_COPY_DEST,
             nullptr,
             IID_PPV_ARGS(&_structuredBuffer));
-
-        const CD3DX12_HEAP_PROPERTIES uploadHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+        
         device.CreateCommittedResource(
             &uploadHeapProps,
             D3D12_HEAP_FLAG_NONE,
@@ -313,11 +314,10 @@ public:
         subResourceData.SlicePitch = subResourceData.RowPitch;
         
         DX12Statics::Transition(commandList, _buffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-
-        {
-            UpdateSubresources<1>(commandList, _buffer.Get(), _uploadHeap.Get(), 0, 0, 1, &subResourceData);
-            DX12Statics::Transition(commandList, _buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
-        }
+        
+        UpdateSubresources<1>(commandList, _buffer.Get(), _uploadHeap.Get(), 0, 0, 1, &subResourceData);
+        
+        DX12Statics::Transition(commandList, _buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
     }
 
     DArray<T>& GetData()

@@ -17,11 +17,18 @@ public:
     ManagedBuffer& operator=(const ManagedBuffer&) = delete;
     ManagedBuffer& operator=(ManagedBuffer&& other) noexcept = delete;
 
-    ~ManagedBuffer() = default;
+    virtual ~ManagedBuffer() = default;
 
     size_t Add(const T& data)
     {
+        uint64 oldCapacity = _data.Capacity();
+        
         _data.Add(data);
+        
+        if (oldCapacity != _data.Capacity())
+        {
+            OnReallocated(_data.Capacity());
+        }
 
         const size_t index = _data.Count() - 1;
         _dirtyIndices.Add(index);
@@ -64,11 +71,17 @@ public:
     void ClearDirtyIndices()
     {
         _dirtyIndices.Clear();
+        _completelyDirty = false;
     }
 
     const DArray<size_t>& GetDirtyIndices() const
     {
         return _dirtyIndices;
+    }
+
+    bool IsCompletelyDirty() const
+    {
+        return _completelyDirty;
     }
 
     size_t Count() const
@@ -81,7 +94,18 @@ public:
         return _data.Capacity();
     }
 
+protected:
+    virtual void OnReallocated(size_t newCapacity)
+    {
+    }
+
+    void InvalidateWholeBuffer()
+    {
+        _completelyDirty = true;
+    }
+
 private:
     DArray<T> _data;
     DArray<size_t> _dirtyIndices;
+    bool _completelyDirty = false;
 };

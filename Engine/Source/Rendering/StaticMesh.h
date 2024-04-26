@@ -2,10 +2,12 @@
 
 #include "Asset.h"
 #include "AssetPtr.h"
+#include "BoundingBox.h"
 #include "Importer.h"
 #include "Material.h"
 #include "StaticMeshRenderingData.h"
 #include "StaticMesh.reflection.h"
+#include "Containers/DynamicGPUBuffer2.h"
 
 struct aiMesh;
 
@@ -36,7 +38,15 @@ class StaticMesh : public Asset
     GENERATED()
 
 public:
+    struct MeshInfo
+    {
+        Vector3 AABBMin;
+        Vector3 AABBMax;
+    };
+    
+public:
     static std::shared_ptr<StaticMesh> GetMeshByID(uint32 meshID);
+    static DynamicGPUBuffer2<MeshInfo>& GetMeshInfoBuffer();
     
 public:
     StaticMesh();
@@ -70,6 +80,8 @@ public:
         return static_cast<T*>(_renderingData.get());
     }
 
+    const BoundingBox& GetBoundingBox() const;
+
     // Asset
 public:
     virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
@@ -79,11 +91,9 @@ protected:
     virtual void PostLoad() override;
 
 private:
-    bool ImportInternal(const aiMesh* assimpMesh);
-
-private:
     static IDGenerator<uint32> _meshIDGenerator;
     static std::unordered_map<uint32, std::weak_ptr<StaticMesh>> _meshIDToStaticMesh;
+    static DynamicGPUBuffer2<MeshInfo> _meshInfoBuffer;
 
 private:
     std::vector<Vertex> _vertices;
@@ -95,4 +105,10 @@ private:
     uint32 _meshID = 0;
 
     std::unique_ptr<StaticMeshRenderingData> _renderingData;
+
+    BoundingBox _boundingBox;
+
+private:
+    bool ImportInternal(const aiMesh* assimpMesh);
+    void UpdateBoundingBox();
 };

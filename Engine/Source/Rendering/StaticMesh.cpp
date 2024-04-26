@@ -8,12 +8,18 @@
 #include "MaterialParameterTypes.h"
 #include "AssetPtr.h"
 
-IDGenerator<uint32> StaticMesh::_meshIDGenerator;
+IDGenerator<uint32> StaticMesh::_meshIDGenerator = IDGenerator<uint32>(0);
 std::unordered_map<uint32, std::weak_ptr<StaticMesh>> StaticMesh::_meshIDToStaticMesh;
+DynamicGPUBuffer2<StaticMesh::MeshInfo> StaticMesh::_meshInfoBuffer;
 
 std::shared_ptr<StaticMesh> StaticMesh::GetMeshByID(uint32 meshID)
 {
     return _meshIDToStaticMesh[meshID].lock();
+}
+
+DynamicGPUBuffer2<StaticMesh::MeshInfo>& StaticMesh::GetMeshInfoBuffer()
+{
+    return _meshInfoBuffer;
 }
 
 StaticMesh::StaticMesh()
@@ -91,6 +97,8 @@ bool StaticMesh::Serialize(MemoryWriter& writer) const
         writer << _material->GetAssetID();
     }
 
+    writer << _boundingBox;
+
     return true;
 }
 
@@ -107,6 +115,8 @@ bool StaticMesh::Deserialize(MemoryReader& reader)
     uint64 materialAssetID;
     reader >> materialAssetID;
     _material = AssetManager::Get().FindAsset<Material>(materialAssetID);
+
+    reader >> _boundingBox;
 
     return true;
 }
@@ -149,6 +159,11 @@ uint32 StaticMesh::GetMeshID() const
 StaticMeshRenderingData* StaticMesh::GetRenderingData() const
 {
     return _renderingData.get();
+}
+
+const BoundingBox& StaticMesh::GetBoundingBox() const
+{
+    return _boundingBox;
 }
 
 std::vector<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Importer>& importer) const
@@ -225,6 +240,9 @@ void StaticMesh::PostLoad()
 
     _meshID = _meshIDGenerator.GenerateID();
     _meshIDToStaticMesh[_meshID] = SharedFromThis();
+
+    // todo we need to handle removal of meshes - we need to set mesh info at _meshID index, but DArray might get in the way
+    _meshInfoBuffer.Add({_boundingBox.GetMin(), _boundingBox.GetMax()});
 }
 
 bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
@@ -289,6 +307,8 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
     }
     _indices.shrink_to_fit();
 
+    UpdateBoundingBox();
+
     SetIsLoaded(true);
 
     if (!Initialize())
@@ -298,4 +318,42 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
     }
 
     return true;
+}
+
+void StaticMesh::UpdateBoundingBox()
+{
+    Vector3 aabbMin = Vector3::Zero;
+    Vector3 aabbMax = Vector3::Zero;
+    
+    for (const Vertex& vertex : _vertices)
+    {
+        if (vertex.Position.x < aabbMin.x)
+        {
+            aabbMin.x = vertex.Position.x;
+        }
+        else if (vertex.Position.x > aabbMax.x)
+        {
+            aabbMax.x = vertex.Position.x;
+        }
+
+        if (vertex.Position.y < aabbMin.y)
+        {
+            aabbMin.y = vertex.Position.y;
+        }
+        else if (vertex.Position.y > aabbMax.y)
+        {
+            aabbMax.y = vertex.Position.y;
+        }
+
+        if (vertex.Position.z < aabbMin.z)
+        {
+            aabbMin.z = vertex.Position.z;
+        }
+        else if (vertex.Position.z > aabbMax.z)
+        {
+            aabbMax.z = vertex.Position.z;
+        }
+    }
+
+    _boundingBox = BoundingBox(aabbMin, aabbMax);
 }

@@ -1,16 +1,13 @@
 ﻿#pragma once
 
-#include <atlcomcli.h>
-
-#include "Containers/DynamicGPUBuffer.h"
+#include "CullingWorkGraph.h"
 #include "DescriptorHeap.h"
+#include "DX12GPUBuffer.h"
 #include "GraphicsMemory.h"
 #include "ThreadPool.h"
+#include "Containers/DynamicGPUBuffer2.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Rendering/DX12/DX12RenderingCore.h"
-#include <dxgi.h>
-
-#include "CullingWorkGraph.h"
 
 class ViewportWidget;
 class CCamera;
@@ -75,6 +72,20 @@ public:
     void AsyncOnGPUFenceEvent(std::function<void()>&& callback);
     void AsyncOnGPUCopyFenceEvent(std::function<void()>&& callback);
 
+    template <typename T>
+    void UpdateDynamicBuffer(DynamicGPUBuffer2<T>& buffer, DX12GraphicsCommandList* commandList) const
+    {
+        const DX12GPUBuffer& dx12Buffer = buffer.template GetBuffer<DX12GPUBuffer>();
+        if (buffer.IsCompletelyDirty())
+        {
+            dx12Buffer.Update(commandList);
+        }
+        else
+        {
+            dx12Buffer.Update(commandList, buffer.GetDirtyIndices());
+        }
+    }
+
     // RenderingSubsystem
 public:
     virtual bool Initialize() override;
@@ -97,7 +108,8 @@ public:
     virtual void RegisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) override;
     virtual void UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) override;
 
-    void InitializeMaterialInstanceBuffer(DynamicGPUBuffer<MaterialParameter>& instanceBuffer, Type* type) override;
+    virtual void InitializeMaterialInstanceBuffer(DynamicGPUBuffer<MaterialParameter>& instanceBuffer, Type* type) override;
+    virtual std::unique_ptr<GPUBuffer> CreateBuffer(GPUBuffer::EType type) override;
 
     virtual void OnWindowDestroyed(Window* window) override;
 

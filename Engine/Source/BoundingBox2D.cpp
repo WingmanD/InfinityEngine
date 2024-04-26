@@ -11,7 +11,7 @@ BoundingBox2D::BoundingBox2D(const Vector2& position, const Vector2& size)
 bool BoundingBox2D::Intersects(const BoundingBox2D& other) const
 {
     return (_min.x <= other._max.x && _max.x >= other._min.x) &&
-        (_min.y <= other._max.y && _max.y >= _min.y);
+        (_min.y <= other._max.y && _max.y >= other._min.y);
 }
 
 bool BoundingBox2D::Contains(const Vector2& point) const

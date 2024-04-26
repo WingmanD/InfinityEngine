@@ -4,6 +4,7 @@
 #include "DX12RenderingSubsystem.h"
 #include "MaterialParameterTypes.h"
 #include "Engine/Subsystems/AssetManager.h"
+#include "Rendering/StaticMesh.h"
 
 void CullingWorkGraph::SetInstanceBuffer(InstanceBuffer* instanceBuffer)
 {
@@ -51,6 +52,8 @@ void CullingWorkGraph::PreDispatch(DX12GraphicsCommandList* commandList)
     WorkGraph::PreDispatch(commandList);
     
     _visibleInstancesBuffer.ResetCounter(commandList);
+
+    DX12RenderingSubsystem::Get().UpdateDynamicBuffer(StaticMesh::GetMeshInfoBuffer(), commandList);
 }
 
 void CullingWorkGraph::BindBuffers(DX12GraphicsCommandList* commandList) const
@@ -67,6 +70,7 @@ void CullingWorkGraph::BindBuffers(DX12GraphicsCommandList* commandList) const
     }
     
     commandList->SetComputeRootConstantBufferView(1, constantBuffer.GetGPUVirtualAddress());
+    commandList->SetComputeRootShaderResourceView(2, StaticMesh::GetMeshInfoBuffer().GetBuffer<DX12GPUBuffer>().GetSRVGPUVirtualAddress());
 }
 
 void CullingWorkGraph::DispatchImplementation(DX12GraphicsCommandList* commandList, SMInstance* data, uint32 count)

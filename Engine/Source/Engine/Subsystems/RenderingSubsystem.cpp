@@ -1,6 +1,7 @@
 #include "RenderingSubsystem.h"
 #include "Engine/Engine.h"
 #include "MaterialParameterTypes.h"
+#include "Rendering/StaticMesh.h"
 
 RenderingSubsystem::RenderingSubsystem() : _eventQueue(this)
 {
@@ -32,6 +33,8 @@ bool RenderingSubsystem::PostInitialize()
         DEBUG_BREAK();
         return false;
     }
+
+    StaticMesh::GetMeshInfoBuffer().Initialize();
 
     return true;
 }

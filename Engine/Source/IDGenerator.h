@@ -7,6 +7,10 @@ template <typename T> requires std::is_integral_v<T>
 class IDGenerator : public ISerializeable
 {
 public:
+    explicit IDGenerator(T startID = 1) : _nextID(startID)
+    {
+    }
+
     T GenerateID()
     {
         if (_freeIDs.empty())

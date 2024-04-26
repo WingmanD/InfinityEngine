@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+#include "DX12GPUBuffer.h"
+
 extern "C" {
 __declspec(dllexport) extern const UINT D3D12SDKVersion = 613;
 }
@@ -676,6 +678,18 @@ void DX12RenderingSubsystem::InitializeMaterialInstanceBuffer(DynamicGPUBuffer<M
                                                               Type* type)
 {
     instanceBuffer.SetProxy(std::make_unique<DynamicGPUBufferUploader<MaterialParameter>>(type));
+}
+
+std::unique_ptr<GPUBuffer> DX12RenderingSubsystem::CreateBuffer(GPUBuffer::EType type)
+{
+    switch (type)
+    {
+    case GPUBuffer::EType::Default:
+        return std::make_unique<DX12GPUBuffer>();
+    default:
+        DEBUG_BREAK();
+        return nullptr;
+    }
 }
 
 void DX12RenderingSubsystem::OnWindowDestroyed(Window* window)

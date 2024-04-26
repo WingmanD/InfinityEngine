@@ -7,6 +7,9 @@
 #include "Rendering/Widgets/WidgetRenderingProxy.h"
 #include <memory>
 
+#include "Containers/GPUBuffer.h"
+
+class GPUBuffer;
 class World;
 class Window;
 class StaticMeshRenderingData;
@@ -43,6 +46,8 @@ public:
     virtual void UnregisterStaticMeshRenderingSystem(StaticMeshRenderingSystem* system) = 0;
 
     virtual void InitializeMaterialInstanceBuffer(DynamicGPUBuffer<MaterialParameter>& instanceBuffer, Type* type) = 0;
+
+    virtual std::unique_ptr<GPUBuffer> CreateBuffer(GPUBuffer::EType flags) = 0;
 
     virtual void OnWindowDestroyed(Window* window) = 0;
 
