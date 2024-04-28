@@ -58,8 +58,7 @@ bool WorkGraphBase::Initialize()
     workGraphProperties->GetWorkGraphMemoryRequirements(workGraphIndex, &_memoryRequirements);
 
     _backingMemoryGPUAddressRange.SizeInBytes = _memoryRequirements.MaxSizeInBytes;
-
-
+    
     CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(_backingMemoryGPUAddressRange.SizeInBytes);
     resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     const CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);

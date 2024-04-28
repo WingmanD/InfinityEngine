@@ -10,10 +10,7 @@ struct SMInstance
     uint32 LOD;
     uint32 MaterialID;
     uint32 MaterialIndex;
-    Vector3 AABBMin;
-    float padding;
-    Vector3 AABBMax;
-    float padding2;
+    uint32 Count;
 };
 
 class InstanceBuffer : public DynamicGPUBuffer<SMInstance>

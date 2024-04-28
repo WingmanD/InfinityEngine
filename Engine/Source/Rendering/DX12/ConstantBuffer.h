@@ -113,7 +113,7 @@ public:
             &heapProperties,
             D3D12_HEAP_FLAG_NONE,
             &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
+            D3D12_RESOURCE_STATE_COMMON,
             nullptr,
             IID_PPV_ARGS(&buffer._buffer)));
 
@@ -169,6 +169,7 @@ private:
 
     bool _isMapped = false;
     ComPtr<ID3D12Resource> _buffer;
+    ComPtr<ID3D12Resource> _uploadHeap;
     std::weak_ptr<DescriptorHeap> _heap;
 
     std::byte* _mappedData = nullptr;

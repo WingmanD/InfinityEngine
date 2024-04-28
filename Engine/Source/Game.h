@@ -30,4 +30,7 @@ private:
     
     PROPERTY(Edit, Serialize, DisplayName = "Enemy Template")
     AssetPtr<EntityTemplate> _enemyTemplate;
+
+    PROPERTY(Edit, Serialize, DisplayName = "Cube Template")
+    AssetPtr<EntityTemplate> _cubeTemplate;
 };

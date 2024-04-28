@@ -308,14 +308,14 @@ public:
 
     void Update(DX12GraphicsCommandList* commandList)
     {
-        D3D12_SUBRESOURCE_DATA subResourceData;
-        subResourceData.pData = _data.GetData();
-        subResourceData.RowPitch = sizeof(T) * _data.Count();
-        subResourceData.SlicePitch = subResourceData.RowPitch;
-        
         DX12Statics::Transition(commandList, _buffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+
+        T* mappedData = nullptr;
+        _uploadHeap->Map(0, nullptr, reinterpret_cast<void**>(&mappedData));
+        memcpy(mappedData, _data.GetData(), sizeof(T) * _data.Capacity());
+        _uploadHeap->Unmap(0, nullptr);
         
-        UpdateSubresources<1>(commandList, _buffer.Get(), _uploadHeap.Get(), 0, 0, 1, &subResourceData);
+        commandList->CopyResource(_buffer.Get(), _uploadHeap.Get());
         
         DX12Statics::Transition(commandList, _buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
     }
@@ -354,6 +354,7 @@ protected:
     bool InitializeBuffer(uint32 capacity, DX12Device& device, const std::shared_ptr<DescriptorHeap>& heap, EStructuredBufferType bufferType)
     {
         _data.Resize(capacity);
+        memset(_data.GetData(), 0, sizeof(T) * capacity);
         _bufferType = bufferType;
         
         const CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -368,16 +369,17 @@ protected:
             &heapProps,
             D3D12_HEAP_FLAG_NONE,
             &bufferDesc,
-            D3D12_RESOURCE_STATE_COPY_DEST,
+            D3D12_RESOURCE_STATE_COMMON,
             nullptr,
             IID_PPV_ARGS(&_buffer));
 
-        const CD3DX12_HEAP_PROPERTIES uploadHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+        const CD3DX12_HEAP_PROPERTIES uploadHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+        const CD3DX12_RESOURCE_DESC uploadDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(T) * capacity);
         device.CreateCommittedResource(
             &uploadHeapProps,
             D3D12_HEAP_FLAG_NONE,
-            &bufferDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
+            &uploadDesc,
+            D3D12_RESOURCE_STATE_COMMON,
             nullptr,
             IID_PPV_ARGS(&_uploadHeap));
 
@@ -578,6 +580,11 @@ public:
     {
         RWStructuredBuffer<T>::ReadBack(commandList);
 
+        ReadBackCounter(commandList);
+    }
+
+    uint32 ReadBackCounter(DX12GraphicsCommandList* commandList) const
+    {
         DX12Statics::Transition(commandList, _counterBuffer.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
         DX12Statics::Transition(commandList, _counterReadbackBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
 
@@ -585,7 +592,9 @@ public:
 
         DX12Statics::Transition(commandList, _counterBuffer.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         DX12Statics::Transition(commandList, _counterReadbackBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
-    } 
+        
+        return *_counterValue;
+    }
     
     virtual bool Initialize(uint32 initialCapacity, DX12Device& device, const std::shared_ptr<DescriptorHeap>& heap) override
     {

@@ -64,8 +64,12 @@ bool StaticMesh::Initialize()
     }
 
     _renderingData->SetMesh(std::dynamic_pointer_cast<StaticMesh>(shared_from_this()), {});
-    _renderingData->UploadToGPU(renderingSubsystem);
 
+    if (!_vertices.empty() && !_indices.empty())
+    {
+        _renderingData->UploadToGPU(renderingSubsystem);
+    }
+    
     if (_material != nullptr)
     {
         MaterialParameterMap* paramMap = _material->GetParameterMap();

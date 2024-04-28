@@ -40,6 +40,8 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
     instanceData.World = staticMesh.MeshTransform.GetWorldMatrix().Transpose();
     instanceData.MeshID = staticMesh.Mesh->GetMeshID();
     instanceData.MaterialID = staticMesh.MaterialOverride->GetMaterialID();
+    instanceData.LOD = 0;
+    instanceData.Count = 1;
 
     DynamicGPUBuffer<MaterialParameter>& materialInstanceBuffer = GetOrCreateMaterialParameterBuffer(
         instanceData.MaterialID,

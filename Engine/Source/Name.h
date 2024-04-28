@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include <string>
+#include <format>
 
 class MemoryWriter;
 class MemoryReader;
@@ -38,5 +39,19 @@ struct std::hash<Name>
     std::size_t operator()(const Name& name) const noexcept
     {
         return name.GetID();
+    }
+};
+
+template <>
+struct std::formatter<Name, wchar_t>
+{
+    constexpr auto parse(std::wformat_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    auto format(const Name& name, std::wformat_context& ctx) const
+    {
+        return std::format_to(ctx.out(), L"{}", name.ToString());
     }
 };

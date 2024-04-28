@@ -23,13 +23,13 @@ void CoarseCulling(ThreadNodeInputRecord<SMInstance> inputData, [MaxRecords(1)] 
     {
         return;
     }
-
+    
     // Frustum culling
     uint meshID = inputData.Get().MeshID;
-
+    
     const float4 min = float4(GMeshInfo[meshID].BoundingBox.Min, 1.0f);
     const float4 max = float4(GMeshInfo[meshID].BoundingBox.Max, 1.0f);
-
+    
     const float4 vertices[8] = {
         min,
         float4(min.x, min.y, max.z, 1.0f),
@@ -40,23 +40,23 @@ void CoarseCulling(ThreadNodeInputRecord<SMInstance> inputData, [MaxRecords(1)] 
         float4(max.x, max.y, min.z, 1.0f),
         max
     };
-
+    
     const float4x4 MVP = mul(inputData.Get().World, GScene.ViewProjection);
-
+    
     bool anyVertexInsideNDC = false;
     float4 vertexCS;
-
+    
     [unroll]
     for (int i = 0; i < 8; ++i)
     {
         vertexCS = mul(vertices[i], MVP);
-
+    
         anyVertexInsideNDC |=
             all(vertexCS.xy >= -vertexCS.w) &&
             all(vertexCS.xy <= vertexCS.w) &&
             vertexCS.z >= 0.0f && vertexCS.z <= vertexCS.w;
     }
-
+    
     if (!anyVertexInsideNDC)
     {
         return;
@@ -64,7 +64,6 @@ void CoarseCulling(ThreadNodeInputRecord<SMInstance> inputData, [MaxRecords(1)] 
 
     ThreadNodeOutputRecords<SMInstance> output = OcclusionCulling.GetThreadNodeOutputRecords(1);
     output.Get() = inputData.Get();
-    output.Get().AABBMin = vertexCS.xyz;
     output.OutputComplete();
 }
 

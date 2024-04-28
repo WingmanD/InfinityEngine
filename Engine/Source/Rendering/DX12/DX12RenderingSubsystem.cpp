@@ -1,28 +1,28 @@
 ﻿#include "DX12RenderingSubsystem.h"
+#include "CompactSMInstancesComputeShader.h"
 #include "Core.h"
-#include "d3dx12/d3dx12.h"
+#include "DX12GPUBuffer.h"
 #include "DX12MaterialParameterRenderingData.h"
 #include "DX12MaterialRenderingData.h"
 #include "DX12RenderTarget.h"
 #include "DX12Shader.h"
 #include "DX12StaticMeshRenderingData.h"
 #include "DX12TextWidgetRenderingProxy.h"
+#include "DX12ViewportWidgetRenderingProxy.h"
 #include "DX12WidgetRenderingProxy.h"
 #include "DX12Window.h"
-#include "ThreadPool.h"
-#include "Engine/Engine.h"
-#include "Rendering/Window.h"
-#include "DX12ViewportWidgetRenderingProxy.h"
 #include "DynamicGPUBufferUploader.h"
+#include "SortComputeShader.h"
+#include "ThreadPool.h"
+#include "d3dx12/d3dx12.h"
 #include "ECS/Components/CCamera.h"
 #include "ECS/Systems/StaticMeshRenderingSystem.h"
+#include "Engine/Engine.h"
 #include "Rendering/InstanceBuffer.h"
+#include "Rendering/Window.h"
 #include "Rendering/Widgets/ViewportWidget.h"
-#include <dxgi1_2.h>
 #include <string>
 #include <vector>
-
-#include "DX12GPUBuffer.h"
 
 extern "C" {
 __declspec(dllexport) extern const UINT D3D12SDKVersion = 613;
@@ -168,7 +168,7 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
     {
         return;
     }
-    
+
     {
         const std::shared_ptr<Scene> scene = GetScene();
         CCamera* camera = viewport.GetCamera();
@@ -183,9 +183,9 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         scene->DrawDistance = camera->GetFarClipPlane();
         scene->MarkAsDirty();
     }
-    
+
     const std::shared_ptr<DX12Window> window = std::dynamic_pointer_cast<DX12Window>(viewport.GetParentWindow());
-    
+
     DX12CommandList commandListStruct = window->RequestCommandList();
     DX12GraphicsCommandList* commandList = commandListStruct.CommandList.Get();
 
@@ -201,24 +201,61 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         _cullingWorkGraph.SetInstanceBuffer(&renderingSystem->GetInstanceBuffer());
         _cullingWorkGraph.Dispatch(commandList, renderingSystem->GetInstanceBuffer().GetData(),
                                    renderingSystem->GetInstanceBuffer().Count());
-        _cullingWorkGraph.ReadBackVisibleInstances(commandList);
+        DX12Statics::TransitionUAV(*commandList, _cullingWorkGraph.GetVisibleInstances().GetBuffer().Get());
     }
+
+    _cullingWorkGraph.GetVisibleInstances().ReadBackCounter(commandList);
 
     window->CloseCommandList(commandListStruct);
 
     window->ExecuteCommandLists();
     _commandQueue->Signal(_mainFence.Get(), ++_mainFenceValue);
 
-    WaitForGPU();   // todo async, we need to pass a the viewport data and make RequestCommandList thread safe
+    WaitForGPU(); // todo async, we need to pass a the viewport data and make RequestCommandList thread safe
+
+    DX12CommandList commandListStructSort = window->RequestCommandList(viewport);
+    DX12GraphicsCommandList* commandListSort = commandListStructSort.CommandList.Get();
+
+    AppendStructuredBuffer<SMInstance>& visibleInstances = _cullingWorkGraph.GetVisibleInstances();
+
+    DX12Statics::Transition(commandListSort, visibleInstances.GetBuffer().Get(), D3D12_RESOURCE_STATE_COMMON,
+                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    _sortCS->Run(*commandListSort, visibleInstances);
+    _compactSMInstancesCS.lock()->Run(*commandListSort, visibleInstances);
+
+    DX12Statics::Transition(commandListSort, visibleInstances.GetBuffer().Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                            D3D12_RESOURCE_STATE_COMMON);
+
+    _cullingWorkGraph.ReadBackVisibleInstances(commandListSort);
+
+    window->CloseCommandList(commandListStructSort);
+
+    window->ExecuteCommandLists();
+    _commandQueue->Signal(_mainFence.Get(), ++_mainFenceValue);
+
+    WaitForGPU();
 
     DX12CommandList commandListStructDraw = window->RequestCommandList(viewport);
     DX12GraphicsCommandList* commandListDraw = commandListStructDraw.CommandList.Get();
 
-    const AppendStructuredBuffer<SMInstance>& visibleInstances = _cullingWorkGraph.GetVisibleInstances();
+    uint32 processedInstances = 0;
+    const SMInstance* data = visibleInstances.GetReadBackData();
 
-    if (visibleInstances.Count() > 0)
+    DArray<SMInstance> visibleInstancesArray;
+    visibleInstancesArray.Reserve(visibleInstances.Count());
+    for (uint32 i = 0; i < visibleInstances.Count(); ++i)
     {
-        const SMInstance& firstInstance = visibleInstances.GetReadBackData()[0];
+        visibleInstancesArray.Add(data[i]);
+        LOG(L"{}: {} {} {} MI: {} Count: {}",
+            i,
+            data[i].World.m[0][3], data[i].World.m[1][3], data[i].World.m[2][3],
+            data[i].MaterialIndex, data[i].Count);
+    }
+
+    while (processedInstances < visibleInstances.Count())
+    {
+        const SMInstance& firstInstance = data[processedInstances];
 
         const std::shared_ptr<StaticMesh> staticMesh = StaticMesh::GetMeshByID(firstInstance.MeshID);
         if (staticMesh != nullptr)
@@ -235,15 +272,15 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
                 const DynamicGPUBuffer<MaterialParameter>& materialBuffer = _staticMeshRenderingSystems[0]->
                     GetMaterialParameterBuffer(firstInstance.MaterialID);
                 materialBuffer.GetProxy<DynamicGPUBufferUploader<MaterialParameter>>()->Update(commandListDraw);
-                
+
                 shader->BindInstanceBuffers(*commandListDraw, visibleInstances, materialBuffer);
 
                 commandListDraw->DrawIndexedInstanced(
                     static_cast<uint32>(staticMesh->GetIndices().size()),
-                    visibleInstances.Count(),
+                    firstInstance.Count,
                     0,
                     0,
-                    0
+                    processedInstances
                 );
             }
             else
@@ -255,6 +292,8 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         {
             LOG(L"Failed to find static mesh with ID: {}", firstInstance.MeshID);
         }
+
+        processedInstances += firstInstance.Count;
     }
 
     window->CloseCommandList(commandListStructDraw);
@@ -307,8 +346,8 @@ IDxcUtils& DX12RenderingSubsystem::GetDXCUtils() const
 }
 
 ComPtr<ID3DBlob> DX12RenderingSubsystem::CompileDXILLibrary(const std::filesystem::path& libraryPath,
-                                                             const std::wstring& target,
-                                                             const DArray<DxcDefine>& defines /*= {}*/) const
+                                                            const std::wstring& target,
+                                                            const DArray<DxcDefine>& defines /*= {}*/) const
 {
     std::ifstream fileStream(libraryPath);
     if (!fileStream.is_open())
@@ -316,15 +355,15 @@ ComPtr<ID3DBlob> DX12RenderingSubsystem::CompileDXILLibrary(const std::filesyste
         LOG(L"Failed to open shader library file: {}", libraryPath.wstring());
         return nullptr;
     }
-    
+
     const std::string contents((std::istreambuf_iterator(fileStream)), std::istreambuf_iterator<char>());
 
     DXCompiler& compiler = GetD3DCompiler();
     IDxcUtils& dxcUtils = GetDXCUtils();
-    
+
     ComPtr<IDxcBlobEncoding> source;
     dxcUtils.CreateBlob(contents.c_str(), static_cast<uint32>(contents.size()), DXC_CP_UTF8, source.GetAddressOf());
-    
+
     DxcBuffer sourceBuffer;
     sourceBuffer.Ptr = source->GetBufferPointer();
     sourceBuffer.Size = source->GetBufferSize();
@@ -333,7 +372,7 @@ ComPtr<ID3DBlob> DX12RenderingSubsystem::CompileDXILLibrary(const std::filesyste
     ComPtr<IDxcIncludeHandler> includeHandler;
     dxcUtils.CreateDefaultIncludeHandler(&includeHandler);
 
-    
+
     std::vector<LPCWSTR> arguments;
     arguments.push_back(L"-T");
     arguments.push_back(target.c_str());
@@ -342,12 +381,12 @@ ComPtr<ID3DBlob> DX12RenderingSubsystem::CompileDXILLibrary(const std::filesyste
 
     const std::wstring includePath = libraryPath.parent_path().wstring();
     arguments.push_back(includePath.c_str());
-    
+
     arguments.push_back(L"-Qstrip_debug");
     arguments.push_back(L"-Qstrip_reflect");
 
     arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS);
-    
+
     for (const DxcDefine& define : defines)
     {
         arguments.push_back(L"-D");
@@ -363,7 +402,7 @@ ComPtr<ID3DBlob> DX12RenderingSubsystem::CompileDXILLibrary(const std::filesyste
         includeHandler.Get(),
         IID_PPV_ARGS(compileResult.GetAddressOf())
     );
-    
+
     if (FAILED(result))
     {
         LOG(L"Failed to compile shader library {}!", libraryPath.stem().wstring());
@@ -380,7 +419,7 @@ ComPtr<ID3DBlob> DX12RenderingSubsystem::CompileDXILLibrary(const std::filesyste
             LOG(L"Failed to get library compilation result: {}", libraryPath.stem().wstring());
         }
     }
-    
+
     CComPtr<IDxcBlobEncoding> errors;
     if (SUCCEEDED(compileResult->GetErrorBuffer(&errors)))
     {
@@ -551,8 +590,29 @@ bool DX12RenderingSubsystem::Initialize()
         LOG(L"Failed to create DXC utils!");
         return false;
     }
-    
+
     _cullingWorkGraph.Initialize();
+    _sortCS = AssetManager::Get().FindAssetByName<SortComputeShader>(Name(L"SortCS"));
+    if (_sortCS == nullptr)
+    {
+        LOG(L"Failed to find SortCS asset! Play in editor will not work!");
+    }
+    else
+    {
+        _sortCS->Load();
+    }
+
+    const std::shared_ptr<CompactSMInstancesComputeShader> compactCS =
+        AssetManager::Get().FindAssetByName<CompactSMInstancesComputeShader>(Name(L"CompactCS"));
+    if (compactCS == nullptr)
+    {
+        LOG(L"Failed to find CompactCS asset! Play in editor will not work!");
+    }
+    else
+    {
+        compactCS->Load();
+        _compactSMInstancesCS = compactCS;
+    }
 
     return true;
 }
@@ -584,7 +644,7 @@ void DX12RenderingSubsystem::Tick(double deltaTime)
         // });
 
         window->Render({});
-        
+
         ++_mainFenceValue;
         ThrowIfFailed(_commandQueue->Signal(_mainFence.Get(), _mainFenceValue));
 

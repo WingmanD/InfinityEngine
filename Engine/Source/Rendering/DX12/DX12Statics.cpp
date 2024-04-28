@@ -12,3 +12,13 @@ void DX12Statics::Transition(DX12GraphicsCommandList* commandList, ID3D12Resourc
 
     commandList->ResourceBarrier(1, &barrier);
 }
+
+void DX12Statics::TransitionUAV(DX12GraphicsCommandList& commandList, ID3D12Resource* resource)
+{
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.UAV.pResource = resource;
+
+    commandList.ResourceBarrier(1, &barrier);
+}

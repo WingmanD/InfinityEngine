@@ -9,6 +9,8 @@
 #include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Rendering/DX12/DX12RenderingCore.h"
 
+class CompactSMInstancesComputeShader;
+class SortComputeShader;
 class ViewportWidget;
 class CCamera;
 class DX12Window;
@@ -152,6 +154,8 @@ private:
     DArray<StaticMeshRenderingSystem*> _staticMeshRenderingSystems;
 
     CullingWorkGraph _cullingWorkGraph;
+    std::shared_ptr<SortComputeShader> _sortCS;
+    std::weak_ptr<CompactSMInstancesComputeShader> _compactSMInstancesCS;
 
 private:
     void LogAdapters();

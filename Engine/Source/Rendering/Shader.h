@@ -27,8 +27,8 @@ public:
 
     // Asset
 public:
-    bool Serialize(MemoryWriter& writer) const override;
-    bool Deserialize(MemoryReader& reader) override;
+    virtual bool Serialize(MemoryWriter& writer) const override;
+    virtual bool Deserialize(MemoryReader& reader) override;
 
 protected:
     std::unique_ptr<MaterialParameterMap> ParameterMap;

@@ -350,10 +350,23 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
 
     // todo unsubscribe from events
     popup->OnCollapsed.Add(removeLayer);
-    popup->OnFocusChanged.Add([removeLayer](bool value)
+    Widget* rawPopup = popup.get();
+    popup->OnFocusChanged.Add([removeLayer, this, rawPopup](bool value)
     {
         if (!value)
         {
+            const Widget* current = GetFocusedWidget().get();
+            while (current != nullptr)
+            {
+                // If we focus a child of the current popup, we don't want to close the popup
+                if (current == rawPopup)
+                {
+                    return;
+                }
+                
+                current = current->GetParentWidget().get();
+            }
+            
             removeLayer();
         }
     });
@@ -398,10 +411,23 @@ bool Window::AddBorrowedPopup(const std::shared_ptr<Widget>& popup)
 
     // todo unsubscribe from events
     popup->OnCollapsed.Add(removeLayer);
-    popup->OnFocusChanged.Add([removeLayer](bool value)
+    Widget* rawPopup = popup.get();
+    popup->OnFocusChanged.Add([removeLayer, this, rawPopup](bool value)
     {
         if (!value)
         {
+            const Widget* current = GetFocusedWidget().get();
+            while (current != nullptr)
+            {
+                // If we focus a child of the current popup, we don't want to close the popup
+                if (current == rawPopup)
+                {
+                    return;
+                }
+                
+                current = current->GetParentWidget().get();
+            }
+            
             removeLayer();
         }
     });

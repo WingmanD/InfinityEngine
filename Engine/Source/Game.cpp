@@ -48,6 +48,11 @@ bool Game::OnStartup()
         Entity& meshEntity = world.CreateEntity(_enemyTemplate);
         Transform& transform = meshEntity.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
         transform.SetWorldRotation({0.0f, 0.0f, 45.0f});
+        
+        world.CreateEntity(_cubeTemplate);
+        world.CreateEntity(_enemyTemplate);
+        world.CreateEntity(_cubeTemplate);
+        world.CreateEntity(_enemyTemplate);
 
         return false;
     });

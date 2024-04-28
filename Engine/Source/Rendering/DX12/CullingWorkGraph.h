@@ -11,7 +11,7 @@ public:
 
     void ReadBackVisibleInstances(DX12GraphicsCommandList* commandList);
 
-    const AppendStructuredBuffer<SMInstance>& GetVisibleInstances() const;
+    AppendStructuredBuffer<SMInstance>& GetVisibleInstances();
 
     // WorkGraph
 public:
@@ -26,5 +26,4 @@ protected:
 private:
     InstanceBuffer* _instanceBuffer = nullptr;
     AppendStructuredBuffer<SMInstance> _visibleInstancesBuffer{};
-
 };

@@ -17,10 +17,7 @@ struct SMInstance
     uint LOD;
     uint MaterialID;
     uint MaterialIndex;
-    float3 AABBMin;
-    float padding;
-    float3 AABBMax;
-    float padding2;
+    uint Count;
 };
 
 struct AABB

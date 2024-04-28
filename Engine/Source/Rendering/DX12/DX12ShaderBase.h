@@ -53,8 +53,7 @@ protected:
     ComPtr<ID3D12RootSignature> RootSignature;
     D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc{};
     ComPtr<IDxcBlobEncoding> SerializedRootSignature;
-
-
+    
     DArray<StructuredBufferParameter, 4> StructuredBufferParameters;
 };
 

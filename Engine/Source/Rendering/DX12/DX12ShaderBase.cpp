@@ -31,7 +31,7 @@ ComPtr<IDxcResult> DX12ShaderBase::CompileShader(const std::filesystem::path& sh
     std::ifstream fileStream(shaderPath);
     if (!fileStream.is_open())
     {
-        LOG(L"Failed to open shader file: {}", shaderPath.wstring());
+        LOG(L"ERROR: failed to open shader file: {}", shaderPath.wstring());
         return nullptr;
     }
 
@@ -125,7 +125,7 @@ bool DX12ShaderBase::InitializeRootSignature(const DX12RenderingSubsystem& rende
 
     if (FAILED(result))
     {
-        LOG(L"Failed to create root signature!");
+        LOG(L"ERROR: failed to create root signature!");
 
         return false;
     }
@@ -195,6 +195,26 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
 
                 break;
             }
+        case D3D_SIT_UAV_RWSTRUCTURED:
+        case D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER:
+            {
+                StructuredBufferParameter structuredBufferParameter;
+                structuredBufferParameter.BufferName = Name(Util::ToWString(bindDesc.Name));
+                structuredBufferParameter.SlotIndex = static_cast<uint32>(rootParameters.size());
+                const auto result = structuredBufferParameterTypes.insert(structuredBufferParameter);
+
+                if (result.second)
+                {
+                    D3D12_ROOT_PARAMETER parameter = {};
+                    parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+                    parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
+                    parameter.Descriptor.RegisterSpace = bindDesc.Space;
+                    parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+                    rootParameters.push_back(parameter);
+                }
+
+                break;
+            }
         case D3D_SIT_TEXTURE:
             {
                 // todo
@@ -209,7 +229,7 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
             }
         default:
             {
-                LOG(L"Unsupported shader resource type '{}'!", Util::ToWString(bindDesc.Name));
+                LOG(L"Warning: Unsupported shader resource type '{}'!", Util::ToWString(bindDesc.Name));
                 break;
             }
         }
@@ -226,7 +246,7 @@ bool DX12ShaderBase::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflect
     ID3D12ShaderReflectionConstantBuffer* cbReflection = shaderReflection->GetConstantBufferByIndex(bindDesc.BindPoint);
     if (cbReflection == nullptr)
     {
-        LOG(L"Failed to reflect constant buffer {}!", Util::ToWString(bindDesc.Name));
+        LOG(L"ERROR: failed to reflect constant buffer {}!", Util::ToWString(bindDesc.Name));
         return false;
     }
 
@@ -238,7 +258,7 @@ bool DX12ShaderBase::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflect
         ID3D12ShaderReflectionVariable* varReflection = cbReflection->GetVariableByIndex(i);
         if (varReflection == nullptr)
         {
-            LOG(L"Failed to reflect variable {} in constant buffer {}!", i,
+            LOG(L"ERROR: failed to reflect variable {} in constant buffer {}!", i,
                 Util::ToWString(bindDesc.Name));
             return false;
         }
@@ -250,8 +270,17 @@ bool DX12ShaderBase::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflect
         const Type* type = TypeRegistry::Get().FindTypeByName(typeDesc.Name);
         if (type == nullptr)
         {
-            LOG(L"Failed to find type {}!", Util::ToWString(typeDesc.Name));
-            return false;
+            LOG(L"Warning: failed to find type {}! Converting it to root constants!", Util::ToWString(typeDesc.Name));
+            
+            D3D12_ROOT_PARAMETER parameter = {};
+            parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+            parameter.Constants.ShaderRegister = bindDesc.BindPoint;
+            parameter.Constants.RegisterSpace = bindDesc.Space;
+            parameter.Constants.Num32BitValues = bufferDesc.Size / 4;
+
+            rootParameters.push_back(parameter);
+            
+            continue;
         }
 
         MaterialParameterDescriptor parameterType;
@@ -310,7 +339,7 @@ bool DX12ShaderBase::DeserializeBase(MemoryReader& reader)
 
         if (FAILED(result))
         {
-            LOG(L"Failed to create serialized root signature blob!");
+            LOG(L"ERROR: failed to create serialized root signature blob!");
             success = false;
         }
         reader.Skip(serializedRootSignatureSize);

@@ -1,5 +1,4 @@
 ﻿#include "CullingWorkGraph.h"
-
 #include "DX12MaterialParameterRenderingData.h"
 #include "DX12RenderingSubsystem.h"
 #include "MaterialParameterTypes.h"
@@ -12,16 +11,25 @@ void CullingWorkGraph::SetInstanceBuffer(InstanceBuffer* instanceBuffer)
     {
         return;
     }
-    
+
     _instanceBuffer = instanceBuffer;
 
-    DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
 
-    _visibleInstancesBuffer.Initialize(
-        _instanceBuffer->Count(),
-        *renderingSubsystem.GetDevice(),
-        renderingSubsystem.GetCBVHeap()
-    );
+    if (_instanceBuffer->Count() > _visibleInstancesBuffer.GetData().Capacity())
+    {
+        DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
+
+        const uint32 bufferCapacity = Math::NextPowerOfTwo(std::max(_instanceBuffer->Count(), 128u * 16u));
+
+        _visibleInstancesBuffer.~AppendStructuredBuffer();
+        new(&_visibleInstancesBuffer) AppendStructuredBuffer<SMInstance>();
+
+        _visibleInstancesBuffer.Initialize(
+            bufferCapacity,
+            *renderingSubsystem.GetDevice(),
+            renderingSubsystem.GetCBVHeap()
+        );
+    }
 }
 
 void CullingWorkGraph::ReadBackVisibleInstances(DX12GraphicsCommandList* commandList)
@@ -29,7 +37,7 @@ void CullingWorkGraph::ReadBackVisibleInstances(DX12GraphicsCommandList* command
     _visibleInstancesBuffer.ReadBack(commandList);
 }
 
-const AppendStructuredBuffer<SMInstance>& CullingWorkGraph::GetVisibleInstances() const
+AppendStructuredBuffer<SMInstance>& CullingWorkGraph::GetVisibleInstances()
 {
     return _visibleInstancesBuffer;
 }
@@ -38,7 +46,7 @@ bool CullingWorkGraph::Initialize()
 {
     SetLibraryPath(AssetManager::Get().GetProjectRootPath() / "Engine/Content/Shaders/CullingWorkGraph.hlsl");
     SetName(L"CullingWorkGraph");
-    
+
     if (!WorkGraph::Initialize())
     {
         return false;
@@ -50,8 +58,9 @@ bool CullingWorkGraph::Initialize()
 void CullingWorkGraph::PreDispatch(DX12GraphicsCommandList* commandList)
 {
     WorkGraph::PreDispatch(commandList);
-    
+
     _visibleInstancesBuffer.ResetCounter(commandList);
+    _visibleInstancesBuffer.Update(commandList);
 
     DX12RenderingSubsystem::Get().UpdateDynamicBuffer(StaticMesh::GetMeshInfoBuffer(), commandList);
 }
@@ -61,16 +70,18 @@ void CullingWorkGraph::BindBuffers(DX12GraphicsCommandList* commandList) const
     commandList->SetComputeRootDescriptorTable(0, _visibleInstancesBuffer.GetUAVGPUHandle());
 
     const std::shared_ptr<Scene> scene = RenderingSubsystem::Get().GetScene();
-    DX12MaterialParameterRenderingData* renderingData = static_cast<DX12MaterialParameterRenderingData*>(scene->GetRenderingData());
-    const ConstantBuffer<MaterialParameter>& constantBuffer = renderingData->GetConstantBuffer();
+    DX12MaterialParameterRenderingData* renderingData = static_cast<DX12MaterialParameterRenderingData*>(scene->
+        GetRenderingData());
+    ConstantBuffer<MaterialParameter>& constantBuffer = renderingData->GetConstantBuffer();
     if (scene->IsDirty())
     {
         constantBuffer.Update();
         scene->ClearDirty();
     }
-    
+
     commandList->SetComputeRootConstantBufferView(1, constantBuffer.GetGPUVirtualAddress());
-    commandList->SetComputeRootShaderResourceView(2, StaticMesh::GetMeshInfoBuffer().GetBuffer<DX12GPUBuffer>().GetSRVGPUVirtualAddress());
+    commandList->SetComputeRootShaderResourceView(
+        2, StaticMesh::GetMeshInfoBuffer().GetBuffer<DX12GPUBuffer>().GetSRVGPUVirtualAddress());
 }
 
 void CullingWorkGraph::DispatchImplementation(DX12GraphicsCommandList* commandList, SMInstance* data, uint32 count)
