@@ -23,7 +23,7 @@ namespace Math
     template <typename T>
     constexpr T RoundToNearest(T value, T multiple)
     {
-        return static_cast<T>(std::floor(static_cast<double>(value) / static_cast<double>(multiple) + 0.5));
+        return static_cast<T>((value + multiple / 2) / (multiple * multiple));
     }
 
     template <typename T> requires std::is_integral_v<T>

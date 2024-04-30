@@ -33,20 +33,16 @@ bool SortComputeShader::Recompile(bool immediate)
         &_transposeShader
     );
 
-    std::vector<D3D12_ROOT_PARAMETER> rootParameters;
-    std::set<MaterialParameterDescriptor> constantBufferParameterTypes;
-    std::set<StructuredBufferParameter> structuredBufferParameterTypes;
-
-    if (!ReflectShaderParameters(compileResult.Get(), rootParameters, constantBufferParameterTypes,
-                                 structuredBufferParameterTypes))
+    ShaderReflection reflection;
+    if (!ReflectShaderParameters(compileResult.Get(), reflection))
     {
         LOG(L"Failed to compile shader {} - failed to reflect compute shader", GetName());
         return false;
     }
 
-    D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-    rootSignatureDesc.NumParameters = static_cast<uint32>(rootParameters.size());
-    rootSignatureDesc.pParameters = rootParameters.data();
+    D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+    rootSignatureDesc.NumParameters = static_cast<uint32>(reflection.RootParameters.Count());
+    rootSignatureDesc.pParameters = reflection.RootParameters.GetData();
     rootSignatureDesc.NumStaticSamplers = 0;
     rootSignatureDesc.pStaticSamplers = nullptr;
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;

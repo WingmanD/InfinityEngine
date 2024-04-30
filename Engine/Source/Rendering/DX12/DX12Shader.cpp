@@ -53,8 +53,11 @@ void DX12Shader::Apply(DX12GraphicsCommandList* commandList, PassKey<DX12Materia
 
 void DX12Shader::BindInstanceBuffers(DX12GraphicsCommandList& commandList,
                                      const AppendStructuredBuffer<SMInstance>& instanceBuffer,
+                                     uint32 instanceStart,
                                      const DynamicGPUBuffer<MaterialParameter>& materialBuffer) const
 {
+    commandList.SetGraphicsRoot32BitConstant(_instanceOffsetSlotIndex, instanceStart, 0);
+    
     commandList.SetGraphicsRootShaderResourceView(
         _instanceBufferSlotIndex,
         instanceBuffer.GetSRVGPUVirtualAddress()
@@ -118,20 +121,14 @@ bool DX12Shader::Recompile(bool immediate)
         return false;
     }
 
-    std::vector<D3D12_ROOT_PARAMETER> rootParameters;
-    std::set<MaterialParameterDescriptor> constantBufferParameterTypes;
-    std::set<StructuredBufferParameter> structuredBufferParameterTypes;
-
-    if (!ReflectShaderParameters(vertexShaderResult.Get(), rootParameters, constantBufferParameterTypes,
-                                 structuredBufferParameterTypes))
+    if (!ReflectShaderParameters(vertexShaderResult.Get(), recompiledData->Reflection))
     {
         LOG(L"Failed to compile shader {} - failed to reflect vertex shader", GetName().ToString());
         _beingRecompiled = false;
         return false;
     }
 
-    if (!ReflectShaderParameters(pixelShaderResult.Get(), rootParameters, constantBufferParameterTypes,
-                                 structuredBufferParameterTypes))
+    if (!ReflectShaderParameters(pixelShaderResult.Get(), recompiledData->Reflection))
     {
         LOG(L"Failed to compile shader {} - failed to reflect pixel shader", GetName().ToString());
         return false;
@@ -152,8 +149,8 @@ bool DX12Shader::Recompile(bool immediate)
     );
 
     D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    rootSignatureDesc.NumParameters = static_cast<uint32>(rootParameters.size());
-    rootSignatureDesc.pParameters = rootParameters.data();
+    rootSignatureDesc.NumParameters = static_cast<uint32>(recompiledData->Reflection.RootParameters.Count());
+    rootSignatureDesc.pParameters = recompiledData->Reflection.RootParameters.GetData();
     rootSignatureDesc.NumStaticSamplers = 0;
     rootSignatureDesc.pStaticSamplers = nullptr;
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -215,13 +212,11 @@ bool DX12Shader::Recompile(bool immediate)
     }
 
     recompiledData->ParameterMap = std::make_unique<DX12MaterialParameterMap>();
-    if (!recompiledData->ParameterMap->Initialize(constantBufferParameterTypes))
+    if (!recompiledData->ParameterMap->Initialize(recompiledData->Reflection.ConstantBufferParameterTypes))
     {
         _beingRecompiled = false;
         return false;
     }
-
-    recompiledData->StructuredBufferParameterTypes.Append(structuredBufferParameterTypes);
 
     std::weak_ptr weakThis = shared_from_this();
     auto lambda = [weakThis, recompiledData](RenderingSubsystem* renderingSubsystem)
@@ -239,13 +234,11 @@ bool DX12Shader::Recompile(bool immediate)
         shader->_vertexShader = std::move(recompiledData->VertexShader);
         shader->_pixelShader = std::move(recompiledData->PixelShader);
         shader->ParameterMap = std::move(recompiledData->ParameterMap);
-        shader->StructuredBufferParameters = std::move(recompiledData->StructuredBufferParameterTypes);
+        shader->StructuredBufferParameters.Append(recompiledData->Reflection.StructuredBufferParameterTypes);
         shader->_beingRecompiled = false;
 
-        shader->SetLastCompileTime(recompiledData->LastCompileTime);
-
-        for (const StructuredBufferParameter& structuredBufferParameterType : recompiledData->
-             StructuredBufferParameterTypes)
+        // todo names here will be replaced with types, once struct reflection is implemented
+        for (const StructuredBufferParameter& structuredBufferParameterType : recompiledData->Reflection.StructuredBufferParameterTypes)
         {
             if (structuredBufferParameterType.BufferName == Name(L"GInstanceBuffer"))
             {
@@ -263,6 +256,17 @@ bool DX12Shader::Recompile(bool immediate)
                 }
             }
         }
+
+        for (const ShaderReflection::RootConstant& rootConstantParameter : recompiledData->Reflection.RootConstantParameters)
+        {
+            if (rootConstantParameter.ParameterName == Name(L"GInstanceOffset"))
+            {
+                shader->_instanceOffsetSlotIndex = rootConstantParameter.SlotIndex;
+                break;
+            }
+        }
+        
+        shader->SetLastCompileTime(recompiledData->LastCompileTime);
 
         shader->MarkDirtyForAutosave();
 

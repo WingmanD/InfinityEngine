@@ -1,5 +1,4 @@
 ﻿#include "CompactSMInstancesComputeShader.h"
-
 #include "DX12RenderingSubsystem.h"
 
 CompactSMInstancesComputeShader::CompactSMInstancesComputeShader(const CompactSMInstancesComputeShader& other) :
@@ -24,7 +23,7 @@ void CompactSMInstancesComputeShader::Run(DX12GraphicsCommandList& commandList,
 
     _instanceBuffer = &instanceBuffer;
     _rootConstants.InstanceCount = instanceCount;
-    _rootConstants.InstanceCapacity = instanceBuffer.GetData().Capacity();
+    _rootConstants.InstanceCapacity = static_cast<uint32>(instanceBuffer.GetData().Capacity());
     
     const uint32 threads = std::max(instanceCount / 32u, 1u);
     Dispatch(commandList, threads, 1, 1);

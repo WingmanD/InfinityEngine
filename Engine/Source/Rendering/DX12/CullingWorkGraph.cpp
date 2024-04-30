@@ -61,6 +61,9 @@ void CullingWorkGraph::PreDispatch(DX12GraphicsCommandList* commandList)
 
     _visibleInstancesBuffer.ResetCounter(commandList);
     _visibleInstancesBuffer.Update(commandList);
+    
+    DX12Statics::Transition(commandList, _visibleInstancesBuffer.GetBuffer().Get(),
+                            D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     DX12RenderingSubsystem::Get().UpdateDynamicBuffer(StaticMesh::GetMeshInfoBuffer(), commandList);
 }
@@ -72,7 +75,7 @@ void CullingWorkGraph::BindBuffers(DX12GraphicsCommandList* commandList) const
     const std::shared_ptr<Scene> scene = RenderingSubsystem::Get().GetScene();
     DX12MaterialParameterRenderingData* renderingData = static_cast<DX12MaterialParameterRenderingData*>(scene->
         GetRenderingData());
-    ConstantBuffer<MaterialParameter>& constantBuffer = renderingData->GetConstantBuffer();
+    const ConstantBuffer<MaterialParameter>& constantBuffer = renderingData->GetConstantBuffer();
     if (scene->IsDirty())
     {
         constantBuffer.Update();
@@ -107,4 +110,6 @@ void CullingWorkGraph::DispatchImplementation(DX12GraphicsCommandList* commandLi
     desc.NodeCPUInput.RecordStrideInBytes = sizeof(SMInstance);
     desc.NodeCPUInput.pRecords = data;
     commandList->DispatchGraph(&desc);
+
+    DX12Statics::TransitionUAV(*commandList, _visibleInstancesBuffer.GetBuffer().Get());
 }

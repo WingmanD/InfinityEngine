@@ -460,7 +460,7 @@ public:
         DX12Statics::Transition(commandList, _readbackBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
     }
 
-    T* GetReadBackData() const
+    const T* GetReadBackData() const
     {
         return _readbackData;
     }

@@ -1,5 +1,6 @@
 ﻿#include "PathfindingSystem.h"
 #include "ECS/EntityList.h"
+#include "ECS/Components/CStaticMesh.h"
 #include "Math/Math.h"
 
 void PathfindingSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)

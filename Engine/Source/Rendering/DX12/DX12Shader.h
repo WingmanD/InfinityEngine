@@ -43,6 +43,7 @@ public:
     void Apply(DX12GraphicsCommandList* commandList, PassKey<DX12MaterialRenderingData>) const;
     void BindInstanceBuffers(DX12GraphicsCommandList& commandList,
                              const AppendStructuredBuffer<SMInstance>& instanceBuffer,
+                             uint32 instanceStart,
                              const DynamicGPUBuffer<MaterialParameter>& materialBuffer) const;
 
     virtual bool Recompile(bool immediate = false) override;
@@ -74,7 +75,7 @@ private:
 
         std::filesystem::file_time_type LastCompileTime;
         std::unique_ptr<MaterialParameterMap> ParameterMap;
-        DArray<StructuredBufferParameter, 4> StructuredBufferParameterTypes;
+        ShaderReflection Reflection;
     };
 
     std::atomic<bool> _beingRecompiled = false;
@@ -84,6 +85,7 @@ private:
     ComPtr<IDxcBlobEncoding> _vertexShader;
     ComPtr<IDxcBlobEncoding> _pixelShader;
 
+    uint32 _instanceOffsetSlotIndex = 0;
     uint32 _instanceBufferSlotIndex = 0;
     uint32 _materialBufferSlotIndex = 0;
 

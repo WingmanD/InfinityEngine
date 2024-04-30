@@ -133,10 +133,7 @@ bool DX12ShaderBase::InitializeRootSignature(const DX12RenderingSubsystem& rende
     return true;
 }
 
-bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
-                                             std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
-                                             std::set<MaterialParameterDescriptor>& constantBufferParameterTypes,
-                                             std::set<StructuredBufferParameter>& structuredBufferParameterTypes) const
+bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult, ShaderReflection& reflection) const
 {
     ComPtr<IDxcBlob> reflectionData;
     compileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(reflectionData.GetAddressOf()), nullptr);
@@ -168,8 +165,7 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
         {
         case D3D_SIT_CBUFFER:
             {
-                if (!ReflectConstantBuffer(shaderReflection.Get(), bindDesc, rootParameters,
-                                           constantBufferParameterTypes))
+                if (!ReflectConstantBuffer(shaderReflection.Get(), bindDesc, reflection))
                 {
                     return false;
                 }
@@ -180,8 +176,8 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
             {
                 StructuredBufferParameter structuredBufferParameter;
                 structuredBufferParameter.BufferName = Name(Util::ToWString(bindDesc.Name));
-                structuredBufferParameter.SlotIndex = static_cast<uint32>(rootParameters.size());
-                const auto result = structuredBufferParameterTypes.insert(structuredBufferParameter);
+                structuredBufferParameter.SlotIndex = static_cast<uint32>(reflection.RootParameters.Count());
+                const auto result = reflection.StructuredBufferParameterTypes.insert(structuredBufferParameter);
 
                 if (result.second)
                 {
@@ -190,7 +186,7 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
                     parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
                     parameter.Descriptor.RegisterSpace = bindDesc.Space;
                     parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-                    rootParameters.push_back(parameter);
+                    reflection.RootParameters.Add(parameter);
                 }
 
                 break;
@@ -200,8 +196,8 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
             {
                 StructuredBufferParameter structuredBufferParameter;
                 structuredBufferParameter.BufferName = Name(Util::ToWString(bindDesc.Name));
-                structuredBufferParameter.SlotIndex = static_cast<uint32>(rootParameters.size());
-                const auto result = structuredBufferParameterTypes.insert(structuredBufferParameter);
+                structuredBufferParameter.SlotIndex = static_cast<uint32>(reflection.RootParameters.Count());
+                const auto result = reflection.StructuredBufferParameterTypes.insert(structuredBufferParameter);
 
                 if (result.second)
                 {
@@ -210,7 +206,7 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
                     parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
                     parameter.Descriptor.RegisterSpace = bindDesc.Space;
                     parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-                    rootParameters.push_back(parameter);
+                    reflection.RootParameters.Add(parameter);
                 }
 
                 break;
@@ -240,10 +236,11 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult,
 
 bool DX12ShaderBase::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection,
                                            const D3D12_SHADER_INPUT_BIND_DESC& bindDesc,
-                                           std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
-                                           std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const
+                                           ShaderReflection& reflection) const
 {
-    ID3D12ShaderReflectionConstantBuffer* cbReflection = shaderReflection->GetConstantBufferByIndex(bindDesc.BindPoint);
+    ID3D12ShaderReflectionConstantBuffer* cbReflection = shaderReflection->GetConstantBufferByIndex(
+        static_cast<uint32>(reflection.ConstantBufferParameterTypes.size())
+    );
     if (cbReflection == nullptr)
     {
         LOG(L"ERROR: failed to reflect constant buffer {}!", Util::ToWString(bindDesc.Name));
@@ -270,25 +267,33 @@ bool DX12ShaderBase::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflect
         const Type* type = TypeRegistry::Get().FindTypeByName(typeDesc.Name);
         if (type == nullptr)
         {
-            LOG(L"Warning: failed to find type {}! Converting it to root constants!", Util::ToWString(typeDesc.Name));
+            LOG(L"Note: failed to find type {}! Converting it to root constants!", Util::ToWString(typeDesc.Name));
             
-            D3D12_ROOT_PARAMETER parameter = {};
-            parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-            parameter.Constants.ShaderRegister = bindDesc.BindPoint;
-            parameter.Constants.RegisterSpace = bindDesc.Space;
-            parameter.Constants.Num32BitValues = bufferDesc.Size / 4;
+            const auto result = reflection.RootConstantParameters.insert({
+                Name(Util::ToWString(typeDesc.Name)),
+                static_cast<uint32>(reflection.RootParameters.Count())
+            });
 
-            rootParameters.push_back(parameter);
-            
+            if (result.second)
+            {
+                D3D12_ROOT_PARAMETER parameter = {};
+                parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+                parameter.Constants.ShaderRegister = bindDesc.BindPoint;
+                parameter.Constants.RegisterSpace = bindDesc.Space;
+                parameter.Constants.Num32BitValues = bufferDesc.Size / 4;
+
+                reflection.RootParameters.Add(parameter);
+            }
+
             continue;
         }
 
         MaterialParameterDescriptor parameterType;
         parameterType.Name = bufferDesc.Name;
         parameterType.ParameterType = TypeRegistry::Get().FindTypeByName(typeDesc.Name);
-        parameterType.SlotIndex = static_cast<uint32>(rootParameters.size());
+        parameterType.SlotIndex = static_cast<uint32>(reflection.RootParameters.Count());
 
-        const auto result = constantBufferParameterTypes.insert(parameterType);
+        const auto result = reflection.ConstantBufferParameterTypes.insert(parameterType);
         if (result.second)
         {
             D3D12_ROOT_PARAMETER parameter = {};
@@ -296,7 +301,7 @@ bool DX12ShaderBase::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflect
             parameter.Descriptor.ShaderRegister = bindDesc.BindPoint;
             parameter.Descriptor.RegisterSpace = bindDesc.Space;
             parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-            rootParameters.push_back(parameter);
+            reflection.RootParameters.Add(parameter);
         }
     }
 

@@ -20,6 +20,11 @@ struct SMInstance
     uint Count;
 };
 
+struct InstanceOffset
+{
+    uint Offset;
+};
+
 struct AABB
 {
     float3 Min;

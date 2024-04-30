@@ -9,9 +9,10 @@ struct DefaultMaterialParameter
     float Metallic;
 };
 
+ConstantBuffer<InstanceOffset> GInstanceOffset : register(b0);
 StructuredBuffer<SMInstance> GInstanceBuffer : register(t0);
 StructuredBuffer<DefaultMaterialParameter> GMP_DefaultMaterialParameter : register(t1);
-ConstantBuffer<Scene> GScene : register(b0);
+ConstantBuffer<Scene> GScene : register(b1);
 
 struct VertexIn
 {
@@ -29,19 +30,21 @@ struct VertexOut
     nointerpolation float3 Normal : NORMAL;
     float4 VertexColor : COLOR;
     float2 UV : UV;
-    uint InstanceID : SV_InstanceID;
+    uint InstanceID : InstanceID;
 };
 
 VertexOut VS(VertexIn vIn)
 {
     VertexOut vOut;
 
-    vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GInstanceBuffer[vIn.InstanceID].World);
+    const uint instanceID = vIn.InstanceID + GInstanceOffset.Offset;
+
+    vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GInstanceBuffer[instanceID].World);
     vOut.PositionCS = mul(vOut.PositionWS, GScene.ViewProjection);
-    vOut.Normal = mul(float4(vIn.Normal, 0.0f), GInstanceBuffer[vIn.InstanceID].World).xyz;
+    vOut.Normal = mul(float4(vIn.Normal, 0.0f), GInstanceBuffer[instanceID].World).xyz;
     vOut.VertexColor = vIn.VertexColor;
-    vOut.UV = vIn.UV * GInstanceBuffer[vIn.InstanceID].MaterialIndex;
-    vOut.InstanceID = vIn.InstanceID;
+    vOut.UV = vIn.UV * GInstanceBuffer[instanceID].MaterialIndex;
+    vOut.InstanceID = instanceID;
 
     return vOut;
 }

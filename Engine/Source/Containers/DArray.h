@@ -152,6 +152,11 @@ public:
         return _currentPtr;
     }
 
+    ConstPointer operator->() const
+    {
+        return _currentPtr;
+    }
+
     operator DArrayRandomAccessIterator<const T, SSO_SIZE>() const
     {
         return DArrayRandomAccessIterator<const T, SSO_SIZE>(_index, _ssoStartPtr, _dataStartPtr);
@@ -296,6 +301,11 @@ public:
     }
 
     Pointer operator->()
+    {
+        return _ptr;
+    }
+
+    ConstPointer operator->() const
     {
         return _ptr;
     }

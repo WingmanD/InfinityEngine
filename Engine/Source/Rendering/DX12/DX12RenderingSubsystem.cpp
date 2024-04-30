@@ -191,7 +191,7 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
 
     // todo use multiple command lists, write to them in parallel after we get the results from the compute shader, if
     // the results require many draw calls
-
+    
     for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
     {
         // todo check if system's world is visible - we need to know which world the camera belongs to
@@ -201,7 +201,6 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         _cullingWorkGraph.SetInstanceBuffer(&renderingSystem->GetInstanceBuffer());
         _cullingWorkGraph.Dispatch(commandList, renderingSystem->GetInstanceBuffer().GetData(),
                                    renderingSystem->GetInstanceBuffer().Count());
-        DX12Statics::TransitionUAV(*commandList, _cullingWorkGraph.GetVisibleInstances().GetBuffer().Get());
     }
 
     _cullingWorkGraph.GetVisibleInstances().ReadBackCounter(commandList);
@@ -218,14 +217,11 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
 
     AppendStructuredBuffer<SMInstance>& visibleInstances = _cullingWorkGraph.GetVisibleInstances();
 
-    DX12Statics::Transition(commandListSort, visibleInstances.GetBuffer().Get(), D3D12_RESOURCE_STATE_COMMON,
-                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    DX12Statics::Transition(commandListSort, visibleInstances.GetBuffer().Get(),
+                            D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     _sortCS->Run(*commandListSort, visibleInstances);
     _compactSMInstancesCS.lock()->Run(*commandListSort, visibleInstances);
-
-    DX12Statics::Transition(commandListSort, visibleInstances.GetBuffer().Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                            D3D12_RESOURCE_STATE_COMMON);
 
     _cullingWorkGraph.ReadBackVisibleInstances(commandListSort);
 
@@ -239,19 +235,14 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
     DX12CommandList commandListStructDraw = window->RequestCommandList(viewport);
     DX12GraphicsCommandList* commandListDraw = commandListStructDraw.CommandList.Get();
 
+    DX12Statics::Transition(commandListDraw, visibleInstances.GetBuffer().Get(),
+                           D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+
     uint32 processedInstances = 0;
     const SMInstance* data = visibleInstances.GetReadBackData();
 
     DArray<SMInstance> visibleInstancesArray;
     visibleInstancesArray.Reserve(visibleInstances.Count());
-    for (uint32 i = 0; i < visibleInstances.Count(); ++i)
-    {
-        visibleInstancesArray.Add(data[i]);
-        LOG(L"{}: {} {} {} MI: {} Count: {}",
-            i,
-            data[i].World.m[0][3], data[i].World.m[1][3], data[i].World.m[2][3],
-            data[i].MaterialIndex, data[i].Count);
-    }
 
     while (processedInstances < visibleInstances.Count())
     {
@@ -273,8 +264,8 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
                     GetMaterialParameterBuffer(firstInstance.MaterialID);
                 materialBuffer.GetProxy<DynamicGPUBufferUploader<MaterialParameter>>()->Update(commandListDraw);
 
-                shader->BindInstanceBuffers(*commandListDraw, visibleInstances, materialBuffer);
-
+                shader->BindInstanceBuffers(*commandListDraw, visibleInstances, processedInstances, materialBuffer);
+                
                 commandListDraw->DrawIndexedInstanced(
                     static_cast<uint32>(staticMesh->GetIndices().size()),
                     firstInstance.Count,
@@ -295,6 +286,9 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
 
         processedInstances += firstInstance.Count;
     }
+
+    DX12Statics::Transition(commandListDraw, visibleInstances.GetBuffer().Get(),
+                            D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COMMON);
 
     window->CloseCommandList(commandListStructDraw);
     window->ExecuteCommandLists();

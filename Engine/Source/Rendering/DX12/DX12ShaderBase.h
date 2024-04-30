@@ -33,7 +33,27 @@ public:
     const D3D12_ROOT_SIGNATURE_DESC& GetRootSignatureDesc(PassKey<DX12RenderingSubsystem>) const;
 
 protected:
+    struct ShaderReflection
+    {
+        struct RootConstant
+        {
+            Name ParameterName;
+            uint32 SlotIndex;
 
+            bool operator<(const RootConstant& rhs) const
+            {
+                return ParameterName < rhs.ParameterName;
+            }
+        };
+
+        DArray<D3D12_ROOT_PARAMETER> RootParameters;
+        
+        std::set<MaterialParameterDescriptor> ConstantBufferParameterTypes;
+        std::set<StructuredBufferParameter> StructuredBufferParameterTypes;
+        std::set<RootConstant> RootConstantParameters;
+    };
+    
+protected:
     static ComPtr<IDxcResult> CompileShader(const std::filesystem::path& shaderPath,
                                             const std::wstring& entryPoint,
                                             const std::wstring& target,
@@ -41,8 +61,8 @@ protected:
 
     bool InitializeRootSignature(const DX12RenderingSubsystem& renderingSubsystem);
     
-    bool ReflectShaderParameters(IDxcResult* compileResult, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes, std::set<StructuredBufferParameter>& structuredBufferParameterTypes) const;
-    bool ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, std::vector<D3D12_ROOT_PARAMETER>& rootParameters, std::set<MaterialParameterDescriptor>& constantBufferParameterTypes) const;
+    bool ReflectShaderParameters(IDxcResult* compileResult, ShaderReflection& reflection) const;
+    bool ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflection, const D3D12_SHADER_INPUT_BIND_DESC& bindDesc, ShaderReflection& reflection) const;
 
     bool SerializeBase(MemoryWriter& writer) const;
     bool DeserializeBase(MemoryReader& reader);
