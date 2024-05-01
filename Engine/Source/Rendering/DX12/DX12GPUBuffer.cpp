@@ -44,7 +44,7 @@ void DX12GPUBuffer::Update(DX12GraphicsCommandList* commandList, const DArray<ui
 
     for (const uint64 dirtyIndex : dirtyIndices)
     {
-        const size_t alignedOffset = Math::RoundToNearest(static_cast<uint32>(dirtyIndex), 256u);
+        const size_t alignedOffset = Math::RoundToNearest(static_cast<uint32>(dirtyIndex) * elementSize, 256u);
         const size_t numBytes = (dirtyIndex + alignedOffset + 1) * elementSize;
         
         D3D12_SUBRESOURCE_DATA subResourceData;

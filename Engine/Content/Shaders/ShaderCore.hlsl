@@ -25,6 +25,14 @@ struct InstanceOffset
     uint Offset;
 };
 
+struct PointLight
+{
+    float3 Location;
+    float Radius;
+    float3 Color;
+    float Intensity;
+};
+
 struct AABB
 {
     float3 Min;

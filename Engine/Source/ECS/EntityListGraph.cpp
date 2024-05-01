@@ -73,6 +73,27 @@ EntityListGraph::Node* EntityListGraph::AddArchetype(const Archetype& type)
         return node;
     }
 
+    if (bestMatchNode->GetArchetype().IsSupersetOf(type))
+    {
+        _archetypeToNodeMap[type.GetID()] = node;
+
+        for (int64 i = bestMatchNode->Parents.Count() - 1; i >= 0; --i)
+        {
+            Node* parent = bestMatchNode->Parents[i];
+            
+            if (parent->GetArchetype().IsSubsetOf(type))
+            {
+                parent->AddChildByArchetype(node, {});
+                
+                bestMatchNode->Parents.RemoveAtSwap(i);
+            }
+        }
+
+        node->AddChildByArchetype(bestMatchNode, {});
+        
+        return node;
+    }
+
     bestMatchNode->AddChildByArchetype(node, {});
 
     if (type == bestMatchNode->GetArchetype())

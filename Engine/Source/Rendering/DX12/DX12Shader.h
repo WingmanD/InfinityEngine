@@ -46,6 +46,12 @@ public:
                              uint32 instanceStart,
                              const DynamicGPUBuffer<MaterialParameter>& materialBuffer) const;
 
+    // todo temporary
+    uint32 GetPointLightsBufferSlotIndex() const
+    {
+        return _pointLightsBufferSlotIndex;
+    }
+
     virtual bool Recompile(bool immediate = false) override;
 
     // Asset
@@ -88,6 +94,7 @@ private:
     uint32 _instanceOffsetSlotIndex = 0;
     uint32 _instanceBufferSlotIndex = 0;
     uint32 _materialBufferSlotIndex = 0;
+    uint32 _pointLightsBufferSlotIndex = 0;
 
 private:
     bool InitializePSO(const DX12RenderingSubsystem& renderingSubsystem,

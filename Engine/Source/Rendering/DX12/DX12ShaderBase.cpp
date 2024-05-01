@@ -165,6 +165,35 @@ bool DX12ShaderBase::ReflectShaderParameters(IDxcResult* compileResult, ShaderRe
         {
         case D3D_SIT_CBUFFER:
             {
+                bool alreadyReflected = false;
+                for (const MaterialParameterDescriptor& constantBufferParameterType : reflection.ConstantBufferParameterTypes)
+                {
+                    if (constantBufferParameterType.Name == bindDesc.Name)
+                    {
+                        alreadyReflected = true;
+                        break;
+                    }
+                }
+
+                if (alreadyReflected)
+                {
+                    break;
+                }
+                
+                for (const ShaderReflection::RootConstant& rootConstantParameter : reflection.RootConstantParameters)
+                {
+                    if (rootConstantParameter.ParameterName == Name(Util::ToWString(bindDesc.Name)))
+                    {
+                        alreadyReflected = true;
+                        break;
+                    }
+                } 
+
+                if (alreadyReflected)
+                {
+                    break;
+                }
+                
                 if (!ReflectConstantBuffer(shaderReflection.Get(), bindDesc, reflection))
                 {
                     return false;
@@ -239,7 +268,7 @@ bool DX12ShaderBase::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflect
                                            ShaderReflection& reflection) const
 {
     ID3D12ShaderReflectionConstantBuffer* cbReflection = shaderReflection->GetConstantBufferByIndex(
-        static_cast<uint32>(reflection.ConstantBufferParameterTypes.size())
+        static_cast<uint32>(reflection.ConstantBufferParameterTypes.size() + reflection.RootConstantParameters.size())
     );
     if (cbReflection == nullptr)
     {
@@ -248,22 +277,37 @@ bool DX12ShaderBase::ReflectConstantBuffer(ID3D12ShaderReflection* shaderReflect
     }
 
     D3D12_SHADER_BUFFER_DESC bufferDesc;
-    cbReflection->GetDesc(&bufferDesc);
+    HRESULT hr = cbReflection->GetDesc(&bufferDesc);
+
+    if (FAILED(hr))
+    {
+        LOG(L"ERROR: failed to get constant buffer description for {}!", Util::ToWString(bindDesc.Name));
+        return false;
+    }
 
     for (UINT i = 0; i < bufferDesc.Variables; i++)
     {
         ID3D12ShaderReflectionVariable* varReflection = cbReflection->GetVariableByIndex(i);
         if (varReflection == nullptr)
         {
-            LOG(L"ERROR: failed to reflect variable {} in constant buffer {}!", i,
+            LOG(L"ERROR: failed to reflect variable {} in constant buffer {}!",
+                i,
                 Util::ToWString(bindDesc.Name));
             return false;
         }
 
         ID3D12ShaderReflectionType* typeReflection = varReflection->GetType();
         D3D12_SHADER_TYPE_DESC typeDesc;
-        typeReflection->GetDesc(&typeDesc);
+        hr = typeReflection->GetDesc(&typeDesc);
 
+        if (FAILED(hr))
+        {
+            LOG(L"ERROR: failed to get type description for variable {} in constant buffer {}!",
+                i,
+                Util::ToWString(bindDesc.Name));
+            return false;
+        }
+        
         const Type* type = TypeRegistry::Get().FindTypeByName(typeDesc.Name);
         if (type == nullptr)
         {

@@ -4,6 +4,7 @@
 #include "ECS/Components/CStaticMesh.h"
 #include "ECS/Systems/CameraSystem.h"
 #include "ECS/Systems/PathfindingSystem.h"
+#include "ECS/Systems/PointLightSystem.h"
 #include "ECS/Systems/StaticMeshRenderingSystem.h"
 #include "Engine/Subsystems/GameplaySubsystem.h"
 #include "Rendering/Widgets/ViewportWidget.h"
@@ -37,6 +38,7 @@ bool Game::OnStartup()
         world.AddSystem<PathfindingSystem>();
         world.AddSystem<CameraSystem>();
         world.AddSystem<StaticMeshRenderingSystem>();
+        world.AddSystem<PointLightSystem>();
 
         Entity& entity = world.CreateEntity(_playerTemplate);
         gameplaySubsystem.GetMainViewport()->SetCamera(&entity.Get<CCamera>(_playerTemplate->GetArchetype()));

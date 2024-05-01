@@ -15,6 +15,8 @@ struct Vertex
 {
     Vector3 Position;
     Vector3 Normal;
+    Vector3 Tangent;
+    Vector3 Bitangent;
     Vector4 Color;
     Vector2 UV;
 };
@@ -62,9 +64,9 @@ public:
 
     virtual bool Deserialize(MemoryReader& reader) override;
 
-    [[nodiscard]] const std::vector<Vertex>& GetVertices() const;
+    [[nodiscard]] const DArray<Vertex>& GetVertices() const;
 
-    [[nodiscard]] const std::vector<uint32_t>& GetIndices() const;
+    [[nodiscard]] const DArray<uint32_t>& GetIndices() const;
 
     // todo multiple material slots
     void SetMaterial(const std::shared_ptr<Material>& material);
@@ -96,8 +98,8 @@ private:
     static DynamicGPUBuffer2<MeshInfo> _meshInfoBuffer;
 
 private:
-    std::vector<Vertex> _vertices;
-    std::vector<uint32_t> _indices;
+    DArray<Vertex> _vertices;
+    DArray<uint32_t> _indices;
 
     PROPERTY(Edit, Load)
     AssetPtr<Material> _material;

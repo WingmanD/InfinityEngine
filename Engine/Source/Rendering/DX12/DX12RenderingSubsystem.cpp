@@ -24,6 +24,9 @@
 #include <string>
 #include <vector>
 
+#include "ECS/Systems/PointLightSystem.h"
+#include "Rendering/PointLight.h"
+
 extern "C" {
 __declspec(dllexport) extern const UINT D3D12SDKVersion = 613;
 }
@@ -195,9 +198,14 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
     for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
     {
         // todo check if system's world is visible - we need to know which world the camera belongs to
+        
+        PointLightSystem* pointLightSystem = renderingSystem->GetWorld().FindSystem<PointLightSystem>();
+        const DynamicGPUBuffer2<PointLight>& pointLightsBuffer = pointLightSystem->GetPointLightBuffer();
+        pointLightsBuffer.GetBuffer<DX12GPUBuffer>().Update(commandList, pointLightsBuffer.GetDirtyIndices());
+        
         renderingSystem->GetInstanceBuffer().GetProxy<DynamicGPUBufferUploader<SMInstance>>()->Update(commandList);
 
-        // todo multiple systems
+        // todo multiple systems SMInstance needs to know which system it belongs to
         _cullingWorkGraph.SetInstanceBuffer(&renderingSystem->GetInstanceBuffer());
         _cullingWorkGraph.Dispatch(commandList, renderingSystem->GetInstanceBuffer().GetData(),
                                    renderingSystem->GetInstanceBuffer().Count());
@@ -264,10 +272,19 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
                     GetMaterialParameterBuffer(firstInstance.MaterialID);
                 materialBuffer.GetProxy<DynamicGPUBufferUploader<MaterialParameter>>()->Update(commandListDraw);
 
+
                 shader->BindInstanceBuffers(*commandListDraw, visibleInstances, processedInstances, materialBuffer);
                 
+                // todo this should be in the first loop, and passed to a compute shader actually
+                PointLightSystem* pointLightSystem = _staticMeshRenderingSystems[0]->GetWorld().FindSystem<PointLightSystem>();
+                const DynamicGPUBuffer2<PointLight>& pointLightsBuffer = pointLightSystem->GetPointLightBuffer();
+                commandListDraw->SetGraphicsRootShaderResourceView(
+                    shader->GetPointLightsBufferSlotIndex(),
+                    pointLightsBuffer.GetBuffer<DX12GPUBuffer>().GetSRVGPUVirtualAddress()
+                );
+
                 commandListDraw->DrawIndexedInstanced(
-                    static_cast<uint32>(staticMesh->GetIndices().size()),
+                    static_cast<uint32>(staticMesh->GetIndices().Count()),
                     firstInstance.Count,
                     0,
                     0,

@@ -134,6 +134,20 @@ public:
         });
     }
 
+    template <typename SystemType> requires IsA<SystemType, SystemBase>
+    SystemType* FindSystem() const
+    {
+        for (const std::unique_ptr<SystemBase>& systemBase : _systemScheduler.GetSystems())
+        {
+            if (SystemType* system = dynamic_cast<SystemType*>(systemBase.get()))
+            {
+                return system;
+            }
+        }
+        
+        return nullptr;
+    }
+
     void Query(ECSQuery& query, const Archetype& archetype);
 
     template <typename... ComponentType> requires (IsA<ComponentType, Component> && ...)

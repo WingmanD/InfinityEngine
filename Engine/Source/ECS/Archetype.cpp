@@ -137,7 +137,7 @@ bool Archetype::IsSubsetOf(const Archetype& rhs) const
 
 bool Archetype::IsSupersetOf(const Archetype& rhs) const
 {
-    return rhs.IsSubsetOf(*this);
+    return SubsetIntersectionSize(rhs) == rhs._componentTypeList.Count() && _componentTypeList.Count() > rhs._componentTypeList.Count();
 }
 
 Archetype Archetype::Difference(const Archetype& rhs) const

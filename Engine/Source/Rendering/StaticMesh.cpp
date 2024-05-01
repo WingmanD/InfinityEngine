@@ -65,7 +65,7 @@ bool StaticMesh::Initialize()
 
     _renderingData->SetMesh(std::dynamic_pointer_cast<StaticMesh>(shared_from_this()), {});
 
-    if (!_vertices.empty() && !_indices.empty())
+    if (!_vertices.IsEmpty() && !_indices.IsEmpty())
     {
         _renderingData->UploadToGPU(renderingSubsystem);
     }
@@ -125,12 +125,12 @@ bool StaticMesh::Deserialize(MemoryReader& reader)
     return true;
 }
 
-const std::vector<Vertex>& StaticMesh::GetVertices() const
+const DArray<Vertex>& StaticMesh::GetVertices() const
 {
     return _vertices;
 }
 
-const std::vector<uint32_t>& StaticMesh::GetIndices() const
+const DArray<uint32_t>& StaticMesh::GetIndices() const
 {
     return _indices;
 }
@@ -264,25 +264,42 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
         return false;
     }
 
-    _vertices.reserve(assimpMesh->mNumVertices);
-    _indices.reserve(3 * assimpMesh->mNumFaces);
+    _vertices.Reserve(assimpMesh->mNumVertices);
+    _indices.Reserve(3 * assimpMesh->mNumFaces);
 
     for (uint32 i = 0; i < assimpMesh->mNumVertices; i++)
     {
-        _vertices.emplace_back();
-        Vertex& vertex = _vertices.back();
+        _vertices.Emplace();
+        Vertex& vertex = _vertices.Back();
 
         vertex.Position = Vector3(
             assimpMesh->mVertices[i].x,
             assimpMesh->mVertices[i].y,
-            assimpMesh->mVertices[i].z);
+            assimpMesh->mVertices[i].z
+        );
 
         if (assimpMesh->HasNormals())
         {
             vertex.Normal = Vector3(
                 assimpMesh->mNormals[i].x,
                 assimpMesh->mNormals[i].y,
-                assimpMesh->mNormals[i].z);
+                assimpMesh->mNormals[i].z
+            );
+        }
+
+        if (assimpMesh->HasTangentsAndBitangents())
+        {
+            vertex.Tangent = Vector3(
+                assimpMesh->mTangents[i].x,
+                assimpMesh->mTangents[i].y,
+                assimpMesh->mTangents[i].z
+            );
+
+            vertex.Bitangent = Vector3(
+                assimpMesh->mBitangents[i].x,
+                assimpMesh->mBitangents[i].y,
+                assimpMesh->mBitangents[i].z
+            );
         }
 
         if (assimpMesh->HasVertexColors(0))
@@ -291,14 +308,16 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
                 assimpMesh->mColors[0][i].r,
                 assimpMesh->mColors[0][i].g,
                 assimpMesh->mColors[0][i].b,
-                assimpMesh->mColors[0][i].a);
+                assimpMesh->mColors[0][i].a
+            );
         }
 
         if (assimpMesh->HasTextureCoords(0))
         {
             vertex.UV = Vector2(
                 assimpMesh->mTextureCoords[0][i].x,
-                assimpMesh->mTextureCoords[0][i].y);
+                assimpMesh->mTextureCoords[0][i].y
+            );
         }
     }
 
@@ -306,10 +325,10 @@ bool StaticMesh::ImportInternal(const aiMesh* assimpMesh)
     {
         for (uint32 j = 0; j < assimpMesh->mFaces[faceIndex].mNumIndices; ++j)
         {
-            _indices.emplace_back(assimpMesh->mFaces[faceIndex].mIndices[j]);
+            _indices.Emplace(assimpMesh->mFaces[faceIndex].mIndices[j]);
         }
     }
-    _indices.shrink_to_fit();
+    _indices.ShrinkToFit();
 
     UpdateBoundingBox();
 

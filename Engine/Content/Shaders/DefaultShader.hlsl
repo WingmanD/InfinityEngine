@@ -12,12 +12,15 @@ struct DefaultMaterialParameter
 ConstantBuffer<InstanceOffset> GInstanceOffset : register(b0);
 StructuredBuffer<SMInstance> GInstanceBuffer : register(t0);
 StructuredBuffer<DefaultMaterialParameter> GMP_DefaultMaterialParameter : register(t1);
+StructuredBuffer<PointLight> GPointLights : register(t2);
 ConstantBuffer<Scene> GScene : register(b1);
 
 struct VertexIn
 {
     float3 PositionLS : POSITION;
     float3 Normal : NORMAL;
+    float3 Tangent : TANGENT;
+    float3 Bitangent : BITANGENT;
     float4 VertexColor : COLOR;
     float2 UV : UV;
     uint InstanceID : SV_InstanceID;
@@ -26,8 +29,10 @@ struct VertexIn
 struct VertexOut
 {
     float4 PositionCS : SV_POSITION;
-    nointerpolation float4 PositionWS : POSITION;
-    nointerpolation float3 Normal : NORMAL;
+    float4 PositionWS : POSITION;
+    float3 Normal : NORMAL;
+    float3 Tangent : TANGENT;
+    float3 Bitangent : BITANGENT;
     float4 VertexColor : COLOR;
     float2 UV : UV;
     uint InstanceID : InstanceID;
@@ -41,48 +46,84 @@ VertexOut VS(VertexIn vIn)
 
     vOut.PositionWS = mul(float4(vIn.PositionLS, 1.0f), GInstanceBuffer[instanceID].World);
     vOut.PositionCS = mul(vOut.PositionWS, GScene.ViewProjection);
+
     vOut.Normal = mul(float4(vIn.Normal, 0.0f), GInstanceBuffer[instanceID].World).xyz;
+    vOut.Tangent = mul(float4(vIn.Tangent, 0.0f), GInstanceBuffer[instanceID].World).xyz;
+    vOut.Bitangent = mul(float4(vIn.Bitangent, 0.0f), GInstanceBuffer[instanceID].World).xyz;
+
     vOut.VertexColor = vIn.VertexColor;
     vOut.UV = vIn.UV * GInstanceBuffer[instanceID].MaterialIndex;
+
     vOut.InstanceID = instanceID;
 
     return vOut;
 }
 
+float3 GGX(float3 n, float3 m, float3 tangent, float3 bitangent, float roughness, float aniso)
+{
+    const float rSq = pow(roughness, 2);
+    const float alphaX = rSq * (1.0f + aniso);
+    const float alphaY = rSq * (1.0f - aniso);
+
+    const float nDotM = dot(n, m);
+
+    const float denominator =
+        pow(dot(tangent, m), 2) / pow(alphaX, 2) +
+        pow(dot(bitangent, m), 2) / pow(alphaY, 2) +
+        pow(nDotM, 2.0f);
+
+    return saturate(nDotM) / (3.14f * alphaX * alphaY * pow(denominator, 2));
+}
+
+float3 Fresnel(float3 n, float3 l, float f0)
+{
+    return f0 + (1.0f - f0) * pow(1.0f - dot(n, l), 5.0f);
+}
+
+float3 G1(float3 n, float3 s, float alpha)
+{
+    const float nDotS = dot(n, s);
+    return 2.0f * nDotS / (nDotS * (2.0f - alpha) + alpha);
+}
+
+float3 CookTorranceBRDF(float3 l, float3 v,
+                        float3 n, float3 tangent, float3 bitangent,
+                        float f0, float roughness, float aniso)
+{
+    const float3 h = normalize(l + v);
+    const float alpha = pow(roughness, 2);
+    return GGX(h, l, tangent, bitangent, roughness, aniso) * Fresnel(l, h, f0) * G1(n, l, alpha) /
+        (4.0f * dot(n, l) * dot(n, v));
+}
+
 float4 PS(VertexOut pIn) : SV_Target
 {
-    const float3 lightPosition = float3(2.0f, 1.0f, 3.0f);
-    const float3 lightColor = float3(1.0f, 1.0f, 1.0f);
-    const float3 lightIntensity = float3(1.0f, 1.0f, 1.0f);
-
     const float3 ambient = float3(0.1f, 0.1f, 0.1f);
-    const float shininess = GMP_DefaultMaterialParameter[GInstanceBuffer[pIn.InstanceID].MaterialIndex].SpecularPower;
+    const float specular = GMP_DefaultMaterialParameter[GInstanceBuffer[pIn.InstanceID].MaterialIndex].SpecularPower;
+    //const float roughness = 1.0f - specular / 1000.0f;
+    const float roughness = 1.0f;
+    const float3 diffuse = GMP_DefaultMaterialParameter[GInstanceBuffer[pIn.InstanceID].MaterialIndex].BaseColor.xyz;
+
+    const float f0 = 0.04f;
+    const float aniso = 0.0f;
 
     const float3 n = normalize(pIn.Normal);
     const float3 v = normalize(GScene.CameraLocationWS - pIn.PositionWS.xyz);
-    
-    float3 diffuse = GMP_DefaultMaterialParameter[GInstanceBuffer[pIn.InstanceID].MaterialIndex].BaseColor.xyz;
-    float3 specular = GMP_DefaultMaterialParameter[GInstanceBuffer[pIn.InstanceID].MaterialIndex].SpecularColor.xyz;
-    float3 lOriginal = lightPosition - pIn.PositionWS.xyz;
 
-    const float kc = 1.0;
-    const float kl = 0.09;
-    const float kq = 0.032;
+    float3 color = float3(0.0f, 0.0f, 0.0f);
 
-    float dl = length(lOriginal);
+    [unroll]
+    for (int i = 0; i < 4; ++i)
+    {
+        const float3 l = normalize(GPointLights[i].Location - pIn.PositionWS.xyz);
 
-    float denominator = kc + kl * dl + kq * dl * dl;
+        const float3 contribution = GPointLights[i].Color * GPointLights[i].Intensity *
+            CookTorranceBRDF(l, v, n, pIn.Tangent, pIn.Bitangent, f0, roughness, aniso);
+        color += max(0.0f, contribution);
+    }
 
-    float3 l = normalize(lOriginal);
-    //float3 r = reflect(-l, n);
+    color *= diffuse;
+    color += ambient * diffuse;
 
-    float3 h = normalize(l + v);
-
-    diffuse *= lightIntensity * lightColor * max(dot(l, n), 0) / denominator;
-    specular *= lightIntensity * lightColor * pow(max(dot(h, n), 0), shininess) / denominator;
-
-    //diffuse *= float3(sin(GScene.Time % 1.0f), cos(GScene.Time % 1.0f), 0.0f);
-
-    float4 color = float4(ambient + diffuse + specular, 1.0f);
-    return color;
+    return float4(color, 1.0f);
 }

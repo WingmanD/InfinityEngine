@@ -15,8 +15,10 @@
 std::vector<D3D12_INPUT_ELEMENT_DESC> DX12Shader::_inputLayout = {
     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-    {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-    {"UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+    {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    {"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    {"UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 60, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 };
 
 DX12Shader::DX12Shader()
@@ -131,6 +133,7 @@ bool DX12Shader::Recompile(bool immediate)
     if (!ReflectShaderParameters(pixelShaderResult.Get(), recompiledData->Reflection))
     {
         LOG(L"Failed to compile shader {} - failed to reflect pixel shader", GetName().ToString());
+        _beingRecompiled = false;
         return false;
     }
 
@@ -243,6 +246,10 @@ bool DX12Shader::Recompile(bool immediate)
             if (structuredBufferParameterType.BufferName == Name(L"GInstanceBuffer"))
             {
                 shader->_instanceBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+            }
+            else if (structuredBufferParameterType.BufferName == Name(L"GPointLights"))
+            {
+                shader->_pointLightsBufferSlotIndex = structuredBufferParameterType.SlotIndex;
             }
             else
             {
@@ -425,6 +432,10 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
             if (structuredBufferParameterType.BufferName == Name(L"GInstanceBuffer"))
             {
                 _instanceBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+            }
+            else if (structuredBufferParameterType.BufferName == Name(L"GPointLights"))
+            {
+                _pointLightsBufferSlotIndex = structuredBufferParameterType.SlotIndex;
             }
             else
             {

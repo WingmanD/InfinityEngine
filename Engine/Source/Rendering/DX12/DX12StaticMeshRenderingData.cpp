@@ -17,7 +17,7 @@ void DX12StaticMeshRenderingData::DrawDirect(DX12GraphicsCommandList* commandLis
 {
     SetupDrawing(commandList, material);
     
-    commandList->DrawIndexedInstanced(static_cast<uint32>(GetMeshRaw().GetIndices().size()), 1, 0, 0, 0);
+    commandList->DrawIndexedInstanced(static_cast<uint32>(GetMeshRaw().GetIndices().Count()), 1, 0, 0, 0);
 }
 
 bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& renderingSubsystem)
@@ -27,18 +27,18 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
     
     const std::shared_ptr<StaticMesh> mesh = GetMesh();
 
-    const std::vector<Vertex>& vertices = mesh->GetVertices();
-    const uint32 vertexBufferByteSize = static_cast<uint32>(vertices.size() * sizeof(Vertex));
-    HRESULT hr = dxcUtils.CreateBlob(vertices.data(), vertexBufferByteSize, DXC_CP_ACP, &_vertexBufferCpu);
+    const DArray<Vertex>& vertices = mesh->GetVertices();
+    const uint32 vertexBufferByteSize = static_cast<uint32>(vertices.Count() * sizeof(Vertex));
+    HRESULT hr = dxcUtils.CreateBlob(vertices.GetData(), vertexBufferByteSize, DXC_CP_ACP, &_vertexBufferCpu);
     if (FAILED(hr))
     {
         LOG(L"Failed to create vertex buffer blob");
         return false;
     }
 
-    const std::vector<uint32_t>& indices = mesh->GetIndices();
-    const uint32 indexBufferByteSize = static_cast<uint32>(indices.size() * sizeof(uint32_t));
-    hr = dxcUtils.CreateBlob(indices.data(), indexBufferByteSize, DXC_CP_ACP, &_indexBufferCpu);
+    const DArray<uint32_t>& indices = mesh->GetIndices();
+    const uint32 indexBufferByteSize = static_cast<uint32>(indices.Count() * sizeof(uint32_t));
+    hr = dxcUtils.CreateBlob(indices.GetData(), indexBufferByteSize, DXC_CP_ACP, &_indexBufferCpu);
     if (FAILED(hr))
     {
         LOG(L"Failed to create index buffer blob");
@@ -47,14 +47,14 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
 
     DX12CopyCommandList commandList = dx12RenderingSubsystem.RequestCopyCommandList();
 
-    _vertexBufferGpu = dx12RenderingSubsystem.CreateDefaultBuffer(commandList.CommandList.Get(), vertices.data(), vertexBufferByteSize, _vertexBufferUploader);
+    _vertexBufferGpu = dx12RenderingSubsystem.CreateDefaultBuffer(commandList.CommandList.Get(), vertices.GetData(), vertexBufferByteSize, _vertexBufferUploader);
     if (_vertexBufferGpu == nullptr)
     {
         LOG(L"Failed to create vertex buffer");
         return false;
     }
 
-    _indexBufferGpu = dx12RenderingSubsystem.CreateDefaultBuffer(commandList.CommandList.Get(), indices.data(), indexBufferByteSize, _indexBufferUploader);
+    _indexBufferGpu = dx12RenderingSubsystem.CreateDefaultBuffer(commandList.CommandList.Get(), indices.GetData(), indexBufferByteSize, _indexBufferUploader);
     if (_indexBufferGpu == nullptr)
     {
         LOG(L"Failed to create index buffer");
@@ -81,7 +81,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
 
     _indexBufferView.BufferLocation = _indexBufferGpu->GetGPUVirtualAddress();
 
-    if (indices.size() > std::numeric_limits<int16>::max())
+    if (indices.Count() > std::numeric_limits<int16>::max())
     {
         _indexBufferView.Format = DXGI_FORMAT_R16_UINT;
     }

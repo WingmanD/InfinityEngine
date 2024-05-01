@@ -90,7 +90,8 @@ void StaticMeshRenderingSystem::OnEntityDestroyed(const Archetype& archetype, En
     const CStaticMesh& staticMesh = entity.Get<CStaticMesh>(archetype);
 
     _instanceBuffer.RemoveAtSwap(staticMesh.InstanceID);
-    _instanceBuffer[staticMesh.InstanceID].MeshID = _registeredMeshComponents.Back()->InstanceID;
+
+    _registeredMeshComponents.Back()->InstanceID = staticMesh.InstanceID;
 
     _registeredMeshComponents.RemoveAtSwap(staticMesh.InstanceID);
 }
