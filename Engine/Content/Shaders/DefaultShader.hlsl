@@ -128,16 +128,6 @@ float4 PS(VertexOut pIn) : SV_Target
         color += max(0.0f, contribution);
     }
 
-    // [unroll]
-    // for (int i = 0; i < 4; ++i)
-    // {
-    //     const float3 l = normalize(GPointLights[i].Location - pIn.PositionWS.xyz);
-    //
-    //     const float3 contribution = GPointLights[i].Color * GPointLights[i].Intensity *
-    //         CookTorranceBRDF(l, v, n, pIn.Tangent, pIn.Bitangent, f0, roughness, aniso);
-    //     color += max(0.0f, contribution);
-    // }
-
     color *= diffuse;
     color += ambient * diffuse;
 
