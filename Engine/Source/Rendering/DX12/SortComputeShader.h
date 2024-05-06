@@ -23,10 +23,6 @@ public:
 public:
     virtual bool Recompile(bool immediate) override;
 
-    // DX12ComputeShader
-protected:
-    virtual void Dispatch(DX12GraphicsCommandList& commandList, uint32 threadGroupCountX, uint32 threadGroupCountY, uint32 threadGroupCountZ) const override;
-
 private:
     static constexpr uint32 _blockSize = 128;
     static constexpr uint32 _transposeBlockSize = 16;

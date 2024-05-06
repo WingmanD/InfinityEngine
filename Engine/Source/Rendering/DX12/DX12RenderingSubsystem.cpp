@@ -1,31 +1,32 @@
-﻿#include "DX12RenderingSubsystem.h"
-#include "CompactSMInstancesComputeShader.h"
+﻿#include "Rendering/DX12/DX12RenderingSubsystem.h"
 #include "Core.h"
-#include "DX12GPUBuffer.h"
-#include "DX12MaterialParameterRenderingData.h"
-#include "DX12MaterialRenderingData.h"
-#include "DX12RenderTarget.h"
-#include "DX12Shader.h"
-#include "DX12StaticMeshRenderingData.h"
-#include "DX12TextWidgetRenderingProxy.h"
-#include "DX12ViewportWidgetRenderingProxy.h"
-#include "DX12WidgetRenderingProxy.h"
-#include "DX12Window.h"
-#include "DynamicGPUBufferUploader.h"
-#include "SortComputeShader.h"
 #include "ThreadPool.h"
 #include "d3dx12/d3dx12.h"
 #include "ECS/Components/CCamera.h"
+#include "ECS/Systems/PointLightSystem.h"
 #include "ECS/Systems/StaticMeshRenderingSystem.h"
 #include "Engine/Engine.h"
 #include "Rendering/InstanceBuffer.h"
+#include "Rendering/PointLight.h"
 #include "Rendering/Window.h"
+#include "Rendering/DX12/CompactSMInstancesComputeShader.h"
+#include "Rendering/DX12/DX12GPUBuffer.h"
+#include "Rendering/DX12/DX12MaterialParameterRenderingData.h"
+#include "Rendering/DX12/DX12MaterialRenderingData.h"
+#include "Rendering/DX12/DX12RenderTarget.h"
+#include "Rendering/DX12/DX12Shader.h"
+#include "Rendering/DX12/DX12StaticMeshRenderingData.h"
+#include "Rendering/DX12/DX12TextWidgetRenderingProxy.h"
+#include "Rendering/DX12/DX12ViewportWidgetRenderingProxy.h"
+#include "Rendering/DX12/DX12WidgetRenderingProxy.h"
+#include "Rendering/DX12/DX12Window.h"
+#include "Rendering/DX12/DynamicGPUBufferUploader.h"
+#include "Rendering/DX12/ForwardPlusCullingComputeShader.h"
+#include "Rendering/DX12/InitializeForwardPlusComputeShader.h"
+#include "Rendering/DX12/SortComputeShader.h"
 #include "Rendering/Widgets/ViewportWidget.h"
 #include <string>
 #include <vector>
-
-#include "ECS/Systems/PointLightSystem.h"
-#include "Rendering/PointLight.h"
 
 extern "C" {
 __declspec(dllexport) extern const UINT D3D12SDKVersion = 613;
@@ -172,8 +173,8 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         return;
     }
 
+    const std::shared_ptr<Scene> scene = GetScene();
     {
-        const std::shared_ptr<Scene> scene = GetScene();
         CCamera* camera = viewport.GetCamera();
         const Transform& cameraTransform = camera->GetTransform(); // todo this triggers recalculation of matrices
 
@@ -183,74 +184,101 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         scene->CameraUp = cameraTransform.GetUpVector();
         scene->HorizontalFOV = Math::ToRadians(camera->GetHorizontalFieldOfView() / 2.0f);
         scene->VerticalFOV = Math::ToRadians((camera->GetHorizontalFieldOfView() / 2.0f) / camera->GetAspectRatio());
+        scene->NearPlane = camera->GetNearClipPlane();
         scene->DrawDistance = camera->GetFarClipPlane();
+        
+        const Vector2 screenSize = viewport.GetScreenSize();
+        scene->ScreenWidth = static_cast<uint32>(screenSize.x);
+        scene->ScreenHeight = static_cast<uint32>(screenSize.y);
+
+        // todo cache
+        scene->ProjectionInv = camera->GetProjectionMatrix().Invert().Transpose();
+        
         scene->MarkAsDirty();
     }
 
     const std::shared_ptr<DX12Window> window = std::dynamic_pointer_cast<DX12Window>(viewport.GetParentWindow());
 
-    DX12CommandList commandListStruct = window->RequestCommandList();
-    DX12GraphicsCommandList* commandList = commandListStruct.CommandList.Get();
-
-    // todo use multiple command lists, write to them in parallel after we get the results from the compute shader, if
-    // the results require many draw calls
-    
-    for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
     {
-        // todo check if system's world is visible - we need to know which world the camera belongs to
-        
-        PointLightSystem* pointLightSystem = renderingSystem->GetWorld().FindSystem<PointLightSystem>();
-        const DynamicGPUBuffer2<PointLight>& pointLightsBuffer = pointLightSystem->GetPointLightBuffer();
-        pointLightsBuffer.GetBuffer<DX12GPUBuffer>().Update(commandList, pointLightsBuffer.GetDirtyIndices());
-        
-        renderingSystem->GetInstanceBuffer().GetProxy<DynamicGPUBufferUploader<SMInstance>>()->Update(commandList);
+        DX12CommandList commandListCullStruct = window->RequestCommandList();
+        DX12GraphicsCommandList* commandListCull = commandListCullStruct.CommandList.Get();
+        commandListCull->SetName(L"commandListCull");
 
-        // todo multiple systems SMInstance needs to know which system it belongs to
-        _cullingWorkGraph.SetInstanceBuffer(&renderingSystem->GetInstanceBuffer());
-        _cullingWorkGraph.Dispatch(commandList, renderingSystem->GetInstanceBuffer().GetData(),
-                                   renderingSystem->GetInstanceBuffer().Count());
+        DX12ViewportWidgetRenderingProxy& proxy = viewport.GetRenderingProxy<DX12ViewportWidgetRenderingProxy>();
+        if (proxy.IsFrustumBufferDirty())
+        {
+            _initializeForwardPlusCS->Run(*commandListCull, proxy.GetForwardPlusFrustumBuffer({}), proxy.GetViewport());
+            proxy.ClearFrustumBufferDirty({});
+        }
+
+        _forwardPlusCullingCS->InitializeBuffers(*commandListCull, proxy.GetViewport());
+        _forwardPlusCullingCS->Clear(*commandListCull);
+        
+        for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
+        {
+            // todo check if system's world is visible - we need to know which world the camera belongs to
+        
+            PointLightSystem* pointLightSystem = renderingSystem->GetWorld().FindSystem<PointLightSystem>();
+            DynamicGPUBuffer2<PointLight>& pointLightsBuffer = pointLightSystem->GetPointLightBuffer();
+            pointLightsBuffer.GetBuffer<DX12GPUBuffer>().Update(commandListCull, pointLightsBuffer.GetDirtyIndices());
+            pointLightsBuffer.ClearDirtyIndices();
+            
+            _forwardPlusCullingCS->Run(*commandListCull, proxy.GetForwardPlusFrustumBuffer({}), pointLightsBuffer, proxy.GetViewport());
+
+            renderingSystem->GetInstanceBuffer().GetProxy<DynamicGPUBufferUploader<SMInstance>>()->Update(commandListCull);
+
+            // todo multiple systems SMInstance needs to know which system it belongs to
+            _cullingWorkGraph.SetInstanceBuffer(&renderingSystem->GetInstanceBuffer());
+            _cullingWorkGraph.Dispatch(commandListCull, renderingSystem->GetInstanceBuffer().GetData(),
+                                       renderingSystem->GetInstanceBuffer().Count());
+        }
+
+        _cullingWorkGraph.GetVisibleInstances().ReadBackCounter(commandListCull);
+
+        window->CloseCommandList(commandListCullStruct);
+
+        window->ExecuteCommandLists();
+        _commandQueue->Signal(_mainFence.Get(), ++_mainFenceValue);
+
+        WaitForGPU(); // todo async, we need to pass a the viewport data and make RequestCommandList thread safe
     }
-
-    _cullingWorkGraph.GetVisibleInstances().ReadBackCounter(commandList);
-
-    window->CloseCommandList(commandListStruct);
-
-    window->ExecuteCommandLists();
-    _commandQueue->Signal(_mainFence.Get(), ++_mainFenceValue);
-
-    WaitForGPU(); // todo async, we need to pass a the viewport data and make RequestCommandList thread safe
-
-    DX12CommandList commandListStructSort = window->RequestCommandList(viewport);
-    DX12GraphicsCommandList* commandListSort = commandListStructSort.CommandList.Get();
 
     AppendStructuredBuffer<SMInstance>& visibleInstances = _cullingWorkGraph.GetVisibleInstances();
 
-    DX12Statics::Transition(commandListSort, visibleInstances.GetBuffer().Get(),
-                            D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    {
+        DX12CommandList commandListStructSort = window->RequestCommandList(viewport);
+        DX12GraphicsCommandList* commandListSort = commandListStructSort.CommandList.Get();
+        commandListSort->SetName(L"commandListSort");
 
-    _sortCS->Run(*commandListSort, visibleInstances);
-    _compactSMInstancesCS.lock()->Run(*commandListSort, visibleInstances);
+        DX12Statics::Transition(commandListSort, visibleInstances.GetBuffer().Get(),
+                                D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-    _cullingWorkGraph.ReadBackVisibleInstances(commandListSort);
+        _sortCS->Run(*commandListSort, visibleInstances);
+        _compactSMInstancesCS->Run(*commandListSort, visibleInstances);
 
-    window->CloseCommandList(commandListStructSort);
+        _cullingWorkGraph.ReadBackVisibleInstances(commandListSort);
 
-    window->ExecuteCommandLists();
-    _commandQueue->Signal(_mainFence.Get(), ++_mainFenceValue);
+        window->CloseCommandList(commandListStructSort);
 
-    WaitForGPU();
+        window->ExecuteCommandLists();
+        _commandQueue->Signal(_mainFence.Get(), ++_mainFenceValue);
+
+        WaitForGPU();
+    }
 
     DX12CommandList commandListStructDraw = window->RequestCommandList(viewport);
     DX12GraphicsCommandList* commandListDraw = commandListStructDraw.CommandList.Get();
+    commandListDraw->SetName(L"commandListDraw");
 
     DX12Statics::Transition(commandListDraw, visibleInstances.GetBuffer().Get(),
                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+    DX12Statics::Transition(commandListDraw, _forwardPlusCullingCS->GetTileBuffer().GetBuffer().Get(),
+                           D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    DX12Statics::Transition(commandListDraw, _forwardPlusCullingCS->GetIndexBuffer().GetBuffer().Get(),
+                           D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
     uint32 processedInstances = 0;
     const SMInstance* data = visibleInstances.GetReadBackData();
-
-    DArray<SMInstance> visibleInstancesArray;
-    visibleInstancesArray.Reserve(visibleInstances.Count());
 
     while (processedInstances < visibleInstances.Count())
     {
@@ -272,15 +300,23 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
                     GetMaterialParameterBuffer(firstInstance.MaterialID);
                 materialBuffer.GetProxy<DynamicGPUBufferUploader<MaterialParameter>>()->Update(commandListDraw);
 
-
                 shader->BindInstanceBuffers(*commandListDraw, visibleInstances, processedInstances, materialBuffer);
-                
-                // todo this should be in the first loop, and passed to a compute shader actually
+
                 PointLightSystem* pointLightSystem = _staticMeshRenderingSystems[0]->GetWorld().FindSystem<PointLightSystem>();
                 const DynamicGPUBuffer2<PointLight>& pointLightsBuffer = pointLightSystem->GetPointLightBuffer();
                 commandListDraw->SetGraphicsRootShaderResourceView(
                     shader->GetPointLightsBufferSlotIndex(),
                     pointLightsBuffer.GetBuffer<DX12GPUBuffer>().GetSRVGPUVirtualAddress()
+                );
+
+                commandListDraw->SetGraphicsRootShaderResourceView(
+                    shader->GetLightTileBufferSlotIndex(),
+                    _forwardPlusCullingCS->GetTileBuffer().GetSRVGPUVirtualAddress()
+                );
+                
+                commandListDraw->SetGraphicsRootShaderResourceView(
+                    shader->GetLightIndexBufferSlotIndex(),
+                    _forwardPlusCullingCS->GetIndexBuffer().GetSRVGPUVirtualAddress()
                 );
 
                 commandListDraw->DrawIndexedInstanced(
@@ -522,6 +558,16 @@ bool DX12RenderingSubsystem::Initialize()
         ComPtr<ID3D12Debug> debugController;
         ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
         debugController->EnableDebugLayer();
+
+        ComPtr<ID3D12DeviceRemovedExtendedDataSettings> dredSettings;
+        if (FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&dredSettings))))
+        {
+            LOG(L"Failed to initialize DX12 DRED settings!");
+            return false;
+        }
+
+        dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+        dredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
     }
 #endif
     ThrowIfFailed(CreateDXGIFactory(IID_PPV_ARGS(&_dxgiFactory)));
@@ -602,8 +648,10 @@ bool DX12RenderingSubsystem::Initialize()
         return false;
     }
 
+    const AssetManager& assetManager = AssetManager::Get();
+
     _cullingWorkGraph.Initialize();
-    _sortCS = AssetManager::Get().FindAssetByName<SortComputeShader>(Name(L"SortCS"));
+    _sortCS = assetManager.FindAssetByName<SortComputeShader>(Name(L"SortCS"));
     if (_sortCS == nullptr)
     {
         LOG(L"Failed to find SortCS asset! Play in editor will not work!");
@@ -613,16 +661,34 @@ bool DX12RenderingSubsystem::Initialize()
         _sortCS->Load();
     }
 
-    const std::shared_ptr<CompactSMInstancesComputeShader> compactCS =
-        AssetManager::Get().FindAssetByName<CompactSMInstancesComputeShader>(Name(L"CompactCS"));
-    if (compactCS == nullptr)
+    _compactSMInstancesCS = assetManager.FindAssetByName<CompactSMInstancesComputeShader>(Name(L"CompactCS"));
+    if (_compactSMInstancesCS == nullptr)
     {
         LOG(L"Failed to find CompactCS asset! Play in editor will not work!");
     }
     else
     {
-        compactCS->Load();
-        _compactSMInstancesCS = compactCS;
+        _compactSMInstancesCS->Load();
+    }
+
+    _initializeForwardPlusCS = assetManager.FindAssetByName<InitializeForwardPlusComputeShader>(Name(L"InitForwardPlusCS"));
+    if (_initializeForwardPlusCS == nullptr)
+    {
+        LOG(L"Failed to find InitializeForwardPlusCS asset! Play in editor will not work!");
+    }
+    else
+    {
+        _initializeForwardPlusCS->Load();
+    }
+
+    _forwardPlusCullingCS = assetManager.FindAssetByName<ForwardPlusCullingComputeShader>(Name(L"ForwardPlusCullingCS"));
+    if (_forwardPlusCullingCS == nullptr)
+    {
+        LOG(L"Failed to find ForwardPlusCullingCS asset! Play in editor will not work!");
+    }
+    else
+    {
+        _forwardPlusCullingCS->Load();
     }
 
     return true;

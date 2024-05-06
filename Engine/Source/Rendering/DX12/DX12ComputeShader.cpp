@@ -113,10 +113,10 @@ bool DX12ComputeShader::Initialize()
     {
         return false;
     }
-    
+
     Recompile();
-    
-    return true; 
+
+    return true;
 }
 
 bool DX12ComputeShader::Serialize(MemoryWriter& writer) const

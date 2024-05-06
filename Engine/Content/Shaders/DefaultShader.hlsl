@@ -1,4 +1,5 @@
 #include "ShaderCore.hlsl"
+#include "ForwardPlusCore.hlsl"
 
 struct DefaultMaterialParameter
 {
@@ -13,6 +14,8 @@ ConstantBuffer<InstanceOffset> GInstanceOffset : register(b0);
 StructuredBuffer<SMInstance> GInstanceBuffer : register(t0);
 StructuredBuffer<DefaultMaterialParameter> GMP_DefaultMaterialParameter : register(t1);
 StructuredBuffer<PointLight> GPointLights : register(t2);
+StructuredBuffer<Tile> GLightTiles : register(t3);
+StructuredBuffer<UInt> GLightIndices : register(t4);
 ConstantBuffer<Scene> GScene : register(b1);
 
 struct VertexIn
@@ -112,15 +115,28 @@ float4 PS(VertexOut pIn) : SV_Target
 
     float3 color = float3(0.0f, 0.0f, 0.0f);
 
-    [unroll]
-    for (int i = 0; i < 4; ++i)
+    const uint2 tileIndex = uint2(floor(pIn.PositionCS.xy / FORWARD_PLUS_GROUP_THREADS));
+    
+    const Tile tile = GLightTiles[tileIndex.x + tileIndex.y];
+    for (uint i = tile.StartIndex; i < tile.StartIndex + tile.LightCount; ++i)
     {
-        const float3 l = normalize(GPointLights[i].Location - pIn.PositionWS.xyz);
-
-        const float3 contribution = GPointLights[i].Color * GPointLights[i].Intensity *
+        const uint lightIndex = GLightIndices[i].Value;
+        const float3 l = normalize(GPointLights[lightIndex].Location - pIn.PositionWS.xyz);
+    
+        const float3 contribution = GPointLights[lightIndex].Color * GPointLights[lightIndex].Intensity *
             CookTorranceBRDF(l, v, n, pIn.Tangent, pIn.Bitangent, f0, roughness, aniso);
         color += max(0.0f, contribution);
     }
+
+    // [unroll]
+    // for (int i = 0; i < 4; ++i)
+    // {
+    //     const float3 l = normalize(GPointLights[i].Location - pIn.PositionWS.xyz);
+    //
+    //     const float3 contribution = GPointLights[i].Color * GPointLights[i].Intensity *
+    //         CookTorranceBRDF(l, v, n, pIn.Tangent, pIn.Bitangent, f0, roughness, aniso);
+    //     color += max(0.0f, contribution);
+    // }
 
     color *= diffuse;
     color += ambient * diffuse;

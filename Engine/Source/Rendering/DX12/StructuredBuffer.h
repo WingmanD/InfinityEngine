@@ -386,6 +386,7 @@ protected:
         _cpuHandle = heap->RequestHeapResourceHandle();
         _gpuHandle = heap->GetGPUHeapResourceHandle(_cpuHandle);
         _gpuVirtualAddress = _buffer->GetGPUVirtualAddress();
+        _heap = heap;
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

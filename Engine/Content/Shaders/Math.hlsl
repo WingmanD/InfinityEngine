@@ -8,6 +8,11 @@ inline float DistanceFromPlane(float3 plane, float3 planeNormal, float3 planePoi
     return abs(dot(planeNormal, plane) - dot(planeNormal, planePoint)) / length(planeNormal);
 }
 
+inline float DistanceFromPlane(float3 p, float3 planeNormal, float planeD)
+{
+    return -(dot(planeNormal, p) - planeD);
+}
+
 inline float Angle(float3 a, float3 b)
 {
     return acos(dot(a, b) / (length(a) * length(b)));
@@ -47,4 +52,42 @@ void TransformAABB(float3 minPoint, float3 maxPoint, float4x4 worldMatrix, out f
         newMin = min(newMin, transformedVertex.xyz);
         newMax = max(newMax, transformedVertex.xyz);
     }
+}
+
+float4 ScreenSpaceToClipSpace(float3 screenSpace, uint2 screenSize)
+{
+    return float4(screenSpace / float3(screenSize * 2.0f - 1.0f, 1.0f), 1.0f);
+}
+
+float4 ClipSpaceToScreenSpace(float4 clipSpace, uint2 screenSize)
+{
+    return float4((clipSpace.xy / clipSpace.w + 1.0f) * 0.5f * screenSize, clipSpace.z, clipSpace.w);
+}
+
+float4 ClipSpaceToViewSpace(float4 clipSpace, float4x4 inverseProjection)
+{
+    return mul(clipSpace, inverseProjection);
+}
+
+float4 MakePlane(float3 planePoint, float3 normal)
+{
+    return float4(normal, -dot(normal, planePoint));
+}
+
+float4 MakePlane(float3 v0, float3 v1, float3 v2)
+{
+    return MakePlane(v0, cross(v1 - v0, v2 - v0));
+}
+
+bool SphereFrustumIntersection(float3 sphereCenter, float sphereRadius, SimpleFrustum frustum)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        if (DistanceFromPlane(sphereCenter, frustum.Planes[i].xyz, frustum.Planes[i].w) > sphereRadius)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }

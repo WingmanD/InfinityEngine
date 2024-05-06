@@ -6,17 +6,29 @@
 
 namespace Math
 {
+    constexpr auto Pi = std::numbers::pi_v<float>;
+    
+    constexpr auto Square(auto value)
+    {
+        return value * value;
+    }
+
+    constexpr auto Ceil(auto value)
+    {
+        return static_cast<decltype(value)>(std::ceil(value));
+    }
+
     template <typename T>
     constexpr T ToRadians(T degrees)
     {
-        constexpr T mul = static_cast<T>(std::numbers::pi) / T(180.0);
+        constexpr T mul = std::numbers::pi_v<T> / T(180.0);
         return degrees * mul;
     }
 
     template <typename T>
     constexpr T ToDegrees(T radians)
     {
-        constexpr T mul = T(180.0) / static_cast<T>(std::numbers::pi);
+        constexpr T mul = T(180.0) / std::numbers::pi_v<T>;
         return radians * mul;
     }
 

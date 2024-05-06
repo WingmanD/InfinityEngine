@@ -192,8 +192,3 @@ void SortComputeShader::Run(DX12GraphicsCommandList& commandList, AppendStructur
 
     DX12Statics::Transition(&commandList,  _intermediateBuffer.GetBuffer().Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
 }
-
-void SortComputeShader::Dispatch(DX12GraphicsCommandList& commandList, uint32 threadGroupCountX,
-                                 uint32 threadGroupCountY, uint32 threadGroupCountZ) const
-{
-}

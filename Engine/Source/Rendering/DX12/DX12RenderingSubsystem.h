@@ -1,21 +1,23 @@
 ﻿#pragma once
 
-#include "CullingWorkGraph.h"
-#include "DescriptorHeap.h"
-#include "DX12GPUBuffer.h"
 #include "GraphicsMemory.h"
 #include "ThreadPool.h"
 #include "Containers/DynamicGPUBuffer2.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
+#include "Rendering/DX12/CullingWorkGraph.h"
+#include "Rendering/DX12/DescriptorHeap.h"
+#include "Rendering/DX12/DX12GPUBuffer.h"
 #include "Rendering/DX12/DX12RenderingCore.h"
 
-class CompactSMInstancesComputeShader;
-class SortComputeShader;
-class ViewportWidget;
+class ForwardPlusCullingComputeShader;
 class CCamera;
+class CompactSMInstancesComputeShader;
 class DX12Window;
+class InitializeForwardPlusComputeShader;
 class InstanceBuffer;
+class SortComputeShader;
 class StaticMeshRenderingSystem;
+class ViewportWidget;
 
 class DX12RenderingSubsystem : public RenderingSubsystem, public std::enable_shared_from_this<DX12RenderingSubsystem>
 {
@@ -41,11 +43,7 @@ public:
     
     ComPtr<ID3D12Resource> CreateDefaultBuffer(DX12GraphicsCommandList* commandList, const void* data,
                                                uint64 byteSize, ComPtr<ID3D12Resource>& uploadBuffer) const;
-
-    /**
-     * \brief 
-     * \param viewport 
-     */
+    
     void DrawScene(const ViewportWidget& viewport);
 
     bool IsMSAAEnabled() const;
@@ -155,7 +153,9 @@ private:
 
     CullingWorkGraph _cullingWorkGraph;
     std::shared_ptr<SortComputeShader> _sortCS;
-    std::weak_ptr<CompactSMInstancesComputeShader> _compactSMInstancesCS;
+    std::shared_ptr<CompactSMInstancesComputeShader> _compactSMInstancesCS;
+    std::shared_ptr<InitializeForwardPlusComputeShader> _initializeForwardPlusCS;
+    std::shared_ptr<ForwardPlusCullingComputeShader> _forwardPlusCullingCS;
 
 private:
     void LogAdapters();

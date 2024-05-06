@@ -47,8 +47,12 @@ public:
     float HorizontalFOV = 90.0f;
     Vector3 CameraUp;
     float VerticalFOV = 90.0f;
+    float NearPlane = 0.1f;
     float DrawDistance = 1000.0f;
-
+    uint32 ScreenWidth = 1920;
+    uint32 ScreenHeight = 1080;
+    Matrix ProjectionInv;
+    
 public:
     Scene()
     {

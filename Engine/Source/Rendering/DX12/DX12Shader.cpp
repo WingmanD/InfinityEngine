@@ -251,6 +251,14 @@ bool DX12Shader::Recompile(bool immediate)
             {
                 shader->_pointLightsBufferSlotIndex = structuredBufferParameterType.SlotIndex;
             }
+            else if (structuredBufferParameterType.BufferName == Name(L"GLightTiles"))
+            {
+                shader->_tileBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+            }
+            else if (structuredBufferParameterType.BufferName == Name(L"GLightIndices"))
+            {
+                shader->_lightIndexBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+            }
             else
             {
                 std::wstring name = structuredBufferParameterType.BufferName.ToString();
@@ -436,6 +444,14 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
             else if (structuredBufferParameterType.BufferName == Name(L"GPointLights"))
             {
                 _pointLightsBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+            }
+            else if (structuredBufferParameterType.BufferName == Name(L"GLightTiles"))
+            {
+                _tileBufferSlotIndex = structuredBufferParameterType.SlotIndex;
+            }
+            else if (structuredBufferParameterType.BufferName == Name(L"GLightIndices"))
+            {
+                _lightIndexBufferSlotIndex = structuredBufferParameterType.SlotIndex;
             }
             else
             {

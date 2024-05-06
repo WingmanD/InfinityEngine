@@ -114,7 +114,77 @@ void DX12Window::Render(PassKey<DX12RenderingSubsystem>)
 
 void DX12Window::Present(PassKey<DX12RenderingSubsystem>)
 {
-    _swapChain->Present(0, DXGI_PRESENT_DO_NOT_WAIT);
+    const HRESULT result = _swapChain->Present(0, DXGI_PRESENT_DO_NOT_WAIT);
+    switch (result)
+    {
+        case DXGI_ERROR_DEVICE_HUNG:
+            LOG(L"ERROR: Device hung.");
+        case DXGI_ERROR_DEVICE_REMOVED:
+        {
+            LOG(L"ERROR: Device removed.");
+                
+            CComPtr<ID3D12DeviceRemovedExtendedData> dred;
+            if (FAILED(DX12RenderingSubsystem::Get().GetDevice()->QueryInterface(IID_PPV_ARGS(&dred))))
+            {
+                LOG(L"ERROR: Failed to query DRED interface.");
+                break;
+            }
+                
+            D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT breadcrumbsOutput;
+            if (SUCCEEDED(dred->GetAutoBreadcrumbsOutput(&breadcrumbsOutput)))
+            {
+                const D3D12_AUTO_BREADCRUMB_NODE* current = breadcrumbsOutput.pHeadAutoBreadcrumbNode;
+                while (current != nullptr)
+                {
+                    LOG(L"Command List: {}", current->pCommandListDebugNameW ? current->pCommandListDebugNameW : L"NULL");
+                    LOG(L"Command Queue: {}", current->pCommandQueueDebugNameW ? current->pCommandQueueDebugNameW : L"NULL");
+                    LOG(L"Command ID: {}", static_cast<uint32>(*current->pCommandHistory));
+
+                    current = current->pNext;
+                }
+            }
+            else
+            {
+                LOG(L"ERROR: Failed to get auto breadcrumbs output.");
+            }
+                
+            D3D12_DRED_PAGE_FAULT_OUTPUT pageFaultOutput;
+            if (SUCCEEDED(dred->GetPageFaultAllocationOutput(&pageFaultOutput)))
+            {
+                if (pageFaultOutput.pHeadRecentFreedAllocationNode)
+                {
+                    LOG(L"Recent Freed Allocations:");
+                    const D3D12_DRED_ALLOCATION_NODE* node = pageFaultOutput.pHeadRecentFreedAllocationNode;
+                    while (node != nullptr)
+                    {
+                        LOG(L"  Name: {}", node->ObjectNameW);
+                        node = node->pNext;
+                    }
+                }
+
+                if (pageFaultOutput.pHeadExistingAllocationNode)
+                {
+                    LOG(L"Existing Allocations at fault time:");
+                    const D3D12_DRED_ALLOCATION_NODE* node = pageFaultOutput.pHeadExistingAllocationNode;
+                    while (node != nullptr)
+                    {
+                        LOG(L"  Name: {}", node->ObjectNameW);
+                        node = node->pNext;
+                    }
+                }
+            }
+            else
+            {
+                LOG(L"ERROR: Failed to get page fault allocation output.");
+            }
+
+            DEBUG_BREAK();
+            break;        
+        }
+
+        default:
+            break;
+    }
 
     _currentFrameBufferIndex = (_currentFrameBufferIndex + 1) % static_cast<int32>(_frameBuffers.size());
 }

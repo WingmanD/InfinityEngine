@@ -7,7 +7,10 @@ struct Scene
     float HorizontalFOV;
     float3 CameraUp;
     float VerticalFOV;
+    float NearPlane;
     float DrawDistance;
+    uint2 ScreenSize;
+    float4x4 ProjectionInv;
 };
 
 struct SMInstance
@@ -33,6 +36,11 @@ struct PointLight
     float Intensity;
 };
 
+struct SimpleFrustum
+{
+    float4 Planes[4];   // Top, Bottom, Left, Right
+};
+
 struct AABB
 {
     float3 Min;
@@ -42,4 +50,9 @@ struct AABB
 struct MeshInfo
 {
     AABB BoundingBox;
+};
+
+struct UInt
+{
+    uint Value;
 };

@@ -31,7 +31,7 @@ void PointLightSystem::OnEntityCreated(const Archetype& archetype, Entity& entit
     light.Intensity = pointLight.Intensity;
     light.Radius = pointLight.Radius;
     
-    pointLight.LightID = _pointLightBuffer.Add(light);
+    pointLight.LightID = static_cast<uint32>(_pointLightBuffer.Add(light));
     _registeredPointLightComponents.Add(&pointLight);
 }
 
