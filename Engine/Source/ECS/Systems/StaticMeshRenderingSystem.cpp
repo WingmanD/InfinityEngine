@@ -1,11 +1,8 @@
-﻿#include "StaticMeshRenderingSystem.h"
-
-#include <DirectXColors.h>
-
+﻿#include "ECS/Systems/StaticMeshRenderingSystem.h"
 #include "MaterialParameterTypes.h"
 #include "ECS/Entity.h"
-#include "ECS/EntityList.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
+#include <DirectXColors.h>
 
 InstanceBuffer& StaticMeshRenderingSystem::GetInstanceBuffer()
 {
@@ -70,18 +67,21 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
 
 void StaticMeshRenderingSystem::Tick(double deltaTime)
 {
-    for (EntityList* entityList : GetQuery().GetEntityLists())
+    for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : GetWorld().OnTransformChanged.GetEntityLists())
     {
-        const Archetype& archetype = entityList->GetArchetype();
-        entityList->ForEach([&archetype, this](Entity& entity)
+        const uint16 index = entityListStruct.EntityArchetype.GetComponentIndexChecked<CStaticMesh>();
+        if (index == std::numeric_limits<uint16>::max())
         {
-            const CStaticMesh& staticMesh = entity.Get<CStaticMesh>(archetype);
+            continue;
+        }
 
-            // todo optimize, this should be an event
+        entityListStruct.Update();
+
+        for (const auto& eventData : entityListStruct.EntityListOutput)
+        {
+            const CStaticMesh& staticMesh = eventData.Entity->Get<CStaticMesh>(index);
             _instanceBuffer[staticMesh.InstanceID].World = staticMesh.MeshTransform.GetWorldMatrix().Transpose();
-
-            return true;
-        });
+        }
     }
 }
 

@@ -31,7 +31,8 @@ bool GameplaySubsystem::StartGame(const std::shared_ptr<ViewportWidget>& viewpor
 
     _viewport = viewport;
 
-    _worlds.AddDefault();
+    World* newWorld = _worlds.AddDefault();
+    newWorld->Initialize({});
 
     return _game->Startup({});
 }

@@ -954,6 +954,17 @@ public:
         return Back();
     }
 
+    Reference AddDefault()
+    {
+        Reserve(_count + 1);
+
+        std::construct_at(&GetElement(_count));
+
+        ++_count;
+
+        return Back();
+    }
+
     template <typename InputIterator>
     void Append(const InputIterator& start, const InputIterator& end)
     {

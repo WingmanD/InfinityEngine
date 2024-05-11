@@ -15,7 +15,12 @@ class LockFreeQueue
 public:
     LockFreeQueue() = default;
 
-    LockFreeQueue(const LockFreeQueue&) = delete;
+    LockFreeQueue(const LockFreeQueue&)
+    {
+        // Copy constructor exists so we can use this class in containers. It is not intended to be used directly,
+        // as it can't actually copy anything.
+    }
+    
     LockFreeQueue(LockFreeQueue&&) = delete;
 
     LockFreeQueue& operator=(const LockFreeQueue&) = delete;

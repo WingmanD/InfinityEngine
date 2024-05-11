@@ -1,10 +1,6 @@
 ﻿#include "EntityListGraph.h"
 #include "Archetype.h"
 
-EntityListGraph::Node::Node() : EntityList(Archetype())
-{
-}
-
 EntityListGraph::Node::Node(const Archetype& type): EntityList(type)
 {
 }
@@ -147,7 +143,7 @@ void EntityListGraph::RemoveArchetype(const Archetype& type)
     _nodes.Remove(*node);
 }
 
-void EntityListGraph::Query(ECSQuery& query, const Archetype& archetype)
+void EntityListGraph::Query(ECSQuery& query, const Archetype& archetype) const
 {
     query.Clear({});
 
@@ -165,12 +161,16 @@ void EntityListGraph::Query(ECSQuery& query, const Archetype& archetype)
             return node == _root;
         }
 
-        query.AddEntityList(&node->EntityList, {});
+        if (node->EntityList.GetArchetype().IsValid())
+        {
+            query.AddEntityList(&node->EntityList, {});
+        }
+
         return true;
     });
 }
 
-bool EntityListGraph::Traverse(Node* root, const std::function<bool(Node*)>& callback)
+bool EntityListGraph::Traverse(Node* root, const std::function<bool(Node*)>& callback) const
 {
     if (!callback(root))
     {
@@ -196,7 +196,7 @@ EntityListGraph::EntityListResult EntityListGraph::GetOrCreateEntityListFor(cons
     return {&AddArchetype(type)->EntityList, true};
 }
 
-EntityListGraph::Node* EntityListGraph::FindBestMatch(const Archetype& type)
+EntityListGraph::Node* EntityListGraph::FindBestMatch(const Archetype& type) const
 {
     std::pair<uint32, Node*> bestMatch = {0, nullptr};
     Traverse(_root, [&bestMatch, &type](Node* root)

@@ -7,7 +7,8 @@
 class EntityList : public BucketArray<Entity>
 {
 public:
-    EntityList(const Archetype& type);
+    explicit EntityList() = default;
+    explicit EntityList(const Archetype& type);
 
     const Archetype& GetArchetype() const;
     

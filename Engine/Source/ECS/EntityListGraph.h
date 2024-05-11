@@ -1,8 +1,7 @@
 ﻿#pragma once
 
-#include "EntityList.h"
-#include "Archetype.h"
 #include "ECSQuery.h"
+#include "EntityList.h"
 
 class EntityListGraph
 {
@@ -19,7 +18,7 @@ public:
         EntityList EntityList;
 
     public:
-        explicit Node();
+        explicit Node() = default;
         explicit Node(const Archetype& type);
 
         const Archetype& GetArchetype() const;
@@ -49,9 +48,9 @@ public:
     Node* AddArchetype(const Archetype& type);
     void RemoveArchetype(const Archetype& type);
 
-    void Query(ECSQuery& query, const Archetype& archetype);
+    void Query(ECSQuery& query, const Archetype& archetype) const;
 
-    bool Traverse(Node* root, const std::function<bool(Node*)>& callback);
+    bool Traverse(Node* root, const std::function<bool(Node*)>& callback) const;
 
     EntityListResult GetOrCreateEntityListFor(const Archetype& type);
 
@@ -62,5 +61,5 @@ private:
     std::unordered_map<uint64, Node*> _archetypeToNodeMap;
 
 private:
-    Node* FindBestMatch(const Archetype& type);
+    Node* FindBestMatch(const Archetype& type) const;
 };

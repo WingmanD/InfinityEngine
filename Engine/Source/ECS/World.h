@@ -1,31 +1,34 @@
 ﻿#pragma once
 
-#include "SystemScheduler.h"
+#include "Event.h"
+#include "EventManager.h"
+#include "ECS/DirtyTracker.h"
+#include "ECS/SystemScheduler.h"
 #include "ECS/Components/Component.h"
 #include "ECS/EntityListGraph.h"
 #include "Containers/EventQueue.h"
 #include "Containers/ObjectTypeMap.h"
+#include "ECS/World.reflection.h"
 
 class EntityTemplate;
 class GameplaySubsystem;
 class Type;
 class Entity;
+class CTransform;
 
-class World : public IValidateable
+REFLECTED()
+class World : public Object
 {
+    GENERATED()
+
 public:
-    friend class IValidateable;
+    PROPERTY()
+    Event<TypeSet<CTransform>> OnTransformChanged;
 
 public:
     explicit World();
 
-    World(const World&) = delete;
-    World(World&&) = delete;
-
-    World& operator=(const World&) = delete;
-    World& operator=(World&&) = delete;
-
-    ~World() = default;
+    World(const World&);
 
     void CreateEntityAsync(const Archetype& archetype);
     void CreateEntityAsync(const Archetype& archetype, uint32 count);
@@ -148,7 +151,7 @@ public:
         return nullptr;
     }
 
-    void Query(ECSQuery& query, const Archetype& archetype);
+    void Query(ECSQuery& query, const Archetype& archetype) const;
 
     template <typename... ComponentType> requires (IsA<ComponentType, Component> && ...)
     void Query(ECSQuery& query)
@@ -163,6 +166,16 @@ public:
 
     EventQueue<World>& GetEventQueue();
 
+    EventManager& GetEventManager();
+
+    DirtyTracker& GetDirtyTracker(Type& componentType);
+
+    template <typename ComponentType> requires IsA<ComponentType, Component>
+    DirtyTracker& GetDirtyTracker()
+    {
+        return GetDirtyTracker(*ComponentType::StaticType());
+    }
+
 private:
     ObjectTypeMap _componentTypeMap;
     EntityListGraph _entityListGraph;
@@ -170,12 +183,9 @@ private:
 
     EventQueue<World> _eventQueue;
 
-    bool _isValid = false;
+    EventManager _eventManager;
 
-    // IValidateable
-private:
-    void SetValidImplementation(bool valid);
-    bool IsValidImplementation() const;
+    std::unordered_map<Type*, DirtyTracker> _dirtyTrackers;
 
 private:
     Entity& CreateEntityInternal(const Archetype& archetype);

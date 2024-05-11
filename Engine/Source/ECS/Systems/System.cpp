@@ -1,4 +1,6 @@
 ﻿#include "System.h"
+
+#include "ECS/Event.h"
 #include "ECS/World.h"
 
 SystemBase::SystemBase(Archetype&& archetype) : _archetype(std::move(archetype))
@@ -52,6 +54,19 @@ const Archetype& SystemBase::GetArchetype() const
 
 void SystemBase::Initialize()
 {
+    std::ignore = GetType()->ForEachProperty([this](PropertyBase* propertyBase)
+    {
+        Property<SystemBase, EventBase>* property = dynamic_cast<Property<SystemBase, EventBase>*>(propertyBase);
+        if (property == nullptr)
+        {
+            return true;
+        }
+
+        EventBase& valueRef = property->GetRef(this);
+        valueRef.SetEventManager(GetWorld().GetEventManager());
+        
+        return true;
+    });
 }
 
 void SystemBase::OnEntityCreated(const Archetype& archetype, Entity& entity)
@@ -59,6 +74,10 @@ void SystemBase::OnEntityCreated(const Archetype& archetype, Entity& entity)
 }
 
 void SystemBase::Tick(double deltaTime)
+{
+}
+
+void SystemBase::ProcessEntityList(EntityList& entityList, double deltaTime)
 {
 }
 
@@ -73,4 +92,9 @@ void SystemBase::Shutdown()
 const ECSQuery& SystemBase::GetQuery() const
 {
     return _persistentQuery;
+}
+
+DirtyTracker& SystemBase::GetDirtyTracker(Type& componentType) const
+{
+    return GetWorld().GetDirtyTracker(componentType);
 }

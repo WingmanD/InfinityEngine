@@ -5,6 +5,10 @@ World::World() : _eventQueue(this)
 {
 }
 
+World::World(const World&) : Object(), _eventQueue(this)
+{
+}
+
 void World::CreateEntityAsync(const Archetype& archetype)
 {
     _eventQueue.Enqueue([this, archetype](World* world)
@@ -115,13 +119,26 @@ void World::RemoveComponent(Entity& entity, uint16 index)
     entityListBefore.Remove(entity);
 }
 
-void World::Query(ECSQuery& query, const Archetype& archetype)
+void World::Query(ECSQuery& query, const Archetype& archetype) const
 {
     _entityListGraph.Query(query, archetype);
 }
 
 void World::Initialize(PassKey<GameplaySubsystem>)
 {
+    std::ignore = GetType()->ForEachProperty([this](PropertyBase* propertyBase)
+    {
+        Property<World, EventBase>* property = static_cast<Property<World, EventBase>*>(propertyBase);
+        if (property == nullptr)
+        {
+            return true;
+        }
+
+        EventBase& valueRef = property->GetRef(this);
+        valueRef.SetEventManager(GetEventManager());
+            
+        return true;
+    });
 }
 
 void World::Tick(double deltaTime, PassKey<GameplaySubsystem>)
@@ -131,6 +148,8 @@ void World::Tick(double deltaTime, PassKey<GameplaySubsystem>)
     _systemScheduler.Tick(deltaTime);
 
     _eventQueue.ProcessEvents();
+    
+    OnTransformChanged.Clear();
 }
 
 void World::Shutdown(PassKey<GameplaySubsystem>)
@@ -143,14 +162,14 @@ EventQueue<World>& World::GetEventQueue()
     return _eventQueue;
 }
 
-void World::SetValidImplementation(bool valid)
+EventManager& World::GetEventManager()
 {
-    _isValid = valid;
+    return _eventManager;
 }
 
-bool World::IsValidImplementation() const
+DirtyTracker& World::GetDirtyTracker(Type& componentType)
 {
-    return _isValid;
+    return _dirtyTrackers[&componentType];
 }
 
 Entity& World::CreateEntityInternal(const Archetype& archetype)
@@ -192,6 +211,8 @@ EntityList& World::GetEntityList(const Archetype& archetype)
 
     if (result.WasCreated)
     {
+        GetEventManager().UpdateQueries(_entityListGraph);
+        
         for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
         {
             if (system->GetArchetype().IsSubsetOf(archetype))

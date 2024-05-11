@@ -18,6 +18,8 @@ __nop();
 #define RETURN_IF(condition) if (condition) return
 #define RETURNF_IF(condition) if (condition) return false
 
+using TrueType = std::true_type;
+
 template <typename Derived, typename Base>
 concept IsA = std::derived_from<Derived, Base>;
 

@@ -1,6 +1,5 @@
 ﻿#include "Archetype.h"
 #include "Entity.h"
-#include "FNV1a.h"
 #include "TypeRegistry.h"
 
 // todo we should not initialize maps everywhere, we should have something like FullyInitialize() method that initializes maps,
@@ -28,22 +27,6 @@ Archetype::Archetype(const Entity& entity)
     {
         _id = fnv.GetHash();
     }
-}
-
-Archetype::Archetype(const std::initializer_list<QualifiedComponentType>& componentTypes)
-{
-    _componentTypeList.Reserve(componentTypes.size());
-
-    FNV1a fnv;
-    for (const QualifiedComponentType& qualifiedType : componentTypes)
-    {
-        _componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(_componentTypeToIndexMap.size());
-        _componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(_componentNameToIndexMap.size());
-        _componentTypeList.Emplace(qualifiedType);
-
-        fnv.Combine(qualifiedType.Type->GetID());
-    }
-    _id = fnv.GetHash();
 }
 
 void Archetype::AddComponent(const Component& component)
@@ -94,6 +77,11 @@ uint16 Archetype::GetComponentIndexChecked(Type& componentType) const
 uint64 Archetype::GetID() const
 {
     return _id;
+}
+
+bool Archetype::IsValid() const
+{
+    return GetID() != 0;
 }
 
 uint32 Archetype::StrictSubsetIntersectionSize(const Archetype& rhs) const

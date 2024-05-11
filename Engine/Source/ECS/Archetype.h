@@ -7,6 +7,9 @@
 #include "Type.h"
 #include <unordered_map>
 
+#include "FNV1a.h"
+#include "TypeSet.h"
+
 class Entity;
 class Component;
 class MemoryReader;
@@ -32,12 +35,43 @@ public:
 public:
     explicit Archetype() = default;
     explicit Archetype(const Entity& entity);
-    explicit Archetype(const std::initializer_list<QualifiedComponentType>& componentTypes);
+
+    template <typename Container>
+    static Archetype CreateFrom(const Container& componentTypes)
+    {
+        Archetype archetype;
+        archetype._componentTypeList.Reserve(componentTypes.size());
+
+        FNV1a fnv;
+        for (const QualifiedComponentType& qualifiedType : componentTypes)
+        {
+            archetype._componentTypeToIndexMap[qualifiedType.Type] = static_cast<uint16>(archetype._componentTypeToIndexMap.size());
+            archetype._componentNameToIndexMap[qualifiedType.Name] = static_cast<uint16>(archetype._componentNameToIndexMap.size());
+            archetype._componentTypeList.Emplace(qualifiedType);
+
+            fnv.Combine(qualifiedType.Type->GetID());
+        }
+        archetype._id = fnv.GetHash();
+
+        return archetype;
+    }
 
     template <typename... ComponentTypes> requires (IsReflectedType<ComponentTypes> && ...)
     static Archetype Create()
     {
-        return Archetype({TypeChecker<ComponentTypes>::CheckConst()...});
+        return CreateFrom<std::initializer_list<QualifiedComponentType>>({TypeChecker<ComponentTypes>::CheckConst()...});
+    }
+
+    template <typename ComponentTypes> requires IsA<ComponentTypes, TypeSetBase>
+    static Archetype Create()
+    {
+        std::vector<QualifiedComponentType> componentTypes;
+        ComponentTypes::ForEach([&]<typename T>()
+        {
+            componentTypes.push_back(TypeChecker<T>::CheckConst());
+        });
+
+        return CreateFrom(componentTypes);
     }
 
     void AddComponent(const Component& component);
@@ -63,6 +97,7 @@ public:
     }
 
     uint64 GetID() const;
+    bool IsValid() const;
 
     const auto& GetComponentTypes() const
     {
