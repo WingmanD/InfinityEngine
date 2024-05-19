@@ -1,14 +1,15 @@
 ﻿#pragma once
 
+#include "BoundingBox.h"
 #include "Event.h"
 #include "EventManager.h"
-#include "ECS/DirtyTracker.h"
-#include "ECS/SystemScheduler.h"
-#include "ECS/Components/Component.h"
-#include "ECS/EntityListGraph.h"
 #include "Containers/EventQueue.h"
 #include "Containers/ObjectTypeMap.h"
+#include "ECS/DirtyTracker.h"
+#include "ECS/EntityListGraph.h"
+#include "ECS/SystemScheduler.h"
 #include "ECS/World.reflection.h"
+#include "ECS/Components/Component.h"
 
 class EntityTemplate;
 class GameplaySubsystem;
@@ -25,10 +26,12 @@ public:
     PROPERTY()
     Event<TypeSet<CTransform>> OnTransformChanged;
 
+    static BoundingBox WorldBounds;
+
 public:
     explicit World();
 
-    World(const World&);
+    World(const World& other);
 
     void CreateEntityAsync(const Archetype& archetype);
     void CreateEntityAsync(const Archetype& archetype, uint32 count);

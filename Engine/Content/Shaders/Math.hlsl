@@ -31,6 +31,9 @@ inline void ToCenterAndExtents(float3 min, float3 max, out float3 center, out fl
 
 void TransformAABB(float3 minPoint, float3 maxPoint, float4x4 worldMatrix, out float3 newMin, out float3 newMax)
 {
+    minPoint = mul(float4(minPoint, 1.0f), worldMatrix).xyz;
+    maxPoint = mul(float4(maxPoint, 1.0f), worldMatrix).xyz;
+        
     const float3 vertices[8] = {
         minPoint,
         float3(minPoint.x, minPoint.y, maxPoint.z),
@@ -48,9 +51,8 @@ void TransformAABB(float3 minPoint, float3 maxPoint, float4x4 worldMatrix, out f
     [unroll]
     for (int i = 0; i < 8; i++)
     {
-        const float4 transformedVertex = mul(float4(vertices[i], 1.0f), worldMatrix);
-        newMin = min(newMin, transformedVertex.xyz);
-        newMax = max(newMax, transformedVertex.xyz);
+        newMin = min(newMin, vertices[i].xyz);
+        newMax = max(newMax, vertices[i].xyz);
     }
 }
 

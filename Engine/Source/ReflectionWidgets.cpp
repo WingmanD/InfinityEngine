@@ -1,5 +1,9 @@
 ﻿#include "ReflectionWidgets.h"
+
+#include <memory>
+
 #include "AssetPtrBase.h"
+#include "MeshCollision.h"
 #include "ObjectEntryBase.h"
 #include "ReflectionWidgetTemplates.h"
 #include "SubtypeOf.h"
@@ -15,6 +19,87 @@
 #include "Rendering/Widgets/TextBox.h"
 #include "Rendering/Widgets/TypePicker.h"
 #include "Rendering/Widgets/UIStatics.h"
+
+std::shared_ptr<Widget> ReflectionWidgets::DisableWidget(const std::shared_ptr<Widget>& widget)
+{
+    if (widget == nullptr)
+    {
+        return nullptr;
+    }
+
+    widget->SetEnabled(false);
+    return widget;
+}
+
+void ReflectionWidgets::SwapWidget(const std::shared_ptr<Widget>& oldWidget, const std::shared_ptr<Widget>& newWidget)
+{
+    std::shared_ptr<Widget> parent = oldWidget->GetParentWidget();
+
+    parent->RemoveChild(oldWidget);
+    parent->AddChild(newWidget);
+}
+
+std::shared_ptr<Widget> ReflectionWidgets::CreateDropdownMenu(const std::wstring& label, DArray<DropdownMenuEntry>& entries, uint32 selectedIndex)
+{
+    std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+    if (!flowBox->Initialize())
+    {
+        return nullptr;
+    }
+
+    flowBox->SetDirection(EFlowBoxDirection::Horizontal);
+
+    std::shared_ptr<TextBox> labelTextBox = flowBox->AddChild<TextBox>();
+    if (labelTextBox == nullptr)
+    {
+        return nullptr;
+    }
+    labelTextBox->SetText(label);
+    
+    std::shared_ptr<DropdownMenu> dropdownMenu = flowBox->AddChild<DropdownMenu>();
+    if (dropdownMenu == nullptr)
+    {
+        return nullptr;
+    }
+
+    dropdownMenu->SetFillMode(EWidgetFillMode::FillX);
+    
+    for (DropdownMenuEntry& entry : entries)
+    {
+        std::shared_ptr<DropdownTextChoice> choice = std::make_shared<DropdownTextChoice>();
+        if (!choice->Initialize())
+        {
+            return nullptr;
+        }
+
+        choice->SetText(entry.Text);
+        choice->OnReleased.Add(std::move(entry.OnSelected));
+
+        dropdownMenu->AddChoice(choice);
+    }
+
+    dropdownMenu->SetSelectedChoice(selectedIndex);
+
+    return flowBox;
+}
+
+std::shared_ptr<Widget> ReflectionWidgets::CreateVerticalBox(const DArray<std::shared_ptr<Widget>>& children)
+{
+    std::shared_ptr<FlowBox> verticalBox = std::make_shared<FlowBox>();
+    if (!verticalBox->Initialize())
+    {
+        return nullptr;
+    }
+
+    verticalBox->SetDirection(EFlowBoxDirection::Vertical);
+
+    for (std::shared_ptr<Widget> child : children)
+    {
+        verticalBox->AddChild(child);
+    }
+
+    return verticalBox;
+}
 
 std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
                                                            PropertyBase& property,
@@ -1361,27 +1446,125 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return typePicker;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
-    PropertyBase& property, Archetype* value)
+std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, Archetype* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
-    PropertyBase& property, Archetype* value)
+std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, Archetype* value)
 {
     return nullptr;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::DisableWidget(const std::shared_ptr<Widget>& widget)
+std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, BoundingBox* value)
 {
-    if (widget == nullptr)
+    return DisableWidget(CreateEditableWidgetFor(object, property, value));
+}
+
+std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, BoundingBox* value)
+{
+    const std::shared_ptr<TableWidget> table = std::make_shared<TableWidget>();
+    if (!table->Initialize())
+    {
+        return nullptr;
+    }
+    table->SetFillMode(EWidgetFillMode::FillX);
+    
+    {
+        const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        if (!row->Initialize())
+        {
+            return nullptr;
+        }
+        
+        const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+        if (label == nullptr)
+        {
+            return nullptr;
+        }
+        label->SetText(L"Min:");
+
+        std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, const_cast<Vector3*>(&value->GetMin()));
+        if (widget == nullptr)
+        {
+            return nullptr;
+        }
+        row->AddChild(widget);
+
+        table->AddRow(row);
+    }
+
+    {
+        const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        if (!row->Initialize())
+        {
+            return nullptr;
+        }
+        
+        const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+        if (label == nullptr)
+        {
+            return nullptr;
+        }
+        label->SetText(L"Max:");
+
+        std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, const_cast<Vector3*>(&value->GetMax()));
+        if (widget == nullptr)
+        {
+            return nullptr;
+        }
+        row->AddChild(widget);
+
+        table->AddRow(row);
+    }
+
+    return table;
+}
+
+std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, MeshCollision* value)
+{
+    return DisableWidget(CreateEditableWidgetFor(object, property, value));
+}
+
+std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, MeshCollision* value)
+{
+    const std::shared_ptr<TableWidget> table = std::make_shared<TableWidget>();
+    if (!table->Initialize())
+    {
+        return nullptr;
+    }
+    table->SetFillMode(EWidgetFillMode::FillX);
+    
+    const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+    if (!row->Initialize())
     {
         return nullptr;
     }
 
-    widget->SetEnabled(false);
-    return widget;
+    const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+    if (label == nullptr)
+    {
+        return nullptr;
+    }
+    label->SetText(L"Mesh:");
+
+    const std::shared_ptr<AssetPicker> assetPicker = AssetPicker::CreateForType(value->Mesh.GetType());
+    if (assetPicker == nullptr)
+    {
+        return nullptr;
+    }
+    row->AddChild(assetPicker);
+    assetPicker->SetSelectedAsset(value->Mesh);
+
+    assetPicker->OnSelectionChanged.Add([object, value, assetPicker, property](const std::shared_ptr<Widget>& widget)
+    {
+        value->Mesh.SetAsset(assetPicker->GetSelectedAsset());
+        object->OnPropertyChanged(property.GetDisplayName());
+    });
+
+    table->AddRow(row);
+
+    return table;
 }
 
 std::shared_ptr<Widget> ReflectionWidgets::CreatePropertiesWidgetFor(const std::shared_ptr<Object>& object)

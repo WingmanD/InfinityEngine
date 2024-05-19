@@ -26,8 +26,7 @@ bool DropdownTypeChoice::InitializeFromType(Type* type)
 
     _type = type;
 
-    const std::shared_ptr<TextBox> textWidget = GetTextBox();
-    textWidget->SetText(Util::ToWString(_type->GetName()));
+    SetText(Util::ToWString(_type->GetName()));
 
     return true;
 }

@@ -1,11 +1,13 @@
 ﻿#include "World.h"
 #include "EntityTemplate.h"
 
+BoundingBox World::WorldBounds = BoundingBox(Vector3(-100.0f), Vector3(100.0f));
+
 World::World() : _eventQueue(this)
-{
+{ 
 }
 
-World::World(const World&) : Object(), _eventQueue(this)
+World::World(const World& other) : Object(other), _eventQueue(this)
 {
 }
 
@@ -30,6 +32,11 @@ void World::CreateEntityAsync(const Archetype& archetype, uint32 count)
 
 void World::DestroyEntityAsync(Entity& entity)
 {
+    if (!entity.IsValid())
+    {
+        return;
+    }
+    
     _eventQueue.Enqueue([this, &entity](World* world)
     {
         DestroyEntity(entity);
@@ -76,6 +83,11 @@ void World::CreateEntities(const Archetype& archetype, uint32 count)
 
 void World::DestroyEntity(Entity& entity)
 {
+    if (!entity.IsValid())
+    {
+        return;
+    }
+    
     const Archetype archetype = Archetype(entity);
     const EntityListGraph::EntityListResult result = _entityListGraph.GetOrCreateEntityListFor(archetype);
     EntityList& entityList = *result.List;

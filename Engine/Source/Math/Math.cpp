@@ -18,6 +18,16 @@ Vector3 Math::RandomUnitVector()
     return randomVector;
 }
 
+Vector3 Math::Abs(const Vector3& vector)
+{
+    return {Abs(vector.x), Abs(vector.y), Abs(vector.z)};
+}
+
+float Math::Min(const Vector3& vector)
+{
+    return std::min(vector.x, std::min(vector.y, vector.z));
+}
+
 Matrix Math::CreatePerspectiveMatrix(float horizontalFOV, float aspectRatio, float nearClipPlane, float farClipPlane)
 {
     Matrix perspective;

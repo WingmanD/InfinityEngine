@@ -60,44 +60,38 @@ EntityListGraph::Node* EntityListGraph::AddArchetype(const Archetype& type)
     assert(!_archetypeToNodeMap.contains(type.GetID()));
 
     Node* node = _nodes.Emplace(type);
+    _archetypeToNodeMap[type.GetID()] = node;
 
     Node* bestMatchNode = FindBestMatch(type);
     if (bestMatchNode == nullptr)
     {
         _root->AddChildByArchetype(node, {});
-        _archetypeToNodeMap[type.GetID()] = node;
         return node;
     }
 
     if (bestMatchNode->GetArchetype().IsSupersetOf(type))
     {
-        _archetypeToNodeMap[type.GetID()] = node;
-
         for (int64 i = bestMatchNode->Parents.Count() - 1; i >= 0; --i)
         {
             Node* parent = bestMatchNode->Parents[i];
             
             if (parent->GetArchetype().IsSubsetOf(type))
             {
-                parent->AddChildByArchetype(node, {});
-                
-                bestMatchNode->Parents.RemoveAtSwap(i);
+                parent->AddChildByArchetype(node, {});;
             }
         }
-
-        node->AddChildByArchetype(bestMatchNode, {});
-        
-        return node;
     }
-
-    bestMatchNode->AddChildByArchetype(node, {});
+    else if (type.IsSupersetOf(bestMatchNode->GetArchetype()))
+    {
+        bestMatchNode->AddChildByArchetype(node, {});
+    }
 
     if (type == bestMatchNode->GetArchetype())
     {
         return node;
     }
 
-    Archetype matched = bestMatchNode->GetArchetype();
+    Archetype matched = bestMatchNode->GetArchetype().Intersection(type);
 
     while (matched != type)
     {
@@ -110,15 +104,14 @@ EntityListGraph::Node* EntityListGraph::AddArchetype(const Archetype& type)
         Node* bestDifferenceMatch = FindBestMatch(difference);
         if (bestDifferenceMatch == nullptr)
         {
-            bestDifferenceMatch = _root;
+            _root->AddChildByArchetype(node, {});
+            
+            break;
         }
-
-        bestDifferenceMatch->AddChildByArchetype(node, {});
-
+        
         matched = matched.Union(bestDifferenceMatch->GetArchetype());
     }
 
-    _archetypeToNodeMap[type.GetID()] = node;
     return node;
 }
 
@@ -193,7 +186,18 @@ EntityListGraph::EntityListResult EntityListGraph::GetOrCreateEntityListFor(cons
         return {&it->second->EntityList, false};
     }
 
-    return {&AddArchetype(type)->EntityList, true};
+    const EntityListResult result =  {&AddArchetype(type)->EntityList, true};
+    
+    return result;
+}
+
+void EntityListGraph::LogGraph(const Node* root) const
+{
+    for (const Node* child : root->Children)
+    {
+        LOG(L"{} -> {}", root->EntityList.GetArchetype(), child->GetArchetype());
+        LogGraph(child);
+    } 
 }
 
 EntityListGraph::Node* EntityListGraph::FindBestMatch(const Archetype& type) const

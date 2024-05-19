@@ -76,8 +76,7 @@ bool DropdownEnumChoice::InitializeFromEnumInternal(const Enum* enumType, uint32
     _enumType = enumType;
     _value = value;
 
-    const std::shared_ptr<TextBox> textWidget = GetTextBox();
-    textWidget->SetText(Util::ToWString(enumType->GetEntryName(value)));
+    SetText(Util::ToWString(enumType->GetEntryName(value)));
 
     return true;
 }

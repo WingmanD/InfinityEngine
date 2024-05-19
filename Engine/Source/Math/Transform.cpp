@@ -68,7 +68,7 @@ void Transform::SetParent(Transform* parent)
 {
     _parent = parent;
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 Transform* Transform::GetParent() const
@@ -80,7 +80,7 @@ void Transform::SetRelativeLocation(const Vector3& location)
 {
     _location = location;
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 const Vector3& Transform::GetRelativeLocation() const
@@ -99,7 +99,7 @@ void Transform::SetWorldLocation(const Vector3& location)
         _location = location;
     }
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 Vector3 Transform::GetWorldLocation() const
@@ -120,7 +120,7 @@ void Transform::SetRelativeRotation(const Quaternion& rotation)
     _rotation = rotation;
     _rotation.Normalize();
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 const Quaternion& Transform::GetRelativeRotation() const
@@ -145,7 +145,7 @@ void Transform::SetWorldRotation(const Quaternion& rotation)
         _rotation = rotationNormalized;
     }
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 Quaternion Transform::GetWorldRotation() const
@@ -162,7 +162,7 @@ void Transform::SetRelativeRotation(const Vector3& axis, float angle)
 {
     _rotation = Quaternion::CreateFromAxisAngle(axis, angle);
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 void Transform::SetWorldRotation(const Vector3& axis, float angle)
@@ -179,16 +179,18 @@ void Transform::SetWorldRotation(const Vector3& axis, float angle)
         _rotation = Quaternion::CreateFromAxisAngle(axis, angle);
     }
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 void Transform::SetRelativeRotation(const Vector3& eulerAngles)
 {
-    _rotation = Quaternion::CreateFromYawPitchRoll(Math::ToRadians(eulerAngles.y),
-                                                   Math::ToRadians(eulerAngles.x),
-                                                   Math::ToRadians(eulerAngles.z));
+    _rotation = Quaternion::CreateFromYawPitchRoll(
+        Math::ToRadians(eulerAngles.y),
+        Math::ToRadians(eulerAngles.x),
+        Math::ToRadians(eulerAngles.z)
+    );
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 Vector3 Transform::GetRelativeRotationEuler() const
@@ -199,7 +201,7 @@ Vector3 Transform::GetRelativeRotationEuler() const
 void Transform::SetWorldRotation(const Vector3& eulerAngles)
 {
     SetRelativeRotation(eulerAngles);
-    
+
     if (_parent != nullptr)
     {
         Quaternion parentRotationConjugate = Quaternion::CreateFromRotationMatrix(_parent->GetWorldMatrix());
@@ -235,7 +237,7 @@ void Transform::SetWorldScale(const Vector3& scale)
         _scale = scale;
     }
 
-    _isWorldMatrixDirty = true;
+    MarkDirty();
 }
 
 Vector3 Transform::GetWorldScale() const
@@ -280,6 +282,7 @@ const Matrix& Transform::GetWorldMatrix() const
     if (_parent != nullptr)
     {
         mutableThis->_worldMatrix *= _parent->GetWorldMatrix();
+        mutableThis->_parentVersion = _parent->_version;
     }
 
     mutableThis->_isWorldMatrixDirty = false;
@@ -291,10 +294,26 @@ bool Transform::IsWorldMatrixDirty() const
 {
     if (_parent != nullptr)
     {
-        return _isWorldMatrixDirty || _parent->IsWorldMatrixDirty();
+        return _isWorldMatrixDirty || _parent->IsWorldMatrixDirty() || _parentVersion != _parent->_version;
     }
 
     return _isWorldMatrixDirty;
+}
+
+Vector3 Transform::operator*(const Vector3& vector) const
+{
+    return Vector3::Transform(vector, GetWorldMatrix());
+}
+
+Vector4 Transform::operator*(const Vector4& vector) const
+{
+    return Vector4::Transform(vector, GetWorldMatrix());
+}
+
+void Transform::MarkDirty()
+{
+    _isWorldMatrixDirty = true;
+    ++_version;
 }
 
 MemoryWriter& operator<<(MemoryWriter& writer, const Transform& transform)

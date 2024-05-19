@@ -128,6 +128,17 @@ float4 PS(VertexOut pIn) : SV_Target
         color += max(0.0f, contribution);
     }
 
+    color *= 0.001f;
+    {
+        // Directional light
+        const float3 directionalLightDir = normalize(float3(0.0f, 0.0f, 1.0f));
+        const float directionalLightIntensity = 10.0f;
+    
+        const float3 contribution = directionalLightIntensity *
+            CookTorranceBRDF(directionalLightDir, v, n, pIn.Tangent, pIn.Bitangent, f0, roughness, aniso);
+        color += max(0.0f, contribution);
+    }
+
     color *= diffuse;
     color += ambient * diffuse;
 

@@ -33,12 +33,25 @@ Type* DropdownMenu::GetChoiceWidgetType() const
 
 std::shared_ptr<Widget> DropdownMenu::GetSelectedChoice() const
 {
-    return _selectedWidget.lock();
+    std::shared_ptr<Widget> cached = _selectedWidget.lock();
+    if (cached != nullptr)
+    {
+        return cached;
+    }
+
+    std::shared_ptr<Widget> selectedWidget = GetChoices()[0];
+    const_cast<DropdownMenu*>(this)->_selectedWidget = selectedWidget;
+    return selectedWidget;
 }
 
 void DropdownMenu::SetSelectedChoice(const std::shared_ptr<Widget>& choice)
 {
     OnChoiceSelected(choice);
+}
+
+void DropdownMenu::SetSelectedChoice(uint32 index)
+{
+    OnChoiceSelected(GetChoices()[index]);
 }
 
 bool DropdownMenu::Initialize()
@@ -88,7 +101,6 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
     const std::shared_ptr<Widget> selectedWidget = std::dynamic_pointer_cast<Widget>(choice->Duplicate());
     selectedWidget->Initialize();
 
-    _selectedWidget = selectedWidget;
     AddChild(selectedWidget, false);
 
     selectedWidget->SetVisibility(true);
@@ -97,6 +109,10 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
     selectedWidget->SetAnchor(EWidgetAnchor::Center);
     selectedWidget->SetPosition(Vector2::Zero);
     selectedWidget->SetSize({1.0f, 1.0f});
+    selectedWidget->SetCollapsed(false);
+
+    InvalidateLayout();
+    InvalidateTree();
 
     if (_choiceReleasedHandle.IsValid())
     {
@@ -124,7 +140,7 @@ const std::vector<std::shared_ptr<Widget>>& DropdownMenu::GetChoices() const
 
 void DropdownMenu::RebuildLayoutInternal()
 {
-    const std::shared_ptr<Widget> selectedWidget = _selectedWidget.lock();
+    const std::shared_ptr<Widget> selectedWidget = GetSelectedChoice();
     selectedWidget->SetPosition(Vector2::Zero);
     selectedWidget->SetSize({1.0f, 1.0f});
 
@@ -146,7 +162,7 @@ void DropdownMenu::RebuildLayoutInternal()
 
 void DropdownMenu::UpdateDesiredSizeInternal()
 {
-    const std::shared_ptr<Widget> selectedWidget = _selectedWidget.lock();
+    const std::shared_ptr<Widget> selectedWidget = GetSelectedChoice();
     if (selectedWidget == nullptr)
     {
         return;

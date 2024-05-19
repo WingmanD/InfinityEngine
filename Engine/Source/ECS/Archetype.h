@@ -1,14 +1,14 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Containers/DArray.h"
+#include "FNV1a.h"
 #include "Name.h"
 #include "ReflectionShared.h"
 #include "Type.h"
-#include <unordered_map>
-
-#include "FNV1a.h"
 #include "TypeSet.h"
+#include "Containers/DArray.h"
+#include <format>
+#include <unordered_map>
 
 class Entity;
 class Component;
@@ -79,6 +79,12 @@ public:
     bool HasComponent(const Type& componentType) const;
     bool HasComponent(Name componentName) const;
 
+    template <typename T> requires IsA<T, Component>
+    bool HasComponent() const
+    {
+        return HasComponent(*T::StaticType());
+    }
+
     uint16 GetComponentIndex(const Type& componentType) const;
     uint16 GetComponentIndex(Name componentName) const;
 
@@ -111,6 +117,7 @@ public:
 
     Archetype Difference(const Archetype& rhs) const;
     Archetype Union(const Archetype& rhs) const;
+    Archetype StrictIntersection(const Archetype& rhs) const;
     Archetype Intersection(const Archetype& rhs) const;
 
     bool CanBeExecutedInParallelWith(const Archetype& rhs) const;
@@ -142,3 +149,34 @@ MemoryReader& operator>>(MemoryReader& reader, Archetype::QualifiedComponentType
 
 MemoryWriter& operator<<(MemoryWriter& writer, const Archetype& archetype);
 MemoryReader& operator>>(MemoryReader& reader, Archetype& archetype);
+
+template <>
+struct std::formatter<Archetype, wchar_t>
+{
+    constexpr auto parse(std::wformat_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    auto format(const Archetype& archetype, std::wformat_context& ctx) const
+    {
+        auto out = ctx.out();
+        
+        std::format_to(out, L"Archetype<");
+
+        const DArray<Archetype::QualifiedComponentType, 8>& types = archetype.GetComponentTypes();
+        if (types.IsEmpty())
+        {
+            std::format_to(out, L">");
+            return out;
+        }
+        
+        for (int32 i = 0; i < types.Count() - 1; ++i)
+        {
+            std::format_to(out, L"{},", Util::ToWString(types[i].Type->GetName()));
+        }
+        std::format_to(out, L"{}>", Util::ToWString(types[types.Count() - 1].Type->GetName()));
+        
+        return out;
+    }
+};

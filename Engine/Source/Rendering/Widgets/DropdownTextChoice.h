@@ -12,6 +12,8 @@ class DropdownTextChoice : public Widget
 
 public:
     DropdownTextChoice() = default;
+
+    void SetText(const std::wstring& text);
     
     // Widget
 public:
@@ -21,5 +23,7 @@ protected:
     std::shared_ptr<TextBox> GetTextBox() const;
 
 private:
+    // todo temporary, until we implement proper duplication
+    std::wstring _text;
     std::weak_ptr<TextBox> _textBox;
 };

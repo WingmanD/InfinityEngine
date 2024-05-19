@@ -4,6 +4,7 @@
 #include "ISerializeable.h"
 #include <filesystem>
 #include <string>
+#include <variant>
 #include <vector>
 
 class MemoryWriter
@@ -79,6 +80,20 @@ MemoryWriter& operator<<(MemoryWriter& writer, const std::basic_string<T>& strin
 }
 
 MemoryWriter& operator<<(MemoryWriter& writer, const std::filesystem::path& path);
+
+template <typename... Types>
+MemoryWriter& operator<<(MemoryWriter& writer, const std::variant<Types...>& variant)
+{
+    writer << static_cast<int32>(variant.index());
+
+    std::visit([&writer](auto&& arg)
+    {
+       writer << arg;
+    },
+    variant);
+    
+    return writer;
+}
 
 // template <typename Key, typename Value>
 // MemoryWriter& operator<<(MemoryWriter& writer, const std::map<Key, Value>& map)

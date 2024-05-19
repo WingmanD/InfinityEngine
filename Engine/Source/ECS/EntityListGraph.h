@@ -54,6 +54,8 @@ public:
 
     EntityListResult GetOrCreateEntityListFor(const Archetype& type);
 
+    void LogGraph(const Node* root) const;
+
 private:
     BucketArray<Node> _nodes;
 

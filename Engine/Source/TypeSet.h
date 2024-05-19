@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <type_traits>
+#include "TypeMap.h"
 
 class TypeSetBase
 {
@@ -31,5 +32,11 @@ public:
     static constexpr void ForEach(auto&& func)
     {
         (func.template operator()<Types>(), ...);
+    }
+
+    template <typename T>
+    static constexpr size_t IndexOf()
+    {
+        return TypeIndex<T, Types...>::value;
     }
 };

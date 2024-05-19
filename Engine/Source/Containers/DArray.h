@@ -1309,6 +1309,8 @@ public:
         {
             std::construct_at(&GetElement(i), value);
         }
+
+        _count = newSize;
     }
 
 private:

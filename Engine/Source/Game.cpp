@@ -4,6 +4,7 @@
 #include "ECS/Components/CStaticMesh.h"
 #include "ECS/Systems/CameraSystem.h"
 #include "ECS/Systems/PathfindingSystem.h"
+#include "ECS/Systems/PhysicsSystem.h"
 #include "ECS/Systems/PointLightSystem.h"
 #include "ECS/Systems/StaticMeshRenderingSystem.h"
 #include "Engine/Subsystems/GameplaySubsystem.h"
@@ -37,6 +38,7 @@ bool Game::OnStartup()
     {
         world.AddSystem<PathfindingSystem>();
         world.AddSystem<CameraSystem>();
+        world.AddSystem<PhysicsSystem>();
         world.AddSystem<StaticMeshRenderingSystem>();
         world.AddSystem<PointLightSystem>();
 
@@ -46,21 +48,22 @@ bool Game::OnStartup()
         cameraEntityTransform.SetWorldLocation({-5.0f, 0.0f, 1.0f});
 
         world.CreateEntity(_enemyTemplate);
+        world.CreateEntity(_floorTemplate);
 
-        Entity& meshEntity = world.CreateEntity(_enemyTemplate);
-        Transform& transform = meshEntity.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
-        transform.SetWorldRotation({0.0f, 0.0f, 45.0f});
-        transform.SetWorldLocation({0.0f, 0.0f, 1.0f});
-
-        Entity& cubeEntity = world.CreateEntity(_cubeTemplate);
-        Transform& cubeTransform = cubeEntity.Get<CTransform>(_cubeTemplate->GetArchetype()).ComponentTransform;
-        cubeTransform.SetWorldScale({0.25f, 0.25f, 0.25f});
-
-        Entity& meshEntity2 = world.CreateEntity(_enemyTemplate);
-        Transform& transform2 = meshEntity2.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
-        transform2.SetWorldLocation({0.0f, 0.0f, 2.0f});
-        world.CreateEntity(_cubeTemplate);
-        world.CreateEntity(_enemyTemplate);
+        // Entity& meshEntity = world.CreateEntity(_enemyTemplate);
+        // Transform& transform = meshEntity.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
+        // transform.SetWorldRotation({0.0f, 0.0f, 45.0f});
+        // transform.SetWorldLocation({0.0f, 0.0f, 1.0f});
+        //
+        // Entity& cubeEntity = world.CreateEntity(_cubeTemplate);
+        // Transform& cubeTransform = cubeEntity.Get<CTransform>(_cubeTemplate->GetArchetype()).ComponentTransform;
+        // cubeTransform.SetWorldScale({0.25f, 0.25f, 0.25f});
+        //
+        // Entity& meshEntity2 = world.CreateEntity(_enemyTemplate);
+        // Transform& transform2 = meshEntity2.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
+        // transform2.SetWorldLocation({0.0f, 0.0f, 2.0f});
+        // world.CreateEntity(_cubeTemplate);
+        // world.CreateEntity(_enemyTemplate);
 
         return false;
     });

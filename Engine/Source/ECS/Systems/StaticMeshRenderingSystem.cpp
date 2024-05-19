@@ -79,6 +79,11 @@ void StaticMeshRenderingSystem::Tick(double deltaTime)
 
         for (const auto& eventData : entityListStruct.EntityListOutput)
         {
+            if (!eventData.Entity->IsValid())
+            {
+                continue;
+            }
+            
             const CStaticMesh& staticMesh = eventData.Entity->Get<CStaticMesh>(index);
             _instanceBuffer[staticMesh.InstanceID].World = staticMesh.MeshTransform.GetWorldMatrix().Transpose();
         }

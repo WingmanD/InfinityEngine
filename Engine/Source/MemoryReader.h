@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "TypeSet.h"
+
 class MemoryReader
 {
 public:
@@ -112,6 +114,41 @@ MemoryReader& operator>>(MemoryReader& reader, std::basic_string<T>& string)
 }
 
 MemoryReader& operator>>(MemoryReader& reader, std::filesystem::path& path);
+
+
+template <int32 Index, class Variant>
+std::enable_if_t<Index == std::variant_size_v<Variant>, void>
+DeserializeVariant(MemoryReader& ar, int32 index, Variant& variant)
+{
+    LOG(L"MemoryReader::operator>> Invalid variant index");
+    DEBUG_BREAK();
+}
+
+template <int32 Index, class Variant>
+std::enable_if_t<Index < std::variant_size_v<Variant>, void>
+DeserializeVariant(MemoryReader& ar, int32 index, Variant& variant)
+{
+    if (Index == index)
+    {
+        variant.template emplace<Index>();
+        ar >> std::get<Index>(variant);
+    }
+    else
+    {
+        DeserializeVariant<Index + 1>(ar, index, variant);
+    }
+}
+
+template <typename... Types>
+MemoryReader& operator>>(MemoryReader& reader, std::variant<Types...>& variant)
+{
+    int32 index = 0;
+    reader >> index;
+    
+    DeserializeVariant<0>(reader, index, variant);
+    
+    return reader;
+}
 
 // template <typename Key, typename Value>
 // MemoryReader& operator>>(MemoryReader& reader, std::map<Key, Value>& map)

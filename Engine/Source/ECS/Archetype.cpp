@@ -144,7 +144,7 @@ Archetype Archetype::Difference(const Archetype& rhs) const
             fnv.Combine(qualifiedType.Type->GetID());
         }
     }
-    if (!_componentTypeList.IsEmpty())
+    if (!difference._componentTypeList.IsEmpty())
     {
         difference._id = fnv.GetHash();
     }
@@ -188,7 +188,7 @@ Archetype Archetype::Union(const Archetype& rhs) const
     return unionArchetype;
 }
 
-Archetype Archetype::Intersection(const Archetype& rhs) const
+Archetype Archetype::StrictIntersection(const Archetype& rhs) const
 {
     Archetype intersectionArchetype;
     FNV1a fnv;
@@ -196,7 +196,7 @@ Archetype Archetype::Intersection(const Archetype& rhs) const
     auto itA = rhs._componentTypeList.begin();
     auto itB = _componentTypeList.begin();
 
-    while (itA != _componentTypeList.end() && itB != rhs._componentTypeList.end())
+    while (itA != rhs._componentTypeList.end() && itB != _componentTypeList.end())
     {
         if (*itA->Type == *itB->Type)
         {
@@ -223,9 +223,34 @@ Archetype Archetype::Intersection(const Archetype& rhs) const
     return intersectionArchetype;
 }
 
+Archetype Archetype::Intersection(const Archetype& rhs) const
+{
+    Archetype intersectionArchetype;
+    FNV1a fnv;
+    
+    for (const QualifiedComponentType& componentTypeList : _componentTypeList)
+    {
+        if (rhs.HasComponent(*componentTypeList.Type))
+        {
+            intersectionArchetype._componentTypeToIndexMap[componentTypeList.Type] = static_cast<uint16>(intersectionArchetype._componentTypeToIndexMap.size());
+            intersectionArchetype._componentNameToIndexMap[componentTypeList.Name] = static_cast<uint16>(intersectionArchetype._componentNameToIndexMap.size());
+            intersectionArchetype._componentTypeList.Add(componentTypeList);
+            
+            fnv.Combine(componentTypeList.Type->GetID());
+        }
+    } 
+
+    if (!intersectionArchetype._componentTypeList.IsEmpty())
+    {
+        intersectionArchetype._id = fnv.GetHash();
+    }
+
+    return intersectionArchetype;
+}
+
 bool Archetype::CanBeExecutedInParallelWith(const Archetype& rhs) const
 {
-    const Archetype intersection = Intersection(rhs);
+    const Archetype intersection = StrictIntersection(rhs);
     for (const QualifiedComponentType& qualifiedType : intersection._componentTypeList)
     {
         if (!qualifiedType.IsConst)

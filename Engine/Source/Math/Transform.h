@@ -5,6 +5,8 @@
 class MemoryWriter;
 class MemoryReader;
 
+class BoundingBox;
+
 class Transform
 {
 public:
@@ -56,6 +58,9 @@ public:
     const Matrix& GetWorldMatrix() const;
     bool IsWorldMatrixDirty() const;
 
+    Vector3 operator*(const Vector3& vector) const;
+    Vector4 operator*(const Vector4& vector) const;
+
     friend MemoryWriter& operator<<(MemoryWriter& writer, const Transform& transform);
     friend MemoryReader& operator>>(MemoryReader& reader, Transform& transform);
     
@@ -67,7 +72,13 @@ private:
     Vector3 _scale = Vector3::One;
 
     Matrix _worldMatrix;
+
+    uint32 _version = 0;
+    uint32 _parentVersion = 0;
     bool _isWorldMatrixDirty = true;
+
+private:
+    void MarkDirty();
 };
 
 MemoryWriter& operator<<(MemoryWriter& writer, const Transform& transform);

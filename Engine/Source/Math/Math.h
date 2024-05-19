@@ -13,11 +13,6 @@ namespace Math
         return value * value;
     }
 
-    constexpr auto Ceil(auto value)
-    {
-        return static_cast<decltype(value)>(std::ceil(value));
-    }
-
     template <typename T>
     constexpr T ToRadians(T degrees)
     {
@@ -70,6 +65,29 @@ namespace Math
     }
 
     Vector3 RandomUnitVector();
+
+    Vector3 Abs(const Vector3& vector);
+    float Min(const Vector3& vector);
+
+    auto Min(auto value1, auto value2)
+    {
+        return value1 < value2 ? value1 : value2;
+    }
+
+    constexpr float Clamp(float value, float min, float max)
+    {
+        return value < min ? min : value > max ? max : value;
+    }
+
+    constexpr auto Abs(auto value)
+    {
+        return value < 0 ? -value : value;
+    }
+
+    constexpr auto Ceil(auto value)
+    {
+        return static_cast<uint64>(value) + value / static_cast<uint64>(value) - 1;
+    }
 
     Matrix CreatePerspectiveMatrix(float horizontalFOV, float aspectRatio, float nearClipPlane, float farClipPlane);
 

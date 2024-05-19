@@ -81,8 +81,10 @@ protected:
         {
             if (!component.Dirty)
             {
+                component.Dirty = true;
+                
                 Event<TypeSet<ComponentType>>& event = GetWorld().*ComponentType::OnChanged;
-                event.Add(&entity, *GetBinding<ComponentType>().ListArchetype, PassKey<System<ComponentTypes...>>());
+                event.Add(&entity, *GetBinding<ComponentType>().ListArchetype, PassKey<System>());
             }
         }
         

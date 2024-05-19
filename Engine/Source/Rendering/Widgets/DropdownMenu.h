@@ -30,6 +30,7 @@ public:
 
     std::shared_ptr<Widget> GetSelectedChoice() const;
     void SetSelectedChoice(const std::shared_ptr<Widget>& choice);
+    void SetSelectedChoice(uint32 index);
 
     template <typename T> requires std::derived_from<T, Widget>
     std::shared_ptr<T> GetSelectedChoice() const

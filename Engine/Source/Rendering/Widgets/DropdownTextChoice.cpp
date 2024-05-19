@@ -1,6 +1,12 @@
 ﻿#include "DropdownTextChoice.h"
 #include "TextBox.h"
 
+void DropdownTextChoice::SetText(const std::wstring& text)
+{
+    _text = text;
+    GetTextBox()->SetText(text);
+}
+
 bool DropdownTextChoice::Initialize()
 {
     if (!Widget::Initialize())
@@ -17,8 +23,10 @@ bool DropdownTextChoice::Initialize()
     {
         return false;
     }
-
+    
     _textBox = textWidget;
+
+    SetText(_text);
     
     return true;
 }

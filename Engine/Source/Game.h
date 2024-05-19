@@ -33,4 +33,7 @@ private:
 
     PROPERTY(Edit, Serialize, DisplayName = "Cube Template")
     AssetPtr<EntityTemplate> _cubeTemplate;
+
+    PROPERTY(Edit, Serialize, DisplayName = "Floor Template")
+    AssetPtr<EntityTemplate> _floorTemplate;
 };

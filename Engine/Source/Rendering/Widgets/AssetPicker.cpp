@@ -48,15 +48,13 @@ bool DropdownAssetChoice::InitializeFromAssetInternal(const std::shared_ptr<Asse
 {
     _asset = asset;
 
-    const std::shared_ptr<TextBox> textWidget = GetTextBox();
-
     if (asset != nullptr)
     {
-        textWidget->SetText(asset->GetName().ToString());
+        SetText(asset->GetName().ToString());
     }
     else
     {
-        textWidget->SetText(L"None");
+        SetText(L"None");
     }
 
     return true;
