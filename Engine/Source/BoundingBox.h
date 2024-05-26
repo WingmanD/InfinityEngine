@@ -30,6 +30,8 @@ public:
     
     BoundingBox Union(const BoundingBox& other) const;
 
+    Vector3 FurthestPointInDirection(const Vector3& direction) const;
+
     friend MemoryWriter& operator<<(MemoryWriter& writer, const BoundingBox& boundingBox);
     friend MemoryReader& operator>>(MemoryReader& reader, BoundingBox& boundingBox);
 

@@ -88,6 +88,15 @@ BoundingBox BoundingBox::Union(const BoundingBox& other) const
     return {newMin, newMax};
 }
 
+Vector3 BoundingBox::FurthestPointInDirection(const Vector3& direction) const
+{
+    return {
+        direction.x > 0.0f ? _max.x : _min.x,
+        direction.y > 0.0f ? _max.y : _min.y,
+        direction.z > 0.0f ? _max.z : _min.z
+    };
+}
+
 MemoryWriter& operator<<(MemoryWriter& writer, const BoundingBox& boundingBox)
 {
     writer << boundingBox.GetMin();

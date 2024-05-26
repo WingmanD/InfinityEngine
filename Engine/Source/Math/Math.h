@@ -4,6 +4,16 @@
 #include <numbers>
 #include <random>
 
+struct Line
+{
+public:
+    Vector3 Start;
+    Vector3 End;
+
+public:
+    float DistanceToPoint(const Vector3& point) const;
+};
+
 namespace Math
 {
     constexpr auto Pi = std::numbers::pi_v<float>;
@@ -43,6 +53,17 @@ namespace Math
         }
 
         return ++value;
+    }
+
+    constexpr bool IsPowerOfTwo(uint32 value)
+    {
+        return value && !(value & (value - 1));
+    }
+
+    template <uint32 N> requires (IsPowerOfTwo(N))
+    constexpr uint32 NextCircularIndex(uint32 currentIndex)
+    {
+        return (N - 1) & (currentIndex + 1);
     }
 
     Vector3 ToDegrees(const Vector3& radians);
@@ -96,9 +117,17 @@ namespace Math
 
     Vector3 Mirror(const Vector3& vector, const Vector3& normal);
 
+    Vector3 TripleVectorProduct(const Vector3& a, const Vector3& b, const Vector3& c);
+
     /**
      * Calculates the distance between a point and a plane.
      * Returns a negative value when point is underneath the plane.
      */
     float Distance(const Vector3& point, const Plane& plane);
+
+    Vector3 PlanarProjection(const Vector3& vec, const Vector3& planePoint, const Vector3& planeNormal);
+
+    Vector3 BarycentricCoordinates(const Vector3& point, const Vector3& a, const Vector3& b, const Vector3& c);
+    bool IsPointInsideTriangle(const Vector3& point, const Vector3& a, const Vector3& b, const Vector3& c);
+    bool BarycentricInsideTriangle(const Vector3& barycentric);
 }

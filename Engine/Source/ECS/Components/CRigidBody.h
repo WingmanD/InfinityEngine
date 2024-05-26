@@ -38,6 +38,9 @@ public:
 
     PROPERTY(Edit, Serialize)
     float Restitution = 0.1f;
+
+    PROPERTY(Edit, Serialize)
+    float Inertia = 0.2f;
     
     uint32 BodyIndex = 0;
 };

@@ -917,7 +917,12 @@ public:
 
     Iterator InsertAt(SizeType index, ConstReference value)
     {
-        return Insert(begin() + index, 1, value);
+        return Insert(begin() + index, std::forward<ConstReference>(value));
+    }
+
+    Iterator InsertAt(SizeType index, RValueReference value)
+    {
+        return Insert(begin() + index, std::forward<RValueReference>(value));
     }
 
     Reference Add(const T& value)
@@ -1436,11 +1441,11 @@ private:
         if constexpr (SSO_SIZE > 0)
         {
             const int64 numData = _count - SSO_SIZE;
-            const int64 dataStartIndex = index - SSO_SIZE;
 
-            if (index > SSO_SIZE)
+            if (index >= SSO_SIZE || numData > 0)
             {
-                for (int64 i = numData - 1; i > dataStartIndex; --i)
+                const int64 dataStartIndex = std::max(static_cast<int64>(index) - static_cast<int64>(SSO_SIZE), 0ll);
+                for (int64 i = numData; i >= dataStartIndex; --i)
                 {
                     _data[i].~T();
                     if constexpr (std::is_move_constructible_v<T>)
@@ -1452,24 +1457,24 @@ private:
                         std::construct_at(&_data[i], _data[i - 1]);
                     }
                 }
-
+                
                 _data[dataStartIndex].~T();
             }
-            else
+
+            if (numData > 0 || _count >= SSO_SIZE)
             {
-                if (numData > 0)
+                if constexpr (std::is_move_constructible_v<T>)
                 {
-                    if constexpr (std::is_move_constructible_v<T>)
-                    {
-                        std::construct_at(&_data[0], std::move(GetSSOData()[SSO_SIZE - 1]));
-                    }
-                    else
-                    {
-                        std::construct_at(&_data[0], GetSSOData()[SSO_SIZE - 1]);
-                    }
+                    std::construct_at(&_data[0], std::move(GetSSOData()[SSO_SIZE - 1]));
                 }
+                else
+                {
+                    std::construct_at(&_data[0], GetSSOData()[SSO_SIZE - 1]);
+                }
+            }
 
-
+            if (_count < SSO_SIZE)
+            {
                 if constexpr (std::is_move_constructible_v<T>)
                 {
                     std::construct_at(&GetSSOData()[_count], std::move(GetSSOData()[_count - 1]));
@@ -1478,24 +1483,24 @@ private:
                 {
                     std::construct_at(&GetSSOData()[_count], GetSSOData()[_count - 1]);
                 }
-
-                for (SizeType i = _count - 1; i >= index + 1; --i)
-                {
-                    GetSSOData()[i].~T();
-
-                    const SizeType previous = i - 1;
-                    if constexpr (std::is_move_constructible_v<T>)
-                    {
-                        std::construct_at(&GetSSOData()[i], std::move(GetSSOData()[previous]));
-                    }
-                    else
-                    {
-                        std::construct_at(&GetSSOData()[i], GetSSOData()[previous]);
-                    }
-                }
-
-                GetSSOData()[index].~T();
             }
+
+            for (SizeType i = std::min(_count - 1, SSO_SIZE - 1); i >= index + 1; --i)
+            {
+                GetSSOData()[i].~T();
+
+                const SizeType previous = i - 1;
+                if constexpr (std::is_move_constructible_v<T>)
+                {
+                    std::construct_at(&GetSSOData()[i], std::move(GetSSOData()[previous]));
+                }
+                else
+                {
+                    std::construct_at(&GetSSOData()[i], GetSSOData()[previous]);
+                }
+            }
+
+            GetSSOData()[index].~T();
         }
         else
         {
@@ -1526,8 +1531,8 @@ private:
         }
     }
 
-    template <typename IteratorType>
-    Iterator InsertImplementation(IteratorType pos, RValueReference value)
+    template <typename IteratorType, typename ReferenceType>
+    Iterator InsertImplementation(IteratorType pos, ReferenceType value)
     {
         SizeType index;
         if constexpr (SSO_SIZE > 0)
@@ -1543,7 +1548,7 @@ private:
         ShiftElementsRight(index);
 
         Iterator newPos = begin() + index;
-        std::construct_at(newPos.GetPtr(), std::forward<RValueReference>(value));
+        std::construct_at(newPos.GetPtr(), std::forward<ReferenceType>(value));
 
         ++_count;
         return newPos;

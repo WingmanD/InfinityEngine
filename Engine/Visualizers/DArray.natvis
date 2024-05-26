@@ -1,20 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
     <Type Name="DArray&lt;*,*,*&gt;">
-        <DisplayString Condition="$T2 &gt; 0">SSO data: {(_count &lt; $T2) ? _count : $T2}</DisplayString>
-        <DisplayString Condition="_count &gt; $T2">Dynamic data: {_count - $T2}</DisplayString>
-        <DisplayString>Count: {_count})</DisplayString>
-        <DisplayString>Capacity: {_capacity})</DisplayString>
+        <DisplayString>Count: {_count}</DisplayString>
         <Expand>
-            <ExpandedItem Condition="$T2 == 0">($T1*)_data,[_count]</ExpandedItem>
-            <ArrayItems Condition="$T2 &gt; 0 &amp;&amp; _count &lt;= $T2">
-                <Size>((_count &lt; $T2) ? _count : $T2)</Size>
-                <ValuePointer>($T1*)_ssoBuffer</ValuePointer>
-            </ArrayItems>
-            <ArrayItems Condition="$T2 &gt; 0 &amp;&amp; _count &gt; $T2">
-                <Size>_count - $T2</Size>
-                <ValuePointer>_data</ValuePointer>
-            </ArrayItems>
+            <Item Name="SSO Data">((_count &lt; $T2) ? _count : $T2)</Item>
+            <Item Name="Dynamic Data">((_count &gt;= $T2) ? _count - $T2 : 0)</Item>
+            <Item Name="Count">_count</Item>
+            <Item Name="Capacity">_capacity</Item>
+
+            <CustomListItems>
+                <Variable Name="i" InitialValue="0" />
+                <Variable Name="SSOArrayCount" InitialValue="((_count &lt; $T2) ? _count : $T2)" />
+                <Loop Condition="i &lt; _count">
+                    <If Condition="i &lt; SSOArrayCount">
+                        <Item Name="[{i}]">(($T1*)_ssoBuffer)[i]</Item>
+                    </If>
+                    <Else>
+                        <Item Name="[{i}]">(($T1*)_data)[i - SSOArrayCount]</Item>
+                    </Else>
+                    <Exec>i++</Exec>
+                </Loop>
+            </CustomListItems>
         </Expand>
     </Type>
 </AutoVisualizer>

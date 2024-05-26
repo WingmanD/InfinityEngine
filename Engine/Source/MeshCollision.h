@@ -6,6 +6,8 @@ class MeshCollision
 {
 public:
     AssetPtr<StaticMesh> Mesh;
+
+    Vector3 FurthestPointInDirection(const Vector3& direction) const;
 };
 
 MemoryWriter& operator<<(MemoryWriter& writer, const MeshCollision& meshCollision);
