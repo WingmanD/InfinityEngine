@@ -2,6 +2,7 @@
 
 #include "Math/MathFwd.h"
 
+struct Line;
 class Transform;
 class MemoryReader;
 class MemoryWriter;
@@ -21,6 +22,8 @@ public:
     Vector3 GetExtent() const;
 
     bool Overlap(const BoundingBox& other) const;
+    bool Overlap(const Line& line) const;
+    
     bool Contains(const Vector3& point) const;
 
     float SweepDistance(const Vector3& direction) const;

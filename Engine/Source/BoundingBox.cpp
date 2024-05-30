@@ -35,6 +35,69 @@ bool BoundingBox::Overlap(const BoundingBox& other) const
         _min.z <= other._max.z && _max.z >= other._min.z;
 }
 
+bool BoundingBox::Overlap(const Line& line) const
+{
+    Vector3 direction = line.End - line.Start;
+    const float distance = direction.Length();
+    direction.Normalize();
+
+    float tMin = (_min.x - line.Start.x) / direction.x;
+    float tMax = (_max.x - line.Start.x) / direction.x;
+
+    if (tMin > tMax)
+    {
+        std::swap(tMin, tMax);
+    }
+
+    float tYMin = (_min.y - line.Start.y) / direction.y;
+    float tYMax = (_max.y - line.Start.y) / direction.y;
+
+    if (tYMin > tYMax)
+    {
+        std::swap(tYMin, tYMax);
+    }
+
+    if (tMin > tYMax || tYMin > tMax)
+    {
+        return false;
+    }
+
+    if (tYMin > tMin)
+    {
+        tMin = tYMin;
+    }
+
+    if (tYMax < tMax)
+    {
+        tMax = tYMax;
+    }
+
+    float tZMin = (_min.z - line.Start.z) / direction.z;
+    float tZMax = (_max.z - line.Start.z) / direction.z;
+
+    if (tZMin > tZMax)
+    {
+        std::swap(tZMin, tZMax);
+    }
+
+    if (tMin > tZMax || tZMin > tMax)
+    {
+        return false;
+    }
+
+    if (tZMin > tMin)
+    {
+        tMin = tZMin;
+    }
+
+    if (tZMax < tMax)
+    {
+        tMax = tZMax;
+    }
+
+    return tMin <= distance && tMax >= 0;
+}
+
 bool BoundingBox::Contains(const Vector3& point) const
 {
     return point.x >= _min.x && point.x <= _max.x &&

@@ -1,7 +1,29 @@
 ﻿#pragma once
 
+#include "BoundingBox.h"
 #include "Component.h"
 #include "CRigidBody.reflection.h"
+
+class Entity;
+class CRigidBody;
+class CTransform;
+class CCollider;
+
+struct Body
+{
+public:
+    Entity* Entity;
+    BoundingBox AABB;
+    uint16 TransformIndex;
+    uint16 RigidBodyIndex;
+    uint16 ColliderIndex;
+    DArray<uint32, 4> IndicesInCells;
+
+public:
+    CTransform& GetTransform() const;
+    CRigidBody& GetRigidBody() const;
+    CCollider& GetCollider() const;
+};
 
 REFLECTED()
 enum class ERigidBodyState : uint8
@@ -42,5 +64,5 @@ public:
     PROPERTY(Edit, Serialize)
     float Inertia = 0.2f;
     
-    uint32 BodyIndex = 0;
+    Body PhysicsBody;
 };

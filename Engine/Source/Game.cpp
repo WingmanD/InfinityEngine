@@ -60,7 +60,7 @@ bool Game::OnStartup()
         // cubeTransform.SetWorldScale({0.25f, 0.25f, 0.25f});
         //
         // Entity& meshEntity2 = world.CreateEntity(_enemyTemplate);
-        // Transform& transform2 = meshEntity2.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;
+        // Transform& transform2 = meshEntity2.Get<CTransform>(_enemyTemplate->GetArchetype()).ComponentTransform;-
         // transform2.SetWorldLocation({0.0f, 0.0f, 2.0f});
         // world.CreateEntity(_cubeTemplate);
         // world.CreateEntity(_enemyTemplate);

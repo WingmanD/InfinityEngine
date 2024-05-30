@@ -6,6 +6,14 @@ float Line::DistanceToPoint(const Vector3& point) const
     return line.Cross(Start - point).Length() / line.Length();
 }
 
+Vector3 Line::ClosestPoint(const Vector3& point) const
+{
+    const Vector3 a = point - Start;
+    const Vector3 b = End - Start;
+    
+    return (a.Dot(b) / b.Length()) * b;
+}
+
 Vector3 Math::ToDegrees(const Vector3& radians)
 {
     return {ToDegrees(radians.x), ToDegrees(radians.y), ToDegrees(radians.z)};

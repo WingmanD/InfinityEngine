@@ -12,6 +12,7 @@ public:
 
 public:
     float DistanceToPoint(const Vector3& point) const;
+    Vector3 ClosestPoint(const Vector3& point) const;
 };
 
 namespace Math
@@ -40,7 +41,7 @@ namespace Math
     template <typename T>
     constexpr T RoundToNearest(T value, T multiple)
     {
-        return static_cast<T>((value + multiple / 2) / (multiple * multiple));
+        return static_cast<T>((value + multiple / 2.0) / (multiple * multiple));
     }
 
     template <typename T> requires std::is_integral_v<T>
@@ -95,6 +96,11 @@ namespace Math
         return value1 < value2 ? value1 : value2;
     }
 
+    auto Max(auto value1, auto value2)
+    {
+        return value1 > value2 ? value1 : value2;
+    }
+
     constexpr float Clamp(float value, float min, float max)
     {
         return value < min ? min : value > max ? max : value;
@@ -108,6 +114,22 @@ namespace Math
     constexpr auto Ceil(auto value)
     {
         return static_cast<uint64>(value) + value / static_cast<uint64>(value) - 1;
+    }
+
+    constexpr int64 FloorToInt(auto value)
+    {
+        const int64 integer = static_cast<int64>(value);
+        if (value < 0 && value != integer)
+        {
+            return integer - 1;
+        }
+
+        return integer;
+    }
+
+    constexpr int32 Sign(auto value)
+    {
+        return value < 0 ? -1 : value > 0 ? 1 : 0;
     }
 
     Matrix CreatePerspectiveMatrix(float horizontalFOV, float aspectRatio, float nearClipPlane, float farClipPlane);

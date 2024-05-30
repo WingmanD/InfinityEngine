@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="DirectX::SimpleMath::Vector3">
+        <DisplayString>{{X = {x}, Y = {y}, Z = {z}}}</DisplayString>
+        <Expand>
+            <Item Name="X">x</Item>
+            <Item Name="Y">y</Item>
+            <Item Name="Z">z</Item>
+            <Item Name="Length">sqrt(x * x + y * y + z * z)</Item>
+            <Item Name="Length Squared">x * x + y * y + z * z</Item>
+        </Expand>
+    </Type>
+</AutoVisualizer>

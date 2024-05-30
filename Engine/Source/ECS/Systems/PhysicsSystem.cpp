@@ -1,9 +1,131 @@
 ﻿#include "PhysicsSystem.h"
-
-#include <queue>
-
 #include "ECS/Components/CStaticMesh.h"
 #include "Math/Math.h"
+#include <queue>
+
+PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& direction, float distance) const
+{
+    const Vector3 end = start + direction * distance;
+    return Raycast(start, end);
+}
+
+PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& end) const
+{
+    const int32 stepX = Math::Sign(end.x - start.x);
+    const int32 stepY = Math::Sign(end.y - start.y);
+    const int32 stepZ = Math::Sign(end.z - start.z);
+
+    float tMaxX;
+    if (stepX > 0)
+    {
+        tMaxX = (1.0f + start.x / _cellSize.x) * _cellSize.x - start.x;
+    }
+    else
+    {
+        tMaxX = start.x - (start.x / _cellSize.x) * _cellSize.x;
+    }
+
+    float tMaxY;
+    if (stepY > 0)
+    {
+        tMaxY = (1.0f + start.y / _cellSize.y) * _cellSize.y - start.y;
+    }
+    else
+    {
+        tMaxY = start.y - (start.y / _cellSize.y) * _cellSize.y;
+    }
+
+    float tMaxZ;
+    if (stepZ > 0)
+    {
+        tMaxZ = (1.0f + start.z / _cellSize.z) * _cellSize.z - start.z;
+    }
+    else
+    {
+        tMaxZ = start.z - (start.z / _cellSize.z) * _cellSize.z;
+    }
+
+    Vector3 direction = end - start;
+    direction.Normalize();
+    
+    Vector3 delta = direction * _cellSize;
+    
+    CellIndex currentIndex = GetCellIndex(start);
+    auto [justOutX, justOutY, justOutZ] = GetCellIndex(end);
+    justOutX += stepX;
+    justOutY += stepY;
+    justOutZ += stepZ;
+
+    Line line = {start, end};
+    
+    while (true)
+    {
+        if (tMaxX < tMaxY)
+        {
+            if (tMaxX < tMaxZ)
+            {
+                currentIndex.X += stepX;
+                if (currentIndex.X == justOutX)
+                {
+                    break;
+                }
+                tMaxX = tMaxX + delta.x;
+            }
+            else
+            {
+                currentIndex.Z += stepZ;
+                if (currentIndex.Z == justOutZ)
+                {
+                    break;
+                }
+                tMaxZ = tMaxZ + delta.z;
+            }
+        }
+        else
+        {
+            if (tMaxY < tMaxZ)
+            {
+                currentIndex.Y += stepY;
+                if (currentIndex.Y == justOutY)
+                {
+                    break;
+                }
+                tMaxY = tMaxY + delta.y;
+            }
+            else
+            {
+                currentIndex.Z += stepZ;
+                if (currentIndex.Z == justOutZ)
+                {
+                    break;
+                }
+                tMaxZ = tMaxZ + delta.z;
+            }
+        }
+        
+        const Cell& currentCell = GetCellAt(currentIndex);
+        for (const Body* body : currentCell.Bodies)
+        {
+            if (body->AABB.Overlap(line))
+            {
+                const Hit hit = CollisionCheck(line, *body);
+                if (hit.IsValid)
+                {
+                    return hit;
+                }
+            }
+        } 
+    }
+
+    return {};
+}
+
+void PhysicsSystem::Initialize()
+{
+    System::Initialize();
+
+    _cellSize = (GetWorld().WorldBounds.GetExtent() * 2.0f / _cellCountX);
+}
 
 void PhysicsSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
 {
@@ -15,20 +137,35 @@ void PhysicsSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
 
     const CStaticMesh* staticMesh = entity.GetChecked<CStaticMesh>(archetype);
     CTransform& transform = entity.Get<CTransform>(transformIndex);
-    const CRigidBody& rigidBody = entity.Get<CRigidBody>(rigidBodyIndex);
+    CRigidBody& rigidBody = entity.Get<CRigidBody>(rigidBodyIndex);
     CCollider& collider = entity.Get<CCollider>(colliderIndex);
+
     
     collider.ColliderTransform.SetParent(&transform.ComponentTransform);
     collider.Bounds = staticMesh->Mesh->GetBoundingBox();
-
-    Body body;
+    if (collider.Bounds.GetMax() - collider.Bounds.GetMin() == Vector3::Zero)
+    {
+        Vector3 min = collider.Bounds.GetMin();
+        min.z = -0.01f;
+        Vector3 max = collider.Bounds.GetMax();
+        max.z = 0.01f;
+        
+        collider.Bounds = BoundingBox(min, max);
+    }
+    
+    Body& body = rigidBody.PhysicsBody;
     body.Entity = &entity;
     body.AABB = collider.Bounds.TransformBy(transform.ComponentTransform);
     body.TransformIndex = transformIndex;
     body.RigidBodyIndex = rigidBodyIndex;
     body.ColliderIndex = colliderIndex;
     
-    GetCellAt(transform.ComponentTransform.GetWorldLocation()).AddBody(body, rigidBody.State);
+    ERigidBodyState state = rigidBody.State;
+    ForEachCellAt(body.AABB, [&body, state](Cell& cell, uint32 index)
+    {
+        const uint32 indexInCell = cell.AddBody(body, state);
+        body.IndicesInCells.Add(indexInCell);
+    });
 }
 
 void PhysicsSystem::Tick(double deltaTime)
@@ -72,6 +209,12 @@ void PhysicsSystem::Tick(double deltaTime)
 
         _narrowPhaseInputPairs.Clear();
     }
+
+    // Hit hit = Raycast({0.0f, 0.0f, 6.0f}, {0.0f, 0.0f, -1.0f});
+    // if (hit.IsValid)
+    // {
+    //     LOG(L"Raycast location: {}, normal: {}", hit.Location, hit.ImpactNormal);
+    // }
 }
 
 void PhysicsSystem::ProcessEntityList(EntityList& entityList, double deltaTime)
@@ -118,58 +261,47 @@ void PhysicsSystem::OnEntityDestroyed(const Archetype& archetype, Entity& entity
 {
     System::OnEntityDestroyed(archetype, entity);
     
-    const CTransform& transform = entity.Get<const CTransform>(archetype);
     const CRigidBody& rigidBody = entity.Get<const CRigidBody>(archetype);
 
-    GetCellAt(transform.ComponentTransform.GetWorldLocation()).RemoveBody(rigidBody.BodyIndex);
+    ForEachCellAt(rigidBody.PhysicsBody.AABB, [&rigidBody, this](Cell& cell, uint32 index)
+    {
+        cell.RemoveBody(*this, rigidBody.PhysicsBody.IndicesInCells[index]);
+    });
 }
 
-CTransform& PhysicsSystem::Body::GetTransform() const
-{
-    return Entity->Get<CTransform>(TransformIndex);
-}
-
-CRigidBody& PhysicsSystem::Body::GetRigidBody() const
-{
-    return Entity->Get<CRigidBody>(RigidBodyIndex);
-}
-
-CCollider& PhysicsSystem::Body::GetCollider() const
-{
-    return Entity->Get<CCollider>(ColliderIndex);
-}
-
-void PhysicsSystem::Cell::AddBody(const Body& body, ERigidBodyState bodyType)
+uint32 PhysicsSystem::Cell::AddBody(Body& body, ERigidBodyState bodyType)
 {
     Bodies.Resize(StaticBodyCount + DormantBodyCount + DynamicBodyCount + 1);
+
+    uint32 bodyIndex = 0;
     
     switch (bodyType)
     {
         case ERigidBodyState::Static:
         {
-            body.GetRigidBody().BodyIndex = StaticBodyCount;
+            bodyIndex = StaticBodyCount;
             
             const uint32 firstDynamicIndex = StaticBodyCount + DormantBodyCount;
             const uint32 lastDynamicIndex = firstDynamicIndex + DynamicBodyCount;
 
             if (DynamicBodyCount > 0)
             {
-                const Body& firstDynamicBody = Bodies[firstDynamicIndex];
-                firstDynamicBody.GetRigidBody().BodyIndex = lastDynamicIndex;
+                Body* firstDynamicBody = Bodies[firstDynamicIndex];
+                bodyIndex = lastDynamicIndex;
                 Bodies[lastDynamicIndex] = firstDynamicBody;
             }
 
             if (DormantBodyCount > 0)
             {
-                Body& firstDormantBody = Bodies[StaticBodyCount];
-                firstDormantBody.GetRigidBody().BodyIndex = firstDynamicIndex;
+                Body* firstDormantBody = Bodies[StaticBodyCount];
+                bodyIndex = firstDynamicIndex;
                 
                 Bodies[firstDynamicIndex] = firstDormantBody;
-                firstDormantBody = body;
+                Bodies[StaticBodyCount] = &body;
             }
             else
             {
-                Bodies[StaticBodyCount] = body;
+                Bodies[StaticBodyCount] = &body;
             }
             
             ++StaticBodyCount;
@@ -182,16 +314,18 @@ void PhysicsSystem::Cell::AddBody(const Body& body, ERigidBodyState bodyType)
             const uint32 firstDynamicIndex = StaticBodyCount + DormantBodyCount;
             const uint32 lastDynamicIndex = firstDynamicIndex + DynamicBodyCount;
 
-            Body& firstDynamicBody = Bodies[firstDynamicIndex];
+            Body* firstDynamicBody = Bodies[firstDynamicIndex];
             if (DynamicBodyCount > 0)
             {
-                firstDynamicBody.GetRigidBody().BodyIndex = lastDynamicIndex;
+                bodyIndex = lastDynamicIndex;
                 Bodies[lastDynamicIndex] = firstDynamicBody;
             }
+            else
+            {
+                bodyIndex = firstDynamicIndex;
+                Bodies[firstDynamicIndex] = &body;
+            }
 
-            body.GetRigidBody().BodyIndex = firstDynamicIndex;
-            firstDynamicBody = body;
-    
             ++DormantBodyCount;
             break;
         }
@@ -199,17 +333,19 @@ void PhysicsSystem::Cell::AddBody(const Body& body, ERigidBodyState bodyType)
         case ERigidBodyState::Dynamic:
         {
             const uint32 index = StaticBodyCount + DormantBodyCount + DynamicBodyCount;
-            body.GetRigidBody().BodyIndex = index;
+            bodyIndex = index;
             
-            Bodies[index] = body;
+            Bodies[index] = &body;
             
             ++DynamicBodyCount;
             break;
         }
     }
+
+    return bodyIndex;
 }
 
-void PhysicsSystem::Cell::RemoveBody(uint32 index)
+void PhysicsSystem::Cell::RemoveBody(const PhysicsSystem& system, uint32 index)
 {
     if (index >= StaticBodyCount + DormantBodyCount)
     {
@@ -218,8 +354,9 @@ void PhysicsSystem::Cell::RemoveBody(uint32 index)
             const uint32 lastDynamicIndex = StaticBodyCount + DormantBodyCount + DynamicBodyCount - 1;
             if (index < lastDynamicIndex)
             {
-                const Body& lastDynamicBody = Bodies[lastDynamicIndex];
-                lastDynamicBody.GetRigidBody().BodyIndex = index;
+                Body* lastDynamicBody = Bodies[lastDynamicIndex];
+                lastDynamicBody->IndicesInCells[system.GetRelativeIndexOf(*lastDynamicBody, *this)] = index;
+                
                 Bodies[index] = lastDynamicBody;
             }
         }
@@ -229,13 +366,13 @@ void PhysicsSystem::Cell::RemoveBody(uint32 index)
     else if (index >= StaticBodyCount)
     {
         const uint32 lastDormantIndex = StaticBodyCount + DormantBodyCount - 1;
-        Body& lastDormantBody = Bodies[lastDormantIndex];
-        lastDormantBody.GetRigidBody().BodyIndex = index;
+        Body* lastDormantBody = Bodies[lastDormantIndex];
+        lastDormantBody->IndicesInCells[system.GetRelativeIndexOf(*lastDormantBody, *this)] = index;
         Bodies[index] = lastDormantBody;
 
-        const Body& lastDynamicBody = Bodies[StaticBodyCount + DormantBodyCount + DynamicBodyCount - 1];
-        lastDynamicBody.GetRigidBody().BodyIndex = lastDormantIndex;
-        lastDormantBody = lastDynamicBody;
+        Body* lastDynamicBody = Bodies[StaticBodyCount + DormantBodyCount + DynamicBodyCount - 1];
+        lastDynamicBody->IndicesInCells[system.GetRelativeIndexOf(*lastDynamicBody, *this)] = lastDormantIndex;
+        Bodies[lastDormantIndex] = lastDynamicBody;
 
         --DormantBodyCount;
     }
@@ -243,45 +380,113 @@ void PhysicsSystem::Cell::RemoveBody(uint32 index)
     {
         const uint32 lastStaticIndex = StaticBodyCount - 1;
 
-        Body& lastStaticBody = Bodies[lastStaticIndex];
-        lastStaticBody.GetRigidBody().BodyIndex = index;
-        Bodies[index] = lastStaticBody;
+        Body** lastStaticBody = &Bodies[lastStaticIndex];
+        (*lastStaticBody)->IndicesInCells[system.GetRelativeIndexOf(**lastStaticBody, *this)] = index;
+        Bodies[index] = *lastStaticBody;
 
-        Body& lastDormantBody = Bodies[lastStaticIndex + DormantBodyCount];
-        lastDormantBody.GetRigidBody().BodyIndex = lastStaticIndex;
-        lastStaticBody = lastDormantBody;
+        Body** lastDormantBody = &Bodies[lastStaticIndex + DormantBodyCount];
+        (*lastDormantBody)->IndicesInCells[system.GetRelativeIndexOf(**lastDormantBody, *this)] = lastStaticIndex;
+        *lastStaticBody = *lastDormantBody;
 
-        const Body& lastDynamicBody = Bodies[StaticBodyCount + DormantBodyCount + DynamicBodyCount - 1];
-        lastDynamicBody.GetRigidBody().BodyIndex = lastStaticIndex + DormantBodyCount;
-        lastDormantBody = lastDynamicBody;
+        Body** lastDynamicBody = &Bodies[StaticBodyCount + DormantBodyCount + DynamicBodyCount - 1];
+        (*lastDormantBody)->IndicesInCells[system.GetRelativeIndexOf(**lastDormantBody, *this)] = lastStaticIndex + DormantBodyCount;
+        *lastDormantBody = *lastDynamicBody;
 
         StaticBodyCount--;
     }
+
+    Bodies.RemoveAt(StaticBodyCount + DormantBodyCount + DynamicBodyCount);
 }
 
 void PhysicsSystem::Cell::SetBodyState(uint32 index, ERigidBodyState bodyType)
 {
 }
 
-PhysicsSystem::Cell& PhysicsSystem::GetCellAt(const Vector3& location)
+PhysicsSystem::CellIndex PhysicsSystem::GetCellIndex(const Vector3& location) const
 {
     const BoundingBox& worldBounds = GetWorld().WorldBounds;
     const Vector3 relativeLocation = location - worldBounds.GetMin();
 
-    const Vector3 index3D = relativeLocation / (worldBounds.GetExtent() * 2.0f / _cellCountX);
-    const uint32 x = static_cast<uint32>(index3D.x);
-    const uint32 y = static_cast<uint32>(index3D.y);
-    const uint32 z = static_cast<uint32>(index3D.z);
+    const Vector3 index3D = relativeLocation / _cellSize;
+    
+    CellIndex index;
+    index.X = static_cast<uint32>(Math::FloorToInt(index3D.x));
+    index.Y = static_cast<uint32>(Math::FloorToInt(index3D.y));
+    index.Z = static_cast<uint32>(Math::FloorToInt(index3D.z));
 
-    const uint32 index = x + y * _cellCountX + z * _cellCountX * _cellCountX;
-
-    return _cells[index];
+    return index;
 }
 
-void PhysicsSystem::Move(const CRigidBody& rigidBody, const Vector3& currentLocation, const Vector3& newLocation, double deltaTime)
+PhysicsSystem::Cell& PhysicsSystem::GetCellAt(const Vector3& location)
 {
-    Cell& oldCell = GetCellAt(currentLocation);
-    Body& body = oldCell.Bodies[rigidBody.BodyIndex];
+    return const_cast<Cell&>(GetCellAt(GetCellIndex(location)));
+}
+
+const PhysicsSystem::Cell& PhysicsSystem::GetCellAt(const Vector3& location) const
+{
+    return GetCellAt(GetCellIndex(location));
+}
+
+PhysicsSystem::Cell& PhysicsSystem::GetCellAt(const CellIndex& index)
+{
+    return const_cast<Cell&>(GetCellAtImplementation(index));
+}
+
+const PhysicsSystem::Cell& PhysicsSystem::GetCellAt(const CellIndex& index) const
+{
+    return GetCellAtImplementation(index);
+}
+
+uint32 PhysicsSystem::GetRelativeIndexOf(const Body& body, const Cell& cell) const
+{
+    const CellIndex minIndex = GetCellIndex(body.AABB.GetMin());
+
+    return cell.Index.Z - minIndex.Z +
+        (cell.Index.Y - minIndex.Y) * _cellCountX +
+        (cell.Index.X - minIndex.X) * _cellCountX * _cellCountX;
+}
+
+void PhysicsSystem::ForEachCellAt(const BoundingBox& aabb, const std::function<void(Cell& cell, uint32 index)>& func)
+{
+    const CellIndex minIndex = GetCellIndex(aabb.GetMin());
+    const CellIndex maxIndex = GetCellIndex(aabb.GetMax());
+
+    uint32 i = 0;
+    for (uint32 x = minIndex.X; x <= maxIndex.X; ++x)
+    {
+        for (uint32 y = minIndex.Y; y <= maxIndex.Y; ++y)
+        {
+            for (uint32 z = minIndex.Z; z <= maxIndex.Z; ++z)
+            {
+                CellIndex index = {x, y, z};
+                func(GetCellAt(index), i);
+
+                ++i;
+            }
+        }
+    }
+}
+
+const PhysicsSystem::Cell& PhysicsSystem::GetCellAtImplementation(const CellIndex& index) const
+{
+    const uint32 index1D = index.X + index.Y * _cellCountX + index.Z * _cellCountX * _cellCountX;
+
+    auto it = _cells.find(index1D);
+    if (it != _cells.end())
+    {
+        return it->second;
+    }
+
+    Cell& newCell = const_cast<std::unordered_map<uint32, Cell>&>(_cells)[index1D];
+    newCell.Index = index;  
+    
+    return newCell;
+}
+
+void PhysicsSystem::Move(CRigidBody& rigidBody, const Vector3& currentLocation, const Vector3& newLocation, double deltaTime)
+{
+    Body& body = rigidBody.PhysicsBody;
+    const BoundingBox currentAABB = body.AABB;
 
     Vector3 sweepDirection = newLocation - currentLocation;
     const float distance = sweepDirection.Length();
@@ -308,21 +513,32 @@ void PhysicsSystem::Move(const CRigidBody& rigidBody, const Vector3& currentLoca
         Cell& cellAtSweep = GetCellAt(sweepAABB.GetCenter());
 
         bool hitFound = false;
-        for (Body& cellBody : cellAtSweep.Bodies)
+        for (Body* cellBody : cellAtSweep.Bodies)
         {
-            if (cellBody.Entity == body.Entity)
+            if (cellBody->Entity == body.Entity)
             {
                 continue;
             }
         
-            if (sweepAABB.Overlap(cellBody.AABB))
+            if (sweepAABB.Overlap(cellBody->AABB))
             {
-                Hit hit = CollisionCheck(body, cellBody, sweepDirection);
+                const Vector3 bodyLocation = body.AABB.GetCenter() + offset;
+                Transform& transform = body.GetTransform().ComponentTransform;
+                transform.SetWorldLocation(bodyLocation);
+                
+                Hit hit = CollisionCheck(body, *cellBody);
+                
                 if (hit.IsValid)
                 {
                     ProcessHit(body, hit);
+                    // LOG(L"Hit location {}, normal {}", hit.Location, hit.ImpactNormal);
+                    
                     const Vector3 location = body.AABB.GetCenter();
                     body.AABB.Move(hit.ImpactNormal * hit.PenetrationDepth);
+                    if (hit.PenetrationDepth > 1.0f)
+                    {
+                        __nop();
+                    }
                     LOG(L"Resolving penetration: normal {}, depth {}, location before {}, location after {}",
                         hit.ImpactNormal,
                         hit.PenetrationDepth,
@@ -330,7 +546,7 @@ void PhysicsSystem::Move(const CRigidBody& rigidBody, const Vector3& currentLoca
                         body.AABB.GetCenter()
                     );
 
-                    _narrowPhaseInputPairs.Add({&body, &cellAtSweep.Bodies[0]});
+                    _narrowPhaseInputPairs.Add({&body, hit.OtherBody});
 
                     hitFound = true;
                     break;
@@ -345,7 +561,6 @@ void PhysicsSystem::Move(const CRigidBody& rigidBody, const Vector3& currentLoca
     }
 
     const Vector3 location = body.AABB.GetCenter() + offset;
-    Cell& newCell = GetCellAt(location);
 
     Transform& transform = body.GetTransform().ComponentTransform;
     transform.SetWorldLocation(location);
@@ -355,67 +570,93 @@ void PhysicsSystem::Move(const CRigidBody& rigidBody, const Vector3& currentLoca
         transform.GetWorldRotationEuler() + Math::ToDegrees(deltaRotationRad)
     );
 
-    Move(rigidBody, oldCell, newCell);
+    Move(rigidBody, currentAABB, body.AABB);
 }
 
-void PhysicsSystem::Move(const CRigidBody& rigidBody, Cell& currentCell, Cell& newCell)
+void PhysicsSystem::Move(CRigidBody& rigidBody, const BoundingBox& current, const BoundingBox& next)
 {
-    Body& body = currentCell.Bodies[rigidBody.BodyIndex];
+    Body& body = rigidBody.PhysicsBody;
 
-    const CCollider& collider = body.Entity->Get<CCollider>(body.ColliderIndex);
-    body.AABB = collider.Bounds.TransformBy(body.Entity->Get<CTransform>(body.TransformIndex).ComponentTransform);
+    const CellIndex currentMin = GetCellIndex(current.GetMin());
+    const CellIndex currentMax = GetCellIndex(current.GetMax());
+    const CellIndex newMin = GetCellIndex(next.GetMin());
+    const CellIndex newMax = GetCellIndex(next.GetMax());
 
-    if (&currentCell != &newCell)
+
+    CellIndex intersectMin;
+    intersectMin.X = Math::Max(currentMin.X, newMin.X);
+    intersectMin.Y = Math::Max(currentMin.Y, newMin.Y);
+    intersectMin.Z = Math::Max(currentMin.Z, newMin.Z);
+    
+    CellIndex intersectMax;
+    intersectMax.X = Math::Min(currentMax.X, newMax.X);
+    intersectMax.Y = Math::Min(currentMax.Y, newMax.Y);
+    intersectMax.Z = Math::Min(currentMax.Z, newMax.Z);
+
+    uint32 index;
+    for (uint32 x = currentMin.X; x < intersectMin.X; ++x)
     {
-        const uint32 oldIndex = rigidBody.BodyIndex;
-        newCell.AddBody(body, rigidBody.State);
-        currentCell.RemoveBody(oldIndex);
+        for (uint32 y = currentMin.Y; y < intersectMin.Y; ++y)
+        {
+            index = x * _cellCountX * _cellCountX + currentMin.Y * _cellCountX + currentMin.Z;
+            
+            for (uint32 z = currentMin.Z; z < intersectMin.Z; ++z)
+            {
+                Cell& cell = GetCellAt(CellIndex(x, y, z));
+                cell.RemoveBody(*this, index);
+
+                ++index;
+            }
+        }
+    }
+    
+    for (uint32 x = intersectMax.X + 1; x <= currentMax.X; ++x)
+    {
+        for (uint32 y = intersectMax.Y + 1; y <= currentMax.Y; ++y)
+        {
+            index = x * _cellCountX * _cellCountX + currentMin.Y * _cellCountX + intersectMax.Z + 1;
+            
+            for (uint32 z = intersectMax.Z + 1; z <= currentMax.Z; ++z)
+            {
+                Cell& cell = GetCellAt(CellIndex(x, y, z));
+                cell.AddBody(body, rigidBody.State);
+
+                ++index;
+            }
+        }
     }
 }
 
 void PhysicsSystem::BroadPhase(Body& body, Cell& cell)
 {
-    for (Body& cellBody : cell.Bodies)
+    for (Body* cellBody : cell.Bodies)
     {
-        if (cellBody.Entity == body.Entity)
+        if (cellBody->Entity == body.Entity)
         {
             continue;
         }
         
-        if (body.AABB.Overlap(cellBody.AABB))
+        if (body.AABB.Overlap(cellBody->AABB))
         {
-            _narrowPhaseInputPairs.Add({&body, &cellBody});
+            _narrowPhaseInputPairs.Add({&body, cellBody});
         }
     }
 }
 
 void PhysicsSystem::NarrowPhase()
 {
-    for (const CollisionPair& pair : _narrowPhaseInputPairs)
-    {
-        CRigidBody& rigidBodyA = pair.BodyA->GetRigidBody();
-        CRigidBody& rigidBodyB = pair.BodyB->GetRigidBody();
-
-        const Vector3 velocityA = rigidBodyA.Velocity;
-        const Vector3 velocityB = rigidBodyB.Velocity;
-
-        Hit hit = CollisionCheck(*pair.BodyA, *pair.BodyB);
-
-        // todo update overlaps
-    }
-}
-
-PhysicsSystem::Hit PhysicsSystem::CollisionCheck(const Body& bodyA, const Body& bodyB, const Vector3& movementDirection)
-{
-    Hit hit = CollisionCheck(bodyA, bodyB);
-
-    LOG(L"Hit: location {}, normal {}, depth {}", hit.Location, hit.ImpactNormal, hit.PenetrationDepth);
-    return hit;
-}
-
-PhysicsSystem::Hit PhysicsSystem::CollisionCheck(const Body& bodyA, const Body& bodyB)
-{
-    return GilbertJohnsonKeerthi(bodyA, bodyB);
+    // for (const CollisionPair& pair : _narrowPhaseInputPairs)
+    // {
+    //     CRigidBody& rigidBodyA = pair.BodyA->GetRigidBody();
+    //     CRigidBody& rigidBodyB = pair.BodyB->GetRigidBody();
+    //
+    //     const Vector3 velocityA = rigidBodyA.Velocity;
+    //     const Vector3 velocityB = rigidBodyB.Velocity;
+    //
+    //     Hit hit = CollisionCheck(*pair.BodyA, *pair.BodyB);
+    //
+    //     // todo update overlaps
+    // }
 }
 
 void PhysicsSystem::ProcessHit(const Body& bodyA, const Hit& hit)
@@ -441,8 +682,6 @@ void PhysicsSystem::ProcessHit(const Body& bodyA, const Hit& hit)
         rA.Cross(hit.ImpactNormal).Dot(rA.Cross(hit.ImpactNormal)) / rigidBodyA.Inertia +
         rB.Cross(hit.ImpactNormal).Dot(rB.Cross(hit.ImpactNormal)) / rigidBodyB.Inertia);
 
-    //const Vector3 impulse = (1.0f + restitution) * impulseSpeed * hit.ImpactNormal / mass;
-
     rigidBodyA.Velocity -= impulse / rigidBodyA.Mass;
     rigidBodyA.AngularVelocity -= rA.Cross(impulse) / rigidBodyA.Inertia;
     
@@ -460,57 +699,55 @@ void PhysicsSystem::ProcessHit(const Body& bodyA, const Hit& hit)
         rigidBodyB.AngularVelocity += angularVelocityDeltaB;
     }
 
-    LOG(L"Velocity after hit: {}", rigidBodyA.Velocity);
+    //LOG(L"Velocity after hit: {}", rigidBodyA.Velocity);
 }
 
-PhysicsSystem::Hit PhysicsSystem::GilbertJohnsonKeerthi(const Body& bodyA, const Body& bodyB)
+Vector3 PhysicsSystem::Support(const Body& body, const Vector3& directionNormalized) const
 {
-    Vector3 difference = MinkowskiDifference(bodyA, bodyB, Vector3::UnitX);
-    DArray<Vector3, 4> simplex = {difference};
-
-    Vector3 direction = -difference;
-    while (true)
-    {
-        difference = MinkowskiDifference(bodyA, bodyB, direction);
-        if (difference.Dot(direction) <= 0.0f)
-        {
-            LOG(L"Hit not found");
-            return {};
-        }
-
-        simplex.InsertAt(0, difference);
-
-        if (GJKSimplexContainsOrigin(simplex, direction))
-        {
-            LOG(L"Hit found");
-            if (simplex.Count() == 4)
-            {
-                return ExpandingPolytopeAlgorithm(bodyA, bodyB, simplex);
-            }
-
-            // todo support for dot, line and triangle simplex expansion to tetrahedron
-            DEBUG_BREAK();
-            return {};
-        }
-    }
-}
-
-Vector3 PhysicsSystem::MinkowskiDifference(const Body& bodyA, const Body& bodyB, const Vector3& direction)
-{
-    Vector3 directionNormalized = direction;
-    directionNormalized.Normalize();
-    
     Vector3 furthestPointA;
-    Vector3 transformedDirectionA = Vector3::TransformNormal(directionNormalized, bodyA.GetTransform().ComponentTransform.GetWorldMatrix().Invert());
+    Vector3 transformedDirectionA = Vector3::TransformNormal(directionNormalized, body.GetTransform().ComponentTransform.GetWorldMatrix().Invert());
     transformedDirectionA.Normalize();
     std::visit([&transformedDirectionA, &furthestPointA](auto&& arg)
     {
         furthestPointA = arg.FurthestPointInDirection(transformedDirectionA);
     },
-    bodyA.GetCollider().Shape);
+    body.GetCollider().Shape);
 
-    furthestPointA = bodyA.GetTransform().ComponentTransform * furthestPointA;
+    return body.GetTransform().ComponentTransform * furthestPointA;
+}
 
+Vector3 PhysicsSystem::Support(const Line& line, const Vector3& directionNormalized) const
+{
+    Vector3 rayDirection = line.End - line.Start;
+    rayDirection.Normalize();
+
+    const float projection = directionNormalized.Dot(rayDirection);
+    if (projection > 0.0f)
+    {
+        return line.End;
+    }
+    
+    return line.Start;
+}
+
+Vector3 PhysicsSystem::MinkowskiDifference(const Body& bodyA, const Body& bodyB, const Vector3& direction) const
+{
+    Vector3 directionNormalized = direction;
+    directionNormalized.Normalize();
+    
+    const Vector3 furthestPointA = Support(bodyA, directionNormalized);
+    const Vector3 furthestPointB = Support(bodyB, -directionNormalized);
+
+    return furthestPointA - furthestPointB;
+}
+
+Vector3 PhysicsSystem::MinkowskiDifference(const Line& line, const Body& bodyB, const Vector3& direction) const
+{
+    Vector3 directionNormalized = direction;
+    directionNormalized.Normalize();
+    
+    const Vector3 furthestPointA = Support(line, directionNormalized);
+    
     Vector3 furthestPointB;
     Vector3 transformedDirectionB = Vector3::TransformNormal(-directionNormalized, bodyB.GetTransform().ComponentTransform.GetWorldMatrix().Invert());
     transformedDirectionB.Normalize();
@@ -525,8 +762,7 @@ Vector3 PhysicsSystem::MinkowskiDifference(const Body& bodyA, const Body& bodyB,
     return furthestPointA - furthestPointB;
 }
 
-
-bool PhysicsSystem::GJKSimplexContainsOrigin(DArray<Vector3, 4>& simplex, Vector3& direction) const
+bool PhysicsSystem::GJKSimplexContainsOrigin(DArray<GJKVertex, 4>& simplex, Vector3& direction) const
 {
     switch (simplex.Count())
     {
@@ -545,15 +781,15 @@ bool PhysicsSystem::GJKSimplexContainsOrigin(DArray<Vector3, 4>& simplex, Vector
         // Tetrahedron contains origins
         case 4:
         {
-            const Vector3 a = simplex[0];
-            const Vector3 b = simplex[1];
-            const Vector3 c = simplex[2];
-            const Vector3 d = simplex[3];
+            const GJKVertex a = simplex[0];
+            const GJKVertex b = simplex[1];
+            const GJKVertex c = simplex[2];
+            const GJKVertex d = simplex[3];
 
-            const Vector3 ab = b - a;
-            const Vector3 ac = c - a;
+            const Vector3 ab = b.Location - a.Location;
+            const Vector3 ac = c.Location - a.Location;
 
-            const Vector3 aOrigin = -a;
+            const Vector3 aOrigin = -a.Location;
             
             const Vector3 abc = ab.Cross(ac);
             if (abc.Dot(aOrigin) > 0.0f)
@@ -562,7 +798,7 @@ bool PhysicsSystem::GJKSimplexContainsOrigin(DArray<Vector3, 4>& simplex, Vector
                 return GJKTriangle(simplex, direction);
             }
 
-            const Vector3 ad = d - a;
+            const Vector3 ad = d.Location - a.Location;
             const Vector3 acd = ac.Cross(ad);
             if (acd.Dot(aOrigin) > 0.0f)
             {
@@ -591,13 +827,13 @@ bool PhysicsSystem::GJKSimplexContainsOrigin(DArray<Vector3, 4>& simplex, Vector
     return false;
 }
 
-bool PhysicsSystem::GJKLine(DArray<Vector3, 4>& simplex, Vector3& direction) const
+bool PhysicsSystem::GJKLine(DArray<GJKVertex, 4>& simplex, Vector3& direction) const
 {
-    const Vector3 a = simplex[0];
-    const Vector3 b = simplex[1];
+    const GJKVertex a = simplex[0];
+    const GJKVertex b = simplex[1];
 
-    const Vector3 ab = b - a;
-    const Vector3 aOrigin = -a;
+    const Vector3 ab = b.Location - a.Location;
+    const Vector3 aOrigin = -a.Location;
 
     if (ab.Dot(aOrigin) > 0.0f)
     {
@@ -609,20 +845,22 @@ bool PhysicsSystem::GJKLine(DArray<Vector3, 4>& simplex, Vector3& direction) con
         simplex = {a};
     }
 
+    direction.Normalize();
+    
     return false;
 }
 
-bool PhysicsSystem::GJKTriangle(DArray<Vector3, 4>& simplex, Vector3& direction) const
+bool PhysicsSystem::GJKTriangle(DArray<GJKVertex, 4>& simplex, Vector3& direction) const
 {
-    const Vector3 a = simplex[0];
-    const Vector3 b = simplex[1];
-    const Vector3 c = simplex[2];
+    const GJKVertex a = simplex[0];
+    const GJKVertex b = simplex[1];
+    const GJKVertex c = simplex[2];
 
-    const Vector3 ab = b - a;
-    const Vector3 ac = c - a;
+    const Vector3 ab = b.Location - a.Location;
+    const Vector3 ac = c.Location - a.Location;
     const Vector3 up = ab.Cross(ac);
 
-    const Vector3 aOrigin = -a;
+    const Vector3 aOrigin = -a.Location;
 
     if (up.Cross(ac).Dot(aOrigin) > 0.0f)
     {
@@ -655,15 +893,18 @@ bool PhysicsSystem::GJKTriangle(DArray<Vector3, 4>& simplex, Vector3& direction)
             direction = -up;
         }
     }
+
+    direction.Normalize();
+    
     return false;
 }
 
-bool PhysicsSystem::TetrahedronContainsOrigin(const DArray<Vector3, 4>& simplex) const
+bool PhysicsSystem::TetrahedronContainsOrigin(const EPAVertexArray& polytopeVertices) const
 {
-    const Vector3 a = simplex[0];
-    const Vector3 b = simplex[1];
-    const Vector3 c = simplex[2];
-    const Vector3 d = simplex[3];
+    const Vector3 a = polytopeVertices[0].Location;
+    const Vector3 b = polytopeVertices[1].Location;
+    const Vector3 c = polytopeVertices[2].Location;
+    const Vector3 d = polytopeVertices[3].Location;
 
     const Vector3 n0 = (b - a).Cross(c - a);
     if (n0.Dot(a) > 0.0f && n0.Dot(d) > 0.0f)
@@ -692,79 +933,82 @@ bool PhysicsSystem::TetrahedronContainsOrigin(const DArray<Vector3, 4>& simplex)
     return true;
 }
 
-PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const Body& bodyA, const Body& bodyB,
-                                                             DArray<Vector3, 4>& simplex)
+template <typename ShapeProxyType>
+PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const ShapeProxyType& shape, const Body& bodyB, DArray<GJKVertex, 4>& simplex) const
 {
     EPAVertexArray vertices(simplex);
+    if (TetrahedronContainsOrigin(vertices))
+    {
+        return {};
+    }
 
     DArray<EPATriangle, 16> mesh;
 
     std::priority_queue<EPATrianglePriority> queue;
+    
+    EPATriangle triangle1(vertices, 0, 1, 2);
+    mesh.Add(triangle1);
+    queue.push({0, triangle1.Distance});
 
-    const Plane plane = {simplex[0], simplex[1], simplex[2]};
-    if (plane.Normal().Dot(simplex[3]) < plane.D())
-    {
-        EPATriangle triangle(vertices, 0, 1, 2);
-        mesh.Add(triangle);
-        queue.push({0, triangle.Distance});
+    EPATriangle triangle2(vertices, 0, 2, 3);
+    mesh.Add(triangle2);
+    queue.push({1, triangle2.Distance});
 
-        EPATriangle triangle2(vertices, 0, 2, 3);
-        mesh.Add(triangle2);
-        queue.push({1, triangle2.Distance});
+    EPATriangle triangle3(vertices, 0, 3, 1);
+    mesh.Add(triangle3);
+    queue.push({2, triangle3.Distance});
 
-        EPATriangle triangle3(vertices, 0, 3, 1);
-        mesh.Add(triangle3);
-        queue.push({2, triangle3.Distance});
+    EPATriangle triangle4(vertices, 1, 3, 2);
+    mesh.Add(triangle4);
+    queue.push({3, triangle4.Distance});
 
-        EPATriangle triangle4(vertices, 1, 3, 2);
-        mesh.Add(triangle4);
-        queue.push({3, triangle4.Distance});
+    mesh[0].AdjacentTriangles[0] = &mesh[1];
+    mesh[0].AdjacentTriangles[1] = &mesh[2];
+    mesh[0].AdjacentTriangles[2] = &mesh[3];
 
-        mesh[0].AdjacentTriangles[0] = &mesh[1];
-        mesh[0].AdjacentTriangles[1] = &mesh[2];
-        mesh[0].AdjacentTriangles[2] = &mesh[3];
+    mesh[1].AdjacentTriangles[0] = &mesh[0];
+    mesh[1].AdjacentTriangles[1] = &mesh[2];
+    mesh[1].AdjacentTriangles[2] = &mesh[3];
 
-        mesh[1].AdjacentTriangles[0] = &mesh[0];
-        mesh[1].AdjacentTriangles[1] = &mesh[2];
-        mesh[1].AdjacentTriangles[2] = &mesh[3];
+    mesh[2].AdjacentTriangles[0] = &mesh[0];
+    mesh[2].AdjacentTriangles[1] = &mesh[1];
+    mesh[2].AdjacentTriangles[2] = &mesh[3];
 
-        mesh[2].AdjacentTriangles[0] = &mesh[0];
-        mesh[2].AdjacentTriangles[1] = &mesh[1];
-        mesh[2].AdjacentTriangles[2] = &mesh[3];
-
-        mesh[3].AdjacentTriangles[0] = &mesh[0];
-        mesh[3].AdjacentTriangles[1] = &mesh[1];
-        mesh[3].AdjacentTriangles[2] = &mesh[2];
-    }
+    mesh[3].AdjacentTriangles[0] = &mesh[0];
+    mesh[3].AdjacentTriangles[1] = &mesh[1];
+    mesh[3].AdjacentTriangles[2] = &mesh[2];
 
     float distance = std::numeric_limits<float>::max();
     uint32 closestTriangleIndex = 0;
         
-    std::set<EPASilhouetteEntry> silhouetteSet;
+    EPASilhouetteArray silhouetteArray;
 
     while (!queue.empty())
     {
         EPATrianglePriority current = queue.top();
         queue.pop();
+
+        if (current.Distance >= distance)
+        {
+            break;
+        }
         
         EPATriangle& triangle = mesh[current.Index];
         if (!triangle.Valid)
         {
             continue;
         }
-
-        if (current.Distance >= distance)
-        {
-            break;
-        }
-
+        
         const Vector3 v = triangle.ClosestPoint;
+        
+        const Vector3 furthestPointA = Support(shape, v);
+        const Vector3 furthestPointB = Support(bodyB, -v);
+
+        const Vector3 w = furthestPointA - furthestPointB;
+
         Vector3 vDir = v;
         vDir.Normalize();
-
-        float depth = current.Distance;
-        Vector3 w = MinkowskiDifference(bodyA, bodyB, v);
-
+        
         const float currentDepth = w.Dot(vDir);
         if (currentDepth < distance)
         {
@@ -772,26 +1016,35 @@ PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const Body& bodyA, 
             closestTriangleIndex = current.Index;
         }
 
-        if (depth < distance)
+        if (current.Distance < distance)
         {
             triangle.Valid = false;
 
-            silhouetteSet.clear();
+            silhouetteArray.Clear();
             for (uint8 i = 0; i < 3; ++i)
             {
-                EPASilhouette(*triangle.AdjacentTriangles[i], triangle.AdjacentTriangles[i]->IndexOfAdjacend(triangle), w, silhouetteSet);
+                if (triangle.AdjacentTriangles[i] == nullptr)
+                {
+                    continue;
+                }
+                
+                EPASilhouette(*triangle.AdjacentTriangles[i], triangle.AdjacentTriangles[i]->IndexOfAdjacent(triangle), w, silhouetteArray);
             }
 
-            vertices.Add(w);
+            if (silhouetteArray.Count() < 3)
+            {
+                continue;
+            }
 
-            for (const EPASilhouetteEntry& entry : silhouetteSet)
+            vertices.Add({w, furthestPointA, furthestPointB});
+
+            for (const EPASilhouetteEntry& entry : silhouetteArray)
             {
                 EPATriangle& silhouetteTriangle = *entry.Triangle;
                 const uint16 indexA = silhouetteTriangle.Indices[(entry.AdjacentIndex + 1) % 3];
                 const uint16 indexB = silhouetteTriangle.Indices[entry.AdjacentIndex];
 
                 EPATriangle newTriangle(vertices, indexA, indexB, static_cast<uint16>(vertices.Count() - 1));
-
                 EPATriangle& newTriangleRef = mesh.Add(newTriangle);
 
                 newTriangleRef.Indices[0] = indexA;
@@ -802,7 +1055,7 @@ PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const Body& bodyA, 
                 silhouetteTriangle.AdjacentTriangles[entry.AdjacentIndex] = &newTriangleRef;
             }
 
-            const uint32 silhouetteCount = static_cast<uint32>(silhouetteSet.size());
+            const uint32 silhouetteCount = static_cast<uint32>(silhouetteArray.Count());
             const uint32 startIndex = static_cast<uint32>(mesh.Count()) - silhouetteCount;
             for (uint32 i = 0; i < silhouetteCount; ++i)
             {
@@ -813,7 +1066,7 @@ PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const Body& bodyA, 
                 {
                     continue;
                 }
-                
+
                 newTriangle.AdjacentTriangles[1] = &adjacentTriangle;
                 adjacentTriangle.AdjacentTriangles[2] = &newTriangle;
 
@@ -826,32 +1079,115 @@ PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const Body& bodyA, 
     }
 
     EPATriangle& closestTriangle = mesh[closestTriangleIndex];
-
+    
     Hit hit;
     hit.IsValid = true;
-    hit.PenetrationDepth = distance;
+    hit.PenetrationDepth = Math::Abs(closestTriangle.Normal.Dot(vertices[closestTriangle.Indices[0]].Location));
     hit.OtherBody = const_cast<Body*>(&bodyB);
-    hit.ImpactNormal = closestTriangle.Normal;
-    hit.Location = closestTriangle.ClosestPoint;
+    hit.ImpactNormal = -closestTriangle.Normal;
+    
+    const Vector3& cA = vertices[closestTriangle.Indices[0]].Location;
+    const Vector3& cB = vertices[closestTriangle.Indices[1]].Location;
+    const Vector3& cC = vertices[closestTriangle.Indices[2]].Location;
+
+    const Vector3 cP = closestTriangle.ClosestPoint;
+    Vector3 baryCoords = Math::BarycentricCoordinates(cP, cA, cB, cC);
+
+    const GJKVertex& vA = vertices[closestTriangle.Indices[0]];
+    const GJKVertex& vB = vertices[closestTriangle.Indices[1]];
+    const GJKVertex& vC = vertices[closestTriangle.Indices[2]];
+
+    const Vector3 contactPointA = baryCoords.x * vA.SupportA + baryCoords.y * vB.SupportA + baryCoords.z * vC.SupportA;
+    // todo once we implement hit events, we will need to broadcast both hits
+    // const Vector3 contactPointB = baryCoords.x * vA.SupportB + baryCoords.y * vB.SupportB + baryCoords.z * vC.SupportB;
+
+    // LOG(L"Closest point: {}", closestTriangle.ClosestPoint);
+    // LOG(L"Contact point A: {}", contactPointA);
+    // LOG(L"Contact point B: {}", contactPointB);
+
+    if (hit.ImpactNormal == Vector3::Zero)
+    {
+        hit.ImpactNormal = contactPointA;
+        hit.ImpactNormal.Normalize();
+    }
+    
+    hit.Location = contactPointA + hit.ImpactNormal * hit.PenetrationDepth;
+    
+    if (hit.Location.Length() > 10.0f)
+    {
+        __nop();
+    }
 
     return hit;
 }
 
+template <typename ShapeProxyType>
+PhysicsSystem::Hit PhysicsSystem::GilbertJohnsonKeerthi(const ShapeProxyType& shape, const Body& bodyB) const
+{
+    const Vector3 initialDirection = Vector3::UnitX;
+    Vector3 furthestPointA = Support(shape, initialDirection);
+    Vector3 furthestPointB = Support(bodyB, -initialDirection);
+
+    Vector3 difference = furthestPointA - furthestPointB;
+
+    DArray<GJKVertex, 4> simplex = {{difference, furthestPointA, furthestPointB}};
+
+    Vector3 direction = -difference;
+    direction.Normalize();
+    while (true)
+    {
+        furthestPointA = Support(shape, direction);
+        furthestPointB = Support(bodyB, -direction);
+
+        difference = furthestPointA - furthestPointB;
+
+        difference = MinkowskiDifference(shape, bodyB, direction);
+        if (difference.Dot(direction) <= 0.0f)
+        {
+            // LOG(L"Hit not found");
+            return {};
+        }
+
+        simplex.InsertAt(0, {difference, furthestPointA, furthestPointB});
+
+        if (GJKSimplexContainsOrigin(simplex, direction))
+        {
+            // LOG(L"Hit found");
+            if (simplex.Count() == 4)
+            {
+                return ExpandingPolytopeAlgorithm(shape, bodyB, simplex);
+            }
+
+            // todo support for dot, line and triangle simplex expansion to tetrahedron
+            DEBUG_BREAK();
+            return {};
+        }
+    }
+}
+
+template <typename ShapeProxyType>
+PhysicsSystem::Hit PhysicsSystem::CollisionCheck(const ShapeProxyType& shape, const Body& bodyB) const
+{
+    return GilbertJohnsonKeerthi(shape, bodyB);
+}
+
 PhysicsSystem::EPATriangle::EPATriangle(const EPAVertexArray& vertices, uint16 indexA, uint16 indexB, uint16 indexC)
 {
-    const Vector3 a = vertices[indexA];
-    const Vector3 b = vertices[indexB];
-    const Vector3 c = vertices[indexC];
-    const Plane plane = {a, b, c};
+    const Vector3 a = vertices[indexA].Location;
+    const Vector3 b = vertices[indexB].Location;
+    const Vector3 c = vertices[indexC].Location;
 
-    Vector3 closestPoint = Math::PlanarProjection(Vector3::Zero, a, plane.Normal());
+    Normal = (b - a).Cross(c - a);
+    Normal.Normalize();
+
+    Vector3 closestPoint = Math::PlanarProjection(Vector3::Zero, a, Normal);
     const bool isInside = Math::IsPointInsideTriangle(closestPoint, a, b, c);
 
     ClosestPoint = closestPoint;
-    Distance = Math::Abs(plane.D());
-    
-    Normal = plane.Normal();
-    if (a.Dot(Normal) > 0.0f)
+    Distance = ClosestPoint.Length();
+
+    float dot = a.Dot(Normal);
+    if (a.Dot(Normal) < 0.0f)
     {
         Normal = -Normal;
         
@@ -873,7 +1209,7 @@ PhysicsSystem::EPATriangle::EPATriangle(const EPAVertexArray& vertices, uint16 i
     AdjacentTriangles[2] = nullptr;
 }
 
-uint8 PhysicsSystem::EPATriangle::IndexOfAdjacend(const EPATriangle& other) const
+uint8 PhysicsSystem::EPATriangle::IndexOfAdjacent(const EPATriangle& other) const
 {
     for (uint8 i = 0; i < 3; ++i)
     {
@@ -887,8 +1223,7 @@ uint8 PhysicsSystem::EPATriangle::IndexOfAdjacend(const EPATriangle& other) cons
     return 0;
 }
 
-void PhysicsSystem::EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const Vector3& w,
-                                  std::set<EPASilhouetteEntry>& silhouetteSet)
+void PhysicsSystem::EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const Vector3& w, EPASilhouetteArray& silhouetteSet) const
 {
     if (!triangle.Valid)
     {
@@ -897,7 +1232,7 @@ void PhysicsSystem::EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const V
 
     if (triangle.ClosestPoint.Dot(w) < Math::Square(triangle.Distance))
     {
-        silhouetteSet.insert({&triangle, adjIndex});
+        silhouetteSet.Add({&triangle, adjIndex});
         return;
     }
 
@@ -905,11 +1240,11 @@ void PhysicsSystem::EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const V
 
     if (EPATriangle* adjTriangle = triangle.AdjacentTriangles[(adjIndex + 1) % 3])
     {
-        EPASilhouette(*adjTriangle, adjTriangle->IndexOfAdjacend(triangle), w, silhouetteSet);
+        EPASilhouette(*adjTriangle, adjTriangle->IndexOfAdjacent(triangle), w, silhouetteSet);
     }
     
     if (EPATriangle* adjTriangle = triangle.AdjacentTriangles[(adjIndex + 2) % 3])
     {
-        EPASilhouette(*adjTriangle, adjTriangle->IndexOfAdjacend(triangle), w, silhouetteSet);
+        EPASilhouette(*adjTriangle, adjTriangle->IndexOfAdjacent(triangle), w, silhouetteSet);
     }
 }

@@ -13,19 +13,6 @@ class PhysicsSystem : public System<CTransform, CRigidBody, CCollider>
     GENERATED()
 
 public:
-    struct Body
-    {
-        Entity* Entity;
-        BoundingBox AABB;
-        uint16 TransformIndex;
-        uint16 RigidBodyIndex;
-        uint16 ColliderIndex;
-
-        CTransform& GetTransform() const;
-        CRigidBody& GetRigidBody() const;
-        CCollider& GetCollider() const;
-    };
-    
     struct Hit
     {
         bool IsValid = false;
@@ -34,9 +21,14 @@ public:
         Vector3 ImpactNormal = Vector3::Zero;
         Vector3 Location = Vector3::Zero;
     };
+
+public:
+    Hit Raycast(const Vector3& start, const Vector3& direction, float distance) const;
+    Hit Raycast(const Vector3& start, const Vector3& end) const;
     
     // System
 public:
+    virtual void Initialize() override;
     virtual void OnEntityCreated(const Archetype& archetype, Entity& entity) override;
     virtual void Tick(double deltaTime) override;
     virtual void ProcessEntityList(EntityList& entityList, double deltaTime) override;
@@ -49,17 +41,27 @@ private:
     static constexpr uint32 _cellCountX = 100;
     static constexpr uint32 _cellSSOCapacity = 256;
 
+    Vector3 _cellSize;
+    
+    struct CellIndex
+    {
+        uint32 X;
+        uint32 Y;
+        uint32 Z;
+    };
+
     struct Cell
     {
     public:
-        DArray<Body, _cellSSOCapacity> Bodies;
+        CellIndex Index;
+        DArray<Body*, _cellSSOCapacity> Bodies;
         uint32 StaticBodyCount = 0;
         uint32 DormantBodyCount = 0;
         uint32 DynamicBodyCount = 0;
 
     public:
-        void AddBody(const Body& body, ERigidBodyState bodyType);
-        void RemoveBody(uint32 index);
+        uint32 AddBody(Body& body, ERigidBodyState bodyType);
+        void RemoveBody(const PhysicsSystem& system, uint32 index);
         
         void SetBodyState(uint32 index, ERigidBodyState bodyType);
     };
@@ -78,28 +80,14 @@ private:
     DArray<CollisionPair> _narrowPhaseInputPairs;
 
 private:
-    Cell& GetCellAt(const Vector3& location);
-    void Move(const CRigidBody& rigidBody, const Vector3& currentLocation, const Vector3& newLocation, double deltaTime);
-    void Move(const CRigidBody& rigidBody, Cell& currentCell, Cell& newCell);
-
-    void BroadPhase(Body& body, Cell& cell);
-    void NarrowPhase();
-
-    Hit CollisionCheck(const Body& bodyA, const Body& bodyB, const Vector3& movementDirection);
-    Hit CollisionCheck(const Body& bodyA, const Body& bodyB);
-    void ProcessHit(const Body& bodyA, const Hit& hit);
+    struct GJKVertex
+    {
+        Vector3 Location;
+        Vector3 SupportA;
+        Vector3 SupportB;
+    };
     
-    Hit GilbertJohnsonKeerthi(const Body& bodyA, const Body& bodyB);
-    Vector3 MinkowskiDifference(const Body& bodyA, const Body& bodyB, const Vector3& direction);
-    bool GJKSimplexContainsOrigin(DArray<Vector3, 4>& simplex, Vector3& direction) const;
-    bool GJKLine(DArray<Vector3, 4>& simplex, Vector3& direction) const;
-    bool GJKTriangle(DArray<Vector3, 4>& simplex, Vector3& direction) const;
-
-    bool TetrahedronContainsOrigin(const DArray<Vector3, 4>& simplex) const;
-
-    Hit ExpandingPolytopeAlgorithm(const Body& bodyA, const Body& bodyB, DArray<Vector3, 4>& simplex);
-
-    using EPAVertexArray = DArray<Vector3, 16>;
+    using EPAVertexArray = DArray<GJKVertex, 16>;
     
     struct EPATriangle
     {
@@ -116,7 +104,7 @@ private:
     public:
         EPATriangle(const EPAVertexArray& vertices, uint16 indexA, uint16 indexB, uint16 indexC);
 
-        uint8 IndexOfAdjacend(const EPATriangle& other) const;
+        uint8 IndexOfAdjacent(const EPATriangle& other) const;
     };
     
     struct EPATrianglePriority
@@ -144,6 +132,49 @@ private:
             return std::tie(Triangle, AdjacentIndex) <=> std::tie(other.Triangle, other.AdjacentIndex);
         }
     };
+    
+    using EPASilhouetteArray = DArray<EPASilhouetteEntry, 8>;
+    
+private:
+    CellIndex GetCellIndex(const Vector3& location) const;
+    Cell& GetCellAt(const Vector3& location);
+    const Cell& GetCellAt(const Vector3& location) const;
+    Cell& GetCellAt(const CellIndex& index);
+    const Cell& GetCellAt(const CellIndex& index) const;
 
-    void EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const Vector3& w, std::set<EPASilhouetteEntry>& silhouetteSet);
+    uint32 GetRelativeIndexOf(const Body& body, const Cell& cell) const;
+
+    void ForEachCellAt(const BoundingBox& aabb, const std::function<void(Cell& cell, uint32 index)>& func);
+
+    const Cell& GetCellAtImplementation(const CellIndex& index) const;
+    
+    void Move(CRigidBody& rigidBody, const Vector3& currentLocation, const Vector3& newLocation, double deltaTime);
+    void Move(CRigidBody& rigidBody, const BoundingBox& current, const BoundingBox& next);
+
+    void BroadPhase(Body& body, Cell& cell);
+    void NarrowPhase();
+    
+    void ProcessHit(const Body& bodyA, const Hit& hit);
+
+    Vector3 Support(const Body& body, const Vector3& directionNormalized) const;
+    Vector3 Support(const Line& line, const Vector3& directionNormalized) const;
+    
+    Vector3 MinkowskiDifference(const Body& bodyA, const Body& bodyB, const Vector3& direction) const;
+    Vector3 MinkowskiDifference(const Line& line, const Body& bodyB, const Vector3& direction) const;
+    bool GJKSimplexContainsOrigin(DArray<GJKVertex, 4>& simplex, Vector3& direction) const;
+    bool GJKLine(DArray<GJKVertex, 4>& simplex, Vector3& direction) const;
+    bool GJKTriangle(DArray<GJKVertex, 4>& simplex, Vector3& direction) const;
+
+    bool TetrahedronContainsOrigin(const EPAVertexArray& polytopeVertices) const;
+
+    template <typename ShapeProxyType>
+    Hit ExpandingPolytopeAlgorithm(const ShapeProxyType& shape, const Body& bodyB, DArray<GJKVertex, 4>& simplex) const;
+
+    template <typename ShapeProxyType>
+    Hit GilbertJohnsonKeerthi(const ShapeProxyType& shape, const Body& bodyB) const;
+
+    template <typename ShapeProxyType>
+    Hit CollisionCheck(const ShapeProxyType& shape, const Body& bodyB) const;
+
+    void EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const Vector3& w, EPASilhouetteArray& silhouetteSet) const;
 };
