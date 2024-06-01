@@ -173,10 +173,13 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         return;
     }
 
-    const std::shared_ptr<Scene> scene = GetScene();
     {
+        const std::shared_ptr<Scene> scene = GetScene();
+        
         CCamera* camera = viewport.GetCamera();
         const Transform& cameraTransform = camera->GetTransform(); // todo this triggers recalculation of matrices
+
+        LOG(L"Camera forward: {}", cameraTransform.GetForwardVector());
 
         scene->ViewProjection = camera->GetViewProjectionMatrix().Transpose();
         scene->CameraLocationWS = cameraTransform.GetWorldLocation();

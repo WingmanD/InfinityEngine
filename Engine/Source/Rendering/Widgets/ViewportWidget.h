@@ -14,11 +14,17 @@ public:
     void SetCamera(CCamera* camera);
     CCamera* GetCamera() const;
 
-protected:
-    CCamera* _camera = nullptr;
-
+    void CaptureMouse();
+    void ReleaseMouse();
+    
     // Widget
 protected:
     virtual bool InitializeRenderingProxy() override;
     void OnWidgetRectChanged() override;
+    
+    void OnFocusChangedInternal(bool focused) override;
+
+private:
+    CCamera* _camera = nullptr;
+    bool _isMouseCaptured = false;
 };

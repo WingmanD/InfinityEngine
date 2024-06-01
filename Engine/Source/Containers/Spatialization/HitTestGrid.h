@@ -4,7 +4,6 @@
 #include "UniformGrid2D.h"
 #include <vector>
 #include <algorithm>
-#include <ranges>
 #include <functional>
 #include <map>
 

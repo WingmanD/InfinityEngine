@@ -8,6 +8,7 @@
 #include "ECS/EntityList.h"
 #include "Object.h"
 #include "ECS/Event.h"
+#include "Containers/EventQueue.h"
 #include "ECS/Systems/System.reflection.h"
 
 class SystemScheduler;
@@ -25,7 +26,7 @@ class SystemBase : public Object
     GENERATED()
     
 public:
-    explicit SystemBase() = default;
+    SystemBase();
     explicit SystemBase(Archetype&& archetype);
 
     void CallInitialize(PassKey<SystemScheduler>);
@@ -40,6 +41,8 @@ public:
     void UpdateQuery(PassKey<World>);
 
     const Archetype& GetArchetype() const;
+
+    EventQueue<SystemBase>& GetEventQueue();
 
 protected:
     virtual void Initialize();
@@ -58,6 +61,8 @@ private:
     Archetype _archetype;
     ECSQuery _persistentQuery;
     World* _world = nullptr;
+
+    EventQueue<SystemBase> _eventQueue;
 };
 
 template <typename... ComponentTypes> requires (IsA<ComponentTypes, Component> && ...)
@@ -97,16 +102,25 @@ protected:
         return entity.Get<ComponentType>(IndexOf<ComponentType>());
     }
 
+    void CacheArchetype(const Archetype& archetype)
+    {
+        (UpdateBinding<ComponentTypes>(archetype), ...);
+    }
+
     // SystemBase
 protected:
     virtual void Tick(double deltaTime) override
     {
+        GetEventQueue().ProcessEvents();
+        
         for (EntityList* entityList : GetQuery().GetEntityLists())
         {
-            (UpdateBinding<ComponentTypes>(entityList->GetArchetype()), ...);
+            CacheArchetype(entityList->GetArchetype());
 
             ProcessEntityList(*entityList, deltaTime);
         }
+
+        GetEventQueue().ProcessEvents();
     }
 
 private:

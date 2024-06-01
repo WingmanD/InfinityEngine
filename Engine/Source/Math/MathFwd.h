@@ -53,3 +53,17 @@ struct std::formatter<Vector4, wchar_t>
         return std::format_to(ctx.out(), L"X: {}, Y: {}, Z: {}, W: {}", vector.x, vector.y, vector.z, vector.w);
     }
 };
+
+template <>
+struct std::formatter<Quaternion, wchar_t>
+{
+    constexpr auto parse(std::wformat_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    auto format(const Quaternion& quat, std::wformat_context& ctx) const
+    {
+        return std::format_to(ctx.out(), L"X: {}, Y: {}, Z: {}, W: {}", quat.x, quat.y, quat.z, quat.w);
+    }
+};

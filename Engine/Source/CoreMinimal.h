@@ -23,6 +23,19 @@ using TrueType = std::true_type;
 template <typename Derived, typename Base>
 concept IsA = std::derived_from<Derived, Base>;
 
+template <typename T, template<typename...> class Template>
+struct IsSpecializationOfImpl : std::false_type
+{
+};
+
+template <template<typename...> class Template, typename... Args>
+struct IsSpecializationOfImpl<Template<Args...>, Template> : std::true_type
+{
+};
+
+template <typename T, template<typename...> class Template>
+constexpr bool IsSpecializationOf = IsSpecializationOfImpl<T, Template>::value;
+
 template <typename Interface, typename... Args>
 struct FindSuperOfType;
 
@@ -82,6 +95,18 @@ void ConditionalCopyAssign(T& lhs, const T& rhs)
     {
        assert(false && "Attempting to copy an object that doesn't have a copy assignment operator.");
     }
+}
+
+template <typename T>
+auto operator<=>(const std::weak_ptr<T>& lhs, const std::weak_ptr<T>& rhs)
+{
+    return lhs.lock() <=> rhs.lock();
+}
+
+template <typename T>
+auto operator==(const std::weak_ptr<T>& lhs, const std::weak_ptr<T>& rhs)
+{
+    return lhs.lock().get() == rhs.lock().get();
 }
 
 typedef int8_t int8;

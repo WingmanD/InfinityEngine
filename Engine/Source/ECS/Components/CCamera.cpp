@@ -82,9 +82,10 @@ Matrix CCamera::GetViewMatrix()
     {
         const Vector3 location = _transform.GetWorldLocation();
         const Vector3 forward = _transform.GetForwardVector();
-        const Vector3 up = _transform.GetUpVector();
+        // const Vector3 up = _transform.GetUpVector();
 
-        _viewMatrix = XMMatrixLookToLH(location, forward, up);
+        // todo unlocked roll
+        _viewMatrix = XMMatrixLookToLH(location, forward, Vector3(0.0f, 0.0f, 1.0f));
         _isViewMatrixDirty = false;
     }
 

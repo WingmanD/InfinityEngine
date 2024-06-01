@@ -5,22 +5,8 @@
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 #include "Widgets/CanvasPanel.h"
-#include "Widgets/Checkbox.h"
 #include "Widgets/UIStatics.h"
 #include <memory>
-
-#include "Widgets/AssetBrowser.h"
-#include "Widgets/AssetCreatorMenu.h"
-#include "Widgets/AssetPicker.h"
-#include "Widgets/Button.h"
-#include "Widgets/FlowBox.h"
-#include "Widgets/TableWidget.h"
-#include "Widgets/TextBox.h"
-#include "Widgets/EditableTextBox.h"
-#include "Widgets/EditorWidget.h"
-#include "Widgets/EnumDropdown.h"
-#include "Widgets/TypePicker.h"
-#include "Widgets/TabSwitcher.h"
 
 class TabSwitcher;
 
@@ -175,6 +161,11 @@ bool Window::Initialize()
         }
     });
 
+    _onEscPressedHandle = inputSubsystem.GetKey(EKey::Escape).OnKeyUp.Add([this]()
+    {
+        SetFocusedWidget(nullptr);
+    });
+
     return true;
 }
 
@@ -204,6 +195,14 @@ const Vector2& Window::GetSize() const
 float Window::GetAspectRatio() const
 {
     return _aspectRatio;
+}
+
+Vector2 Window::GetPosition() const
+{
+    RECT rect;
+    GetWindowRect(_hwnd, &rect);
+
+    return {static_cast<float>(rect.left), static_cast<float>(rect.top)};
 }
 
 void Window::Destroy()
@@ -249,7 +248,7 @@ std::shared_ptr<WindowGlobals>& Window::GetWindowGlobals()
     return _windowGlobals;
 }
 
-std::optional<std::reference_wrapper<HitTestGrid<Widget*>>> Window::GetHitTestGridFor(
+HitTestGrid<std::weak_ptr<Widget>>* Window::GetHitTestGridFor(
     const std::shared_ptr<Widget>& widget)
 {
     // todo this is inefficient
@@ -262,13 +261,14 @@ std::optional<std::reference_wrapper<HitTestGrid<Widget*>>> Window::GetHitTestGr
 
     if (it == _layers.end())
     {
-        return std::nullopt;
+        return nullptr;
     }
 
     const std::shared_ptr<Layer> layer = *it;
 
-    return layer->HitTestGrid;
+    return &layer->HitTestGrid;
 }
+
 
 void Window::RequestResize(uint32 width, uint32 height)
 {
@@ -303,7 +303,7 @@ std::shared_ptr<Window::Layer> Window::AddLayer()
 
     std::shared_ptr<Layer> newLayer = std::make_shared<Layer>();
     newLayer->RootWidget = rootWidget;
-    newLayer->HitTestGrid = HitTestGrid<Widget*>(0.1f * static_cast<float>(_height) / 1080.0f, _aspectRatio * 2.0f,
+    newLayer->HitTestGrid = HitTestGrid<std::weak_ptr<Widget>>(0.1f * static_cast<float>(_height) / 1080.0f, _aspectRatio * 2.0f,
                                                  2.0f,
                                                  Vector2(_aspectRatio, 1.0f));
     _layers.push_back(newLayer);
@@ -439,18 +439,27 @@ bool Window::AddBorrowedPopup(const std::shared_ptr<Widget>& popup)
     return true;
 }
 
-Widget* Window::GetWidgetAt(const Vector2& positionWS)
+Widget* Window::GetWidgetAt(const Vector2& positionWS) const
 {
-    Widget** hitWidgetPtr = GetTopLayer()->HitTestGrid.FindAtByPredicate(positionWS,
-                                                                         [](const Vector2& position,
-                                                                            const Widget* widget)
-                                                                         {
-                                                                             return widget->GetBoundingBox().Contains(
-                                                                                 position);
-                                                                         });
+    if (positionWS.x < -static_cast<float>(_width) / 2.0f || positionWS.x > static_cast<float>(_width) / 2.0f ||
+        positionWS.y < -static_cast<float>(_height) / 2.0f || positionWS.y > static_cast<float>(_height) / 2.0f)
+    {
+        return nullptr;
+    }
+    
+    std::weak_ptr<Widget>* hitWidgetPtr = GetTopLayer()->HitTestGrid.FindAtByPredicate(positionWS,
+    [](const Vector2& position, const std::weak_ptr<Widget> widget)
+    {
+        if (std::shared_ptr<Widget> shared = widget.lock())
+        {
+            return shared->GetBoundingBox().Contains(position);
+        }
+
+        return false;
+    });
     if (hitWidgetPtr != nullptr)
     {
-        return *hitWidgetPtr;
+        return hitWidgetPtr->lock().get();
     }
 
     return nullptr;
@@ -486,7 +495,7 @@ void Window::OnResized()
         {
             layer->RootWidget->SetSize({_aspectRatio * 2.0f, 2.0f});
 
-            layer->HitTestGrid = HitTestGrid<Widget*>(0.1f * _height / 1080.0f, _aspectRatio * 2.0f, 2.0f,
+            layer->HitTestGrid = HitTestGrid<std::weak_ptr<Widget>>(0.1f * _height / 1080.0f, _aspectRatio * 2.0f, 2.0f,
                                                       Vector2(_aspectRatio, 1.0f));
             layer->RootWidget->ForceRebuildLayout(true);
         }

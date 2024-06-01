@@ -252,17 +252,17 @@ Vector3 Transform::GetWorldScale() const
 
 Vector3 Transform::GetForwardVector() const
 {
-    return Vector3::Transform(Vector3::UnitX, _rotation);
+    return Vector3::Transform(Vector3::UnitX, GetWorldRotation());
 }
 
 Vector3 Transform::GetRightVector() const
 {
-    return Vector3::Transform(Vector3::UnitY, _rotation);
+    return Vector3::Transform(Vector3::UnitY, GetWorldRotation());
 }
 
 Vector3 Transform::GetUpVector() const
 {
-    return Vector3::Transform(Vector3::UnitZ, _rotation);
+    return Vector3::Transform(Vector3::UnitZ, GetWorldRotation());
 }
 
 const Matrix& Transform::GetWorldMatrix() const

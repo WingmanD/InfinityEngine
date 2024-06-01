@@ -9,9 +9,19 @@
 #include "Rendering/StaticMeshInstance.h"
 #include <cassert>
 
-static constexpr auto GWidgetComparator = [](const Widget* a, const Widget* b)
+static constexpr auto GWidgetComparator = [](const std::weak_ptr<Widget>& a, const std::weak_ptr<Widget>& b)
 {
-    return a->GetZOrder() > b->GetZOrder();
+    if (const std::shared_ptr<Widget> aWidget = a.lock())
+    {
+        if (const std::shared_ptr<Widget> bWidget = b.lock())
+        {
+            return aWidget->GetZOrder() > bWidget->GetZOrder();
+        }
+
+        return true;
+    }
+    
+    return false;
 };
 
 std::array<const Vector2, 9> Widget::_anchorPositionMap = {
@@ -616,10 +626,10 @@ void Widget::UpdateCollision(bool recursive /*= false*/)
     {
         if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
         {
-            HitTestGrid<Widget*>& hitTestGrid = parentWindow->GetHitTestGridFor(SharedFromThis()).value();
+            HitTestGrid<std::weak_ptr<Widget>>* hitTestGrid = parentWindow->GetHitTestGridFor(SharedFromThis());
 
-            hitTestGrid.RemoveElement(this);
-            hitTestGrid.InsertElement(this, _boundingBox, GWidgetComparator);
+            hitTestGrid->RemoveElement(SharedFromThis());
+            hitTestGrid->InsertElement(SharedFromThis(), _boundingBox, GWidgetComparator);
         }
     }
 
@@ -1010,16 +1020,15 @@ void Widget::SetCollisionEnabledInternal(bool value, bool recursive /*= false*/)
         if (const std::shared_ptr<Window>& parentWindow = GetParentWindow())
         {
             const auto hitTestGrid = parentWindow->GetHitTestGridFor(SharedFromThis());
-            if (hitTestGrid.has_value())
+            if (hitTestGrid != nullptr)
             {
-                HitTestGrid<Widget*>& grid = hitTestGrid.value();
                 if (value)
                 {
-                    grid.InsertElement(this, _boundingBox, GWidgetComparator);
+                    hitTestGrid->InsertElement(SharedFromThis(), _boundingBox, GWidgetComparator);
                 }
                 else
                 {
-                    grid.RemoveElement(this);
+                    hitTestGrid->RemoveElement(SharedFromThis());
                 }
             }
         }

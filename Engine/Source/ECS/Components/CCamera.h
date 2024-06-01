@@ -5,6 +5,7 @@
 #include "CCamera.reflection.h"
 
 class ViewportWidget;
+
 REFLECTED()
 class CCamera : public Component
 {

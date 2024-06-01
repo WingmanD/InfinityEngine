@@ -1,5 +1,6 @@
 ﻿#include "InputSubsystem.h"
 #include "Engine/Engine.h"
+#include "Math/Math.h"
 #include "Rendering/Window.h"
 
 InputSubsystem& InputSubsystem::Get()
@@ -47,6 +48,16 @@ Vector2 InputSubsystem::GetMousePosition() const
 const DirectX::Mouse::State& InputSubsystem::GetMouseState() const
 {
     return _mouseState;
+}
+
+void InputSubsystem::SetMouseCaptured(bool value, PassKey<ViewportWidget>)
+{
+    _isMouseCaptured = value;
+}
+
+bool InputSubsystem::IsMouseCaptured() const
+{
+    return _isMouseCaptured;
 }
 
 void InputSubsystem::SetCursorIcon(ECursorIcon icon)
@@ -163,6 +174,7 @@ LRESULT InputSubsystem::ProcessWindowMessages(HWND hwnd, UINT msg, WPARAM wParam
 
             break;
         }
+        
         default:
             break;
     }
@@ -330,12 +342,34 @@ bool InputSubsystem::Initialize()
 
 void InputSubsystem::Tick(double deltaTime)
 {
-    const Vector2 oldMousePosition = GetMousePosition();
     _mouseButtonStateTracker.Update(_mouse->GetState());
-    const Vector2 newMousePosition = GetMousePosition();
-    if (oldMousePosition != newMousePosition)
+    
+    if (_isMouseCaptured)
     {
-        OnMouseMoved.Broadcast(newMousePosition);
+        // todo cache
+        std::shared_ptr<Window> window = GetFocusedWindow();
+        const Vector2 ws = window->GetFocusedWidget()->GetTransformWS().GetPosition() * window->GetSize();
+        const Vector2 position = Math::FloorToInt(window->GetPosition() + Math::Abs(ws));
+
+        POINT point;
+        GetCursorPos(&point);
+        const Vector2 newMousePosition = {static_cast<float>(point.x), static_cast<float>(point.y)};
+        
+        if (position != newMousePosition)
+        {
+            OnMouseMoved.Broadcast(newMousePosition - position);
+        }
+        
+        SetCursorPos(static_cast<int32>(position.x), static_cast<int32>(position.y));
+    }
+    else
+    {
+        const Vector2 newMousePosition = GetMousePosition();
+        if (_mousePosition != newMousePosition)
+        {
+            OnMouseMoved.Broadcast(newMousePosition - _mousePosition);
+        }
+        _mousePosition = newMousePosition;
     }
 }
 

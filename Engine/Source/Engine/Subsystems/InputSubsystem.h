@@ -1,14 +1,13 @@
 ﻿#pragma once
 
-#include <map>
-
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "EngineSubsystem.h"
 #include "Mouse.h"
 #include "PassKey.h"
 #include "Delegate.h"
 
 class Window;
+class ViewportWidget;
 
 enum class EKey : uint8
 {
@@ -187,6 +186,9 @@ public:
     Vector2 GetMousePosition() const;
     const DirectX::Mouse::State& GetMouseState() const;
 
+    void SetMouseCaptured(bool value, PassKey<ViewportWidget>);
+    bool IsMouseCaptured() const;
+
     void SetCursorIcon(ECursorIcon icon);
     ECursorIcon GetCursorIcon() const;
 
@@ -205,6 +207,7 @@ private:
     std::unique_ptr<DirectX::Mouse> _mouse;
     DirectX::Mouse::State _mouseState;
     DirectX::Mouse::ButtonStateTracker _mouseButtonStateTracker;
+    Vector2 _mousePosition;
     
     ECursorIcon _cursorIcon = ECursorIcon::Arrow;
 
@@ -213,6 +216,7 @@ private:
     std::weak_ptr<Window> _focusedWindow;
 
     bool _isCapsLockToggled = false;
+    bool _isMouseCaptured = false;
 
 private:
     EKey ConvertKeyCode(WPARAM virtualKeyCode) const;

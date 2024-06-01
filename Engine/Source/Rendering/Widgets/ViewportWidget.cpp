@@ -1,6 +1,6 @@
 ﻿#include "ViewportWidget.h"
-
 #include "ECS/Components/CCamera.h"
+#include "Engine/Subsystems/InputSubsystem.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 
 void ViewportWidget::SetCamera(CCamera* camera)
@@ -14,6 +14,40 @@ void ViewportWidget::SetCamera(CCamera* camera)
 CCamera* ViewportWidget::GetCamera() const
 {
     return _camera;
+}
+
+void ViewportWidget::CaptureMouse()
+{
+    if (_isMouseCaptured)
+    {
+        return;
+    }
+
+    _isMouseCaptured = true;
+
+    SetCapture(GetParentWindow()->GetHandle());
+    ClipCursor(&GetRect());
+
+    InputSubsystem& inputSubsystem = InputSubsystem::Get();
+    inputSubsystem.GetMouse().SetVisible(false);
+    inputSubsystem.SetMouseCaptured(true, {});
+}
+
+void ViewportWidget::ReleaseMouse()
+{
+    if (!_isMouseCaptured)
+    {
+        return;
+    }
+
+    _isMouseCaptured = false;
+
+    ReleaseCapture();
+    ClipCursor(nullptr);
+
+    InputSubsystem& inputSubsystem = InputSubsystem::Get();
+    inputSubsystem.GetMouse().SetVisible(true);
+    inputSubsystem.SetMouseCaptured(false, {});
 }
 
 bool ViewportWidget::InitializeRenderingProxy()
@@ -39,5 +73,22 @@ void ViewportWidget::OnWidgetRectChanged()
     {
         const Vector2 screenSpaceSize = GetScreenSize();
         _camera->SetAspectRatio(screenSpaceSize.x / screenSpaceSize.y);
+    }
+}
+
+void ViewportWidget::OnFocusChangedInternal(bool focused)
+{
+    CanvasPanel::OnFocusChangedInternal(focused);
+
+    if (focused)
+    {
+        if (GetCamera() != nullptr)
+        {
+            CaptureMouse();
+        }
+    }
+    else
+    {
+        ReleaseMouse();
     }
 }

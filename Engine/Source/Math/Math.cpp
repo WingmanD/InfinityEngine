@@ -14,14 +14,33 @@ Vector3 Line::ClosestPoint(const Vector3& point) const
     return (a.Dot(b) / b.Length()) * b;
 }
 
+Vector2 Math::ToDegrees(const Vector2& radians)
+{
+    return {ToDegrees(radians.x), ToDegrees(radians.y)};
+}
+
 Vector3 Math::ToDegrees(const Vector3& radians)
 {
     return {ToDegrees(radians.x), ToDegrees(radians.y), ToDegrees(radians.z)};
 }
 
+Vector2 Math::ToRadians(const Vector2& degrees)
+{
+    return {ToRadians(degrees.x), ToRadians(degrees.y)};
+}
+
 Vector3 Math::ToRadians(const Vector3& degrees)
 {
     return {ToRadians(degrees.x), ToRadians(degrees.y), ToRadians(degrees.z)};
+}
+
+Quaternion Math::MakeQuaternionFromEuler(const Vector3& euler)
+{
+    return Quaternion::CreateFromYawPitchRoll(
+        ToRadians(euler.y),
+        ToRadians(euler.x),
+        ToRadians(euler.z)
+    );
 }
 
 Vector3 Math::RandomUnitVector()
@@ -32,14 +51,51 @@ Vector3 Math::RandomUnitVector()
     return randomVector;
 }
 
+Vector2 Math::Abs(const Vector2& vector)
+{
+    return {Abs(vector.x), Abs(vector.y)};
+}
+
 Vector3 Math::Abs(const Vector3& vector)
 {
     return {Abs(vector.x), Abs(vector.y), Abs(vector.z)};
 }
 
+float Math::Min(const Vector2& vector)
+{
+    return Min(vector.x, vector.y);
+}
+
 float Math::Min(const Vector3& vector)
 {
-    return std::min(vector.x, std::min(vector.y, vector.z));
+    return Min(vector.x, Min(vector.y, vector.z));
+}
+
+float Math::Max(const Vector2& vector)
+{
+    return Max(vector.x, vector.y);
+}
+
+float Math::Max(const Vector3& vector)
+{
+    return Max(vector.x, Max(vector.y, vector.z));
+}
+
+Vector2 Math::FloorToInt(const Vector2& value)
+{
+    return {
+        static_cast<float>(FloorToInt(value.x)),
+        static_cast<float>(FloorToInt(value.y))
+    };
+}
+
+Vector3 Math::FloorToInt(const Vector3& value)
+{
+    return {
+        static_cast<float>(FloorToInt(value.x)),
+        static_cast<float>(FloorToInt(value.y)),
+        static_cast<float>(FloorToInt(value.z))
+    };
 }
 
 Matrix Math::CreatePerspectiveMatrix(float horizontalFOV, float aspectRatio, float nearClipPlane, float farClipPlane)

@@ -67,8 +67,13 @@ namespace Math
         return (N - 1) & (currentIndex + 1);
     }
 
+    Vector2 ToDegrees(const Vector2& radians);
     Vector3 ToDegrees(const Vector3& radians);
+    
+    Vector2 ToRadians(const Vector2& degrees);
     Vector3 ToRadians(const Vector3& degrees);
+
+    Quaternion MakeQuaternionFromEuler(const Vector3& euler);
 
     template <typename T> requires std::is_arithmetic_v<T>
     T Random(T min, T max)
@@ -88,8 +93,14 @@ namespace Math
 
     Vector3 RandomUnitVector();
 
+    Vector2 Abs(const Vector2& vector);
     Vector3 Abs(const Vector3& vector);
+    
+    float Min(const Vector2& vector);
     float Min(const Vector3& vector);
+    
+    float Max(const Vector2& vector);
+    float Max(const Vector3& vector);
 
     auto Min(auto value1, auto value2)
     {
@@ -126,6 +137,9 @@ namespace Math
 
         return integer;
     }
+
+    Vector2 FloorToInt(const Vector2& value);
+    Vector3 FloorToInt(const Vector3& value);
 
     constexpr int32 Sign(auto value)
     {

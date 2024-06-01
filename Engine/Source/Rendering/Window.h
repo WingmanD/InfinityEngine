@@ -6,6 +6,7 @@
 #include "NonCopyable.h"
 #include "Containers/Spatialization/HitTestGrid.h"
 #include "Widgets/Widget.h"
+#include <memory>
 
 struct CD3DX12_VIEWPORT;
 class RenderingSubsystem;
@@ -26,7 +27,7 @@ public:
     struct Layer : public NonCopyable<Layer>
     {
         std::shared_ptr<Widget> RootWidget;
-        HitTestGrid<Widget*> HitTestGrid{
+        HitTestGrid<std::weak_ptr<Widget>> HitTestGrid{
             0.1f * 1080.0f, 1920.0f / 1080.0f * 2.0f, 2.0f, Vector2(1920.0f / 1080.0f, 1.0f)
         };
     };
@@ -41,6 +42,7 @@ public:
     uint32 GetHeight() const;
     const Vector2& GetSize() const;
     float GetAspectRatio() const;
+    Vector2 GetPosition() const;
 
     void SetState(WindowState state);
     WindowState GetState() const;
@@ -50,8 +52,7 @@ public:
 
     std::shared_ptr<WindowGlobals>& GetWindowGlobals();
 
-    std::optional<std::reference_wrapper<HitTestGrid<Widget*>>>
-    GetHitTestGridFor(const std::shared_ptr<Widget>& widget);
+    HitTestGrid<std::weak_ptr<Widget>>* GetHitTestGridFor(const std::shared_ptr<Widget>& widget);
 
     void RequestResize(uint32 width, uint32 height);
 
@@ -88,7 +89,7 @@ public:
         return popup;
     }
 
-    Widget* GetWidgetAt(const Vector2& positionWS);
+    Widget* GetWidgetAt(const Vector2& positionWS) const;
     Widget* GetWidgetUnderCursor();
 
     bool IsFocused() const;
@@ -135,6 +136,7 @@ private:
     DelegateHandle _onMMBUpHandle{};
     DelegateHandle _onScrollHandle{};
     DelegateHandle _onMouseMovedHandle{};
+    DelegateHandle _onEscPressedHandle{};
 
     HWND _hwnd = nullptr;
 

@@ -3,11 +3,14 @@
 #include "ECS/Components/CCamera.h"
 #include "ECS/Components/CStaticMesh.h"
 #include "ECS/Systems/CameraSystem.h"
+#include "ECS/Systems/FloatingControlSystem.h"
 #include "ECS/Systems/PathfindingSystem.h"
 #include "ECS/Systems/PhysicsSystem.h"
 #include "ECS/Systems/PointLightSystem.h"
 #include "ECS/Systems/StaticMeshRenderingSystem.h"
 #include "Engine/Subsystems/GameplaySubsystem.h"
+#include "Engine/Subsystems/InputSubsystem.h"
+#include "Rendering/Window.h"
 #include "Rendering/Widgets/ViewportWidget.h"
 
 bool Game::Startup(PassKey<GameplaySubsystem>)
@@ -37,15 +40,18 @@ bool Game::OnStartup()
     gameplaySubsystem.GetWorlds().ForEach([&gameplaySubsystem, this](World& world)
     {
         world.AddSystem<PathfindingSystem>();
+        FloatingControlSystem& controlSystem = world.AddSystem<FloatingControlSystem>();
         world.AddSystem<CameraSystem>();
         world.AddSystem<PhysicsSystem>();
         world.AddSystem<StaticMeshRenderingSystem>();
         world.AddSystem<PointLightSystem>();
 
-        Entity& entity = world.CreateEntity(_playerTemplate);
-        gameplaySubsystem.GetMainViewport()->SetCamera(&entity.Get<CCamera>(_playerTemplate->GetArchetype()));
-        Transform& cameraEntityTransform = entity.Get<CTransform>(_playerTemplate->GetArchetype()).ComponentTransform;
+        Entity& playerEntity = world.CreateEntity(_playerTemplate);
+        gameplaySubsystem.GetMainViewport()->SetCamera(&playerEntity.Get<CCamera>(_playerTemplate->GetArchetype()));
+        Transform& cameraEntityTransform = playerEntity.Get<CTransform>(_playerTemplate->GetArchetype()).ComponentTransform;
         cameraEntityTransform.SetWorldLocation({-5.0f, 0.0f, 1.0f});
+
+        controlSystem.TakeControlOf(playerEntity);
 
         world.CreateEntity(_enemyTemplate);
         world.CreateEntity(_floorTemplate);
@@ -68,10 +74,18 @@ bool Game::OnStartup()
         return false;
     });
 
+    gameplaySubsystem.GetMainViewport()->SetFocused(true);
+
     return true;
 }
 
 void Game::OnShutdown()
 {
+    InputSubsystem& inputSubsystem = InputSubsystem::Get();
+    inputSubsystem.GetMouse().SetVisible(true);
+    
+    GameplaySubsystem& gameplaySubsystem = GameplaySubsystem::Get();
+    gameplaySubsystem.GetMainViewport()->ReleaseMouse();
+    
     LOG(L"Game ended!");
 }

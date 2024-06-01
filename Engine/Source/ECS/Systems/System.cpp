@@ -3,8 +3,13 @@
 #include "ECS/Event.h"
 #include "ECS/World.h"
 
-SystemBase::SystemBase(Archetype&& archetype) : _archetype(std::move(archetype))
+SystemBase::SystemBase(): _eventQueue(this)
 {
+}
+
+SystemBase::SystemBase(Archetype&& archetype) : SystemBase()
+{
+    _archetype = std::move(archetype);
 }
 
 void SystemBase::CallInitialize(PassKey<SystemScheduler>)
@@ -50,6 +55,11 @@ void SystemBase::UpdateQuery(PassKey<World>)
 const Archetype& SystemBase::GetArchetype() const
 {
     return _archetype;
+}
+
+EventQueue<SystemBase>& SystemBase::GetEventQueue()
+{
+    return _eventQueue;
 }
 
 void SystemBase::Initialize()
