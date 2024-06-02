@@ -179,8 +179,6 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
         CCamera* camera = viewport.GetCamera();
         const Transform& cameraTransform = camera->GetTransform(); // todo this triggers recalculation of matrices
 
-        LOG(L"Camera forward: {}", cameraTransform.GetForwardVector());
-
         scene->ViewProjection = camera->GetViewProjectionMatrix().Transpose();
         scene->CameraLocationWS = cameraTransform.GetWorldLocation();
         scene->CameraForward = cameraTransform.GetForwardVector();
@@ -294,9 +292,10 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
             if (material != nullptr)
             {
                 const std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
+                
+                const StaticMesh::LOD& lod = staticMesh->GetLOD(firstInstance.LOD);
 
-                const DX12StaticMeshRenderingData* renderingData = staticMesh->GetRenderingData<
-                    DX12StaticMeshRenderingData>();
+                const DX12StaticMeshRenderingData* renderingData = lod.GetRenderingData<DX12StaticMeshRenderingData>();
                 renderingData->SetupDrawing(commandListDraw, material);
 
                 const DynamicGPUBuffer<MaterialParameter>& materialBuffer = _staticMeshRenderingSystems[0]->
@@ -323,7 +322,7 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
                 );
 
                 commandListDraw->DrawIndexedInstanced(
-                    static_cast<uint32>(staticMesh->GetIndices().Count()),
+                    static_cast<uint32>(lod.Indices.Count()),
                     firstInstance.Count,
                     0,
                     0,

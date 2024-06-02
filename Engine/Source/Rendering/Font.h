@@ -48,7 +48,7 @@ public:
     virtual bool Serialize(MemoryWriter& writer) const override;
     virtual bool Deserialize(MemoryReader& reader) override;
 
-    std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
+    DArray<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
 
 private:
     std::filesystem::path _bitmapPathBase;

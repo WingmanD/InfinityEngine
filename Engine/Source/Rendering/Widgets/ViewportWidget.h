@@ -11,18 +11,24 @@ class ViewportWidget : public CanvasPanel
     GENERATED()
 
 public:
+    ViewportWidget();
+    
     void SetCamera(CCamera* camera);
     CCamera* GetCamera() const;
 
     void CaptureMouse();
     void ReleaseMouse();
+
+    // Widget
+public:
+    virtual bool Initialize() override;
     
     // Widget
 protected:
     virtual bool InitializeRenderingProxy() override;
-    void OnWidgetRectChanged() override;
+    virtual void OnWidgetRectChanged() override;
     
-    void OnFocusChangedInternal(bool focused) override;
+    virtual void OnFocusChangedInternal(bool focused) override;
 
 private:
     CCamera* _camera = nullptr;

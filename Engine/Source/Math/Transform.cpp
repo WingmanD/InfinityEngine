@@ -139,6 +139,7 @@ void Transform::SetWorldRotation(const Quaternion& rotation)
         parentRotationConjugate.Conjugate();
 
         _rotation = rotationNormalized * parentRotationConjugate;
+        _rotation.Normalize();
     }
     else
     {
@@ -161,6 +162,7 @@ Quaternion Transform::GetWorldRotation() const
 void Transform::SetRelativeRotation(const Vector3& axis, float angle)
 {
     _rotation = Quaternion::CreateFromAxisAngle(axis, angle);
+    _rotation.Normalize();
 
     MarkDirty();
 }
@@ -173,13 +175,14 @@ void Transform::SetWorldRotation(const Vector3& axis, float angle)
         parentRotationConjugate.Conjugate();
 
         _rotation = Quaternion::CreateFromAxisAngle(axis, angle) * parentRotationConjugate;
+        _rotation.Normalize();
+
+        MarkDirty();
     }
     else
     {
-        _rotation = Quaternion::CreateFromAxisAngle(axis, angle);
+        SetRelativeRotation(axis, angle);
     }
-
-    MarkDirty();
 }
 
 void Transform::SetRelativeRotation(const Vector3& eulerAngles)
@@ -190,6 +193,8 @@ void Transform::SetRelativeRotation(const Vector3& eulerAngles)
         Math::ToRadians(eulerAngles.z)
     );
 
+    _rotation.Normalize();
+    
     MarkDirty();
 }
 
@@ -208,6 +213,7 @@ void Transform::SetWorldRotation(const Vector3& eulerAngles)
         parentRotationConjugate.Conjugate();
 
         _rotation *= parentRotationConjugate;
+        _rotation.Normalize();
     }
 }
 
@@ -252,17 +258,17 @@ Vector3 Transform::GetWorldScale() const
 
 Vector3 Transform::GetForwardVector() const
 {
-    return Vector3::Transform(Vector3::UnitX, GetWorldRotation());
+    return TransformDirection(Vector3::UnitX);
 }
 
 Vector3 Transform::GetRightVector() const
 {
-    return Vector3::Transform(Vector3::UnitY, GetWorldRotation());
+    return TransformDirection(Vector3::UnitY);
 }
 
 Vector3 Transform::GetUpVector() const
 {
-    return Vector3::Transform(Vector3::UnitZ, GetWorldRotation());
+    return TransformDirection(Vector3::UnitZ);
 }
 
 const Matrix& Transform::GetWorldMatrix() const
@@ -298,6 +304,17 @@ bool Transform::IsWorldMatrixDirty() const
     }
 
     return _isWorldMatrixDirty;
+}
+
+Vector3 Transform::TransformDirection(const Vector3& direction) const
+{
+    const Quaternion q = GetWorldRotation();
+    
+    Quaternion qC = q;
+    qC.Conjugate();
+    
+    Quaternion q2 = q * Quaternion(direction) * qC;
+    return {q2.x, q2.y, q2.z};
 }
 
 Vector3 Transform::operator*(const Vector3& vector) const

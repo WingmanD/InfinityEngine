@@ -266,7 +266,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
     const Type* assetType = GetType();
     importButton->OnReleased.Add([assetType, importer, verticalBox]()
     {
-        const std::vector<std::shared_ptr<Asset>> importedAssets = assetType->GetCDO<Asset>()->Import(importer);
+        const DArray<std::shared_ptr<Asset>> importedAssets = assetType->GetCDO<Asset>()->Import(importer);
         // todo notification
         LOG(L"Imported assets: ");
         for (const std::shared_ptr<Asset>& asset : importedAssets)
@@ -280,7 +280,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
     return verticalBox;
 }
 
-std::vector<std::shared_ptr<Asset>> Asset::Import(const std::shared_ptr<Importer>& importer) const
+DArray<std::shared_ptr<Asset>> Asset::Import(const std::shared_ptr<Importer>& importer) const
 {
     return {};
 }

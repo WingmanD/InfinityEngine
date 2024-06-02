@@ -168,7 +168,7 @@ bool Font::Deserialize(MemoryReader& reader)
     return true;
 }
 
-std::vector<std::shared_ptr<Asset>> Font::Import(const std::shared_ptr<Importer>& importer) const
+DArray<std::shared_ptr<Asset>> Font::Import(const std::shared_ptr<Importer>& importer) const
 {
     const std::shared_ptr<FontImporter> fontImporter = std::dynamic_pointer_cast<FontImporter>(importer);
     if (fontImporter == nullptr)

@@ -17,17 +17,19 @@ void DX12StaticMeshRenderingData::DrawDirect(DX12GraphicsCommandList* commandLis
 {
     SetupDrawing(commandList, material);
     
-    commandList->DrawIndexedInstanced(static_cast<uint32>(GetMeshRaw().GetIndices().Count()), 1, 0, 0, 0);
+    commandList->DrawIndexedInstanced(static_cast<uint32>(GetMeshRaw().GetLOD(0).Indices.Count()), 1, 0, 0, 0);
 }
 
 bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& renderingSubsystem)
 {
     DX12RenderingSubsystem& dx12RenderingSubsystem = dynamic_cast<DX12RenderingSubsystem&>(renderingSubsystem);
     IDxcUtils& dxcUtils = dx12RenderingSubsystem.GetDXCUtils();
-    
-    const std::shared_ptr<StaticMesh> mesh = GetMesh();
 
-    const DArray<Vertex>& vertices = mesh->GetVertices();
+    const uint8 lodIndex = GetLOD();
+    const std::shared_ptr<StaticMesh> mesh = GetMesh();
+    const StaticMesh::LOD& lod = mesh->GetLOD(lodIndex);
+
+    const DArray<Vertex>& vertices = lod.Vertices;
     const uint32 vertexBufferByteSize = static_cast<uint32>(vertices.Count() * sizeof(Vertex));
     HRESULT hr = dxcUtils.CreateBlob(vertices.GetData(), vertexBufferByteSize, DXC_CP_ACP, &_vertexBufferCpu);
     if (FAILED(hr))
@@ -36,7 +38,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
         return false;
     }
 
-    const DArray<uint32_t>& indices = mesh->GetIndices();
+    const DArray<uint32_t>& indices = lod.Indices;
     const uint32 indexBufferByteSize = static_cast<uint32>(indices.Count() * sizeof(uint32_t));
     hr = dxcUtils.CreateBlob(indices.GetData(), indexBufferByteSize, DXC_CP_ACP, &_indexBufferCpu);
     if (FAILED(hr))
@@ -62,7 +64,8 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
     }
 
     std::weak_ptr weakMesh = mesh;
-    commandList.OnCompletedCallbacks.push_back([weakMesh]()
+    
+    commandList.OnCompletedCallbacks.push_back([weakMesh, lodIndex]()
     {
         const std::shared_ptr<StaticMesh> sharedMesh = weakMesh.lock();
         if (sharedMesh == nullptr)
@@ -70,7 +73,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
             return;
         }
 
-        sharedMesh->GetRenderingData()->PostUpload();
+        sharedMesh->GetLOD(lodIndex).RenderingData->PostUpload();
     });
 
     dx12RenderingSubsystem.ReturnCopyCommandList(commandList);

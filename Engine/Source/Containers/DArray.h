@@ -465,7 +465,7 @@ public:
                 GetSSOData()[i].~T();
             }
 
-            if (_capacity > SSO_SIZE)
+            if (_capacity > SSO_SIZE && _data != nullptr)
             {
                 for (auto i = 0; i < _count - SSO_SIZE; ++i)
                 {
@@ -477,12 +477,15 @@ public:
         }
         else
         {
-            for (SizeType i = 0; i < _count; ++i)
+            if (_data != nullptr)
             {
-                _data[i].~T();
-            }
+                for (SizeType i = 0; i < _count; ++i)
+                {
+                    _data[i].~T();
+                }
 
-            _allocator.deallocate(_data, _capacity);
+                _allocator.deallocate(_data, _capacity);
+            }
         }
     }
 
@@ -718,6 +721,11 @@ public:
     [[nodiscard]] SizeType Count() const
     {
         return _count;
+    }
+
+    [[nodiscard]] bool IsValidIndex(SizeType index) const
+    {
+        return index < _count;
     }
 
     [[nodiscard]] SizeType Capacity() const

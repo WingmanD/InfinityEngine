@@ -47,7 +47,7 @@ public:
 
     std::shared_ptr<Widget> CreateImportWidget() const;
 
-    virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const;
+    virtual DArray<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const;
 
     // Object
 public:

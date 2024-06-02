@@ -44,7 +44,7 @@ DX12CommandList DX12WidgetRenderingProxy::SetupDrawingInternal(DX12CommandList& 
 
     const StaticMeshInstance& meshInstance = GetOwningWidget().GetQuadMesh();
 
-    const DX12StaticMeshRenderingData* renderingData = meshInstance.GetMesh()->GetRenderingData<DX12StaticMeshRenderingData>();
+    const DX12StaticMeshRenderingData* renderingData = meshInstance.GetMesh()->GetLOD(0).GetRenderingData<DX12StaticMeshRenderingData>();
     if (renderingData->IsUploaded())
     {
         renderingData->DrawDirect(commandList.CommandList.Get(), meshInstance.GetMaterial());

@@ -58,6 +58,8 @@ public:
     const Matrix& GetWorldMatrix() const;
     bool IsWorldMatrixDirty() const;
 
+    Vector3 TransformDirection(const Vector3& direction) const;
+
     Vector3 operator*(const Vector3& vector) const;
     Vector4 operator*(const Vector4& vector) const;
 

@@ -1,3 +1,6 @@
+static const float PI = 3.14159265359f;
+static const float e = 2.71828182846f;
+
 inline float3 VectorPlaneProjection(float3 vec, float3 planeNormal)
 {
     return vec - planeNormal * dot(vec, planeNormal);

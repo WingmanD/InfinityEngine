@@ -1,8 +1,8 @@
 ﻿#pragma once
 
+#include "CoreMinimal.h"
 #include "NonCopyable.h"
 #include "PassKey.h"
-#include <memory>
 
 class StaticMesh;
 class RenderingSubsystem;
@@ -19,7 +19,7 @@ public:
     
     bool IsUploaded() const;
 
-    void SetMesh(const std::shared_ptr<StaticMesh>& mesh, PassKey<StaticMesh>);
+    void SetMesh(const std::shared_ptr<StaticMesh>& mesh, uint8 lod, PassKey<StaticMesh>);
 
 protected:
     virtual bool UploadToGPUInternal(RenderingSubsystem& renderingSubsystem) = 0;
@@ -28,9 +28,12 @@ protected:
 
     StaticMesh& GetMeshRaw() const;
 
+    uint8 GetLOD() const;
+
 private:
     std::weak_ptr<StaticMesh> _owningMesh;
     StaticMesh* _owningMeshRaw = nullptr;
+    uint8 _lod = 0;
     
     bool _isUploaded = false;
 };

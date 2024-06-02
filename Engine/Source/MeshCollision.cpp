@@ -10,7 +10,7 @@ Vector3 MeshCollision::FurthestPointInDirection(const Vector3& direction) const
     Vector3 furthestPoint;
     float maxDistance = -std::numeric_limits<float>::max();
 
-    const DArray<Vertex>& vertices = Mesh->GetVertices();
+    const DArray<Vertex>& vertices = Mesh->GetLOD(0).Vertices;
     for (uint32 i = 0; i < vertices.Count(); ++i)
     {
         const Vertex& vertex = vertices[i];

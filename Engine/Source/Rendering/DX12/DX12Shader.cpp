@@ -476,7 +476,7 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
     return true;
 }
 
-std::vector<std::shared_ptr<Asset>> DX12Shader::Import(const std::shared_ptr<Importer>& importer) const
+DArray<std::shared_ptr<Asset>> DX12Shader::Import(const std::shared_ptr<Importer>& importer) const
 {
     const std::shared_ptr<DX12ShaderImporter> shaderImporter = std::dynamic_pointer_cast<DX12ShaderImporter>(importer);
     if (shaderImporter == nullptr)

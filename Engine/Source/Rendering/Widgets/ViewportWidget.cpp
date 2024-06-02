@@ -3,6 +3,11 @@
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
 
+ViewportWidget::ViewportWidget()
+{
+    EnableInputCompatibility(EWidgetInputCompatibility::LeftClick);
+}
+
 void ViewportWidget::SetCamera(CCamera* camera)
 {
     _camera = camera;
@@ -48,6 +53,18 @@ void ViewportWidget::ReleaseMouse()
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.GetMouse().SetVisible(true);
     inputSubsystem.SetMouseCaptured(false, {});
+}
+
+bool ViewportWidget::Initialize()
+{
+    if (!CanvasPanel::Initialize())
+    {
+        return false;
+    }
+
+    SetCollisionEnabled(true);
+    
+    return true;
 }
 
 bool ViewportWidget::InitializeRenderingProxy()

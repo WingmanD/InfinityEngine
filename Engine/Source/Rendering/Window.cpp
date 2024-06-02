@@ -77,8 +77,13 @@ bool Window::Initialize()
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.SetFocusedWindow(shared_from_this(), {});
 
-    _onLMBDownHandle = inputSubsystem.OnMouseLeftButtonDown.Add([this]()
+    _onLMBDownHandle = inputSubsystem.OnMouseLeftButtonDown.Add([this, &inputSubsystem]()
     {
+        if (inputSubsystem.IsMouseCaptured())
+        {
+            return;
+        }
+        
         if (_pressedWidget.lock() != nullptr)
         {
             return;
@@ -101,8 +106,13 @@ bool Window::Initialize()
         }
     });
 
-    _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Add([this]()
+    _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Add([this, &inputSubsystem]()
     {
+        if (inputSubsystem.IsMouseCaptured())
+        {
+            return;
+        }
+        
         if (const std::shared_ptr<Widget> interactedWidget = _pressedWidget.lock())
         {
             interactedWidget->CallReleased({});
@@ -117,8 +127,13 @@ bool Window::Initialize()
         }
     });
 
-    _onMMBDownHandle = inputSubsystem.OnMouseMiddleButtonDown.Add([this]()
+    _onMMBDownHandle = inputSubsystem.OnMouseMiddleButtonDown.Add([this, &inputSubsystem]()
     {
+        if (inputSubsystem.IsMouseCaptured())
+        {
+            return;
+        }
+        
         Widget* hitWidget = GetWidgetUnderCursor();
         if (hitWidget != nullptr)
         {
@@ -126,24 +141,39 @@ bool Window::Initialize()
         }
     });
 
-    _onMMBUpHandle = inputSubsystem.OnMouseMiddleButtonUp.Add([this]()
+    _onMMBUpHandle = inputSubsystem.OnMouseMiddleButtonUp.Add([this, &inputSubsystem]()
     {
+        if (inputSubsystem.IsMouseCaptured())
+        {
+            return;
+        }
+        
         if (Widget* hitWidget = GetWidgetUnderCursor())
         {
             hitWidget->CallMiddleClickReleased({});
         }
     });
 
-    _onScrollHandle = inputSubsystem.OnMouseWheelScroll.Add([this](int32 value)
+    _onScrollHandle = inputSubsystem.OnMouseWheelScroll.Add([this, &inputSubsystem](int32 value)
     {
+        if (inputSubsystem.IsMouseCaptured())
+        {
+            return;
+        }
+        
         if (Widget* hitWidget = GetWidgetUnderCursor())
         {
             hitWidget->CallScrolled(value, {});
         }
     });
 
-    _onMouseMovedHandle = inputSubsystem.OnMouseMoved.Add([this](const Vector2 mousePosition)
+    _onMouseMovedHandle = inputSubsystem.OnMouseMoved.Add([this, &inputSubsystem](const Vector2 mousePosition)
     {
+        if (inputSubsystem.IsMouseCaptured())
+        {
+            return;
+        }
+        
         const std::shared_ptr<Widget> previousHoveredWidget = _hoveredWidget.lock();
 
         Widget* hitWidget = GetWidgetUnderCursor();

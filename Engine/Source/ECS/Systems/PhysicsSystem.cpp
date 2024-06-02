@@ -265,6 +265,11 @@ void PhysicsSystem::OnEntityDestroyed(const Archetype& archetype, Entity& entity
 
     ForEachCellAt(rigidBody.PhysicsBody.AABB, [&rigidBody, this](Cell& cell, uint32 index)
     {
+        if (!rigidBody.PhysicsBody.IndicesInCells.IsValidIndex(index))
+        {
+            return;
+        }
+        
         cell.RemoveBody(*this, rigidBody.PhysicsBody.IndicesInCells[index]);
     });
 }
@@ -347,7 +352,7 @@ uint32 PhysicsSystem::Cell::AddBody(Body& body, ERigidBodyState bodyType)
 
 void PhysicsSystem::Cell::RemoveBody(const PhysicsSystem& system, uint32 index)
 {
-    if (index >= StaticBodyCount + DormantBodyCount)
+    if (index >= StaticBodyCount + DormantBodyCount && DynamicBodyCount > 0)
     {
         if (StaticBodyCount + DormantBodyCount > 0)
         {
@@ -363,7 +368,7 @@ void PhysicsSystem::Cell::RemoveBody(const PhysicsSystem& system, uint32 index)
 
         --DynamicBodyCount;
     }
-    else if (index >= StaticBodyCount)
+    else if (index >= StaticBodyCount && DormantBodyCount > 0)
     {
         const uint32 lastDormantIndex = StaticBodyCount + DormantBodyCount - 1;
         Body* lastDormantBody = Bodies[lastDormantIndex];
@@ -376,7 +381,7 @@ void PhysicsSystem::Cell::RemoveBody(const PhysicsSystem& system, uint32 index)
 
         --DormantBodyCount;
     }
-    else
+    else if (StaticBodyCount > 0)
     {
         const uint32 lastStaticIndex = StaticBodyCount - 1;
 
@@ -393,6 +398,10 @@ void PhysicsSystem::Cell::RemoveBody(const PhysicsSystem& system, uint32 index)
         *lastDormantBody = *lastDynamicBody;
 
         StaticBodyCount--;
+    }
+    else
+    {
+        return;
     }
 
     Bodies.RemoveAt(StaticBodyCount + DormantBodyCount + DynamicBodyCount);
@@ -1019,7 +1028,13 @@ PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const ShapeProxyTyp
         if (current.Distance < distance)
         {
             triangle.Valid = false;
+            LOG(L"Invalidating triangle {} {} {}",
+                triangle.Indices[0],
+                triangle.Indices[1],
+                triangle.Indices[2]
+            );
 
+            LOG(L"Begin silhouette calculation");
             silhouetteArray.Clear();
             for (uint8 i = 0; i < 3; ++i)
             {
@@ -1030,8 +1045,9 @@ PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const ShapeProxyTyp
                 
                 EPASilhouette(*triangle.AdjacentTriangles[i], triangle.AdjacentTriangles[i]->IndexOfAdjacent(triangle), w, silhouetteArray);
             }
+            LOG(L"End silhouette calculation");
 
-            if (silhouetteArray.Count() < 3)
+            if (silhouetteArray.Count() % 3 != 0)
             {
                 continue;
             }
@@ -1047,11 +1063,21 @@ PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const ShapeProxyTyp
                 EPATriangle newTriangle(vertices, indexA, indexB, static_cast<uint16>(vertices.Count() - 1));
                 EPATriangle& newTriangleRef = mesh.Add(newTriangle);
 
-                newTriangleRef.Indices[0] = indexA;
-                newTriangleRef.Indices[1] = indexB;
-                newTriangleRef.Indices[2] = static_cast<uint16>(vertices.Count()) - 1;
-
                 newTriangleRef.AdjacentTriangles[0] = &silhouetteTriangle;
+
+                for (EPATriangle* tri : silhouetteTriangle.AdjacentTriangles)
+                {
+                    if (tri == nullptr)
+                    {
+                        continue;
+                    }
+                    
+                    if (tri->Indices[0] == newTriangle.Indices[0] && tri->Indices[1] == newTriangle.Indices[1] && tri->Indices[2] == newTriangle.Indices[2])
+                    {
+                        __nop();
+                    }
+                }
+                
                 silhouetteTriangle.AdjacentTriangles[entry.AdjacentIndex] = &newTriangleRef;
             }
 
@@ -1067,7 +1093,32 @@ PhysicsSystem::Hit PhysicsSystem::ExpandingPolytopeAlgorithm(const ShapeProxyTyp
                     continue;
                 }
 
+                for (EPATriangle* tri : newTriangle.AdjacentTriangles)
+                {
+                    if (tri == nullptr)
+                    {
+                        continue;
+                    }
+                    
+                    if (tri->Indices[0] == newTriangle.Indices[0] && tri->Indices[1] == newTriangle.Indices[1] && tri->Indices[2] == newTriangle.Indices[2])
+                    {
+                        __nop();
+                    }
+                }
                 newTriangle.AdjacentTriangles[1] = &adjacentTriangle;
+                
+                for (EPATriangle* tri : adjacentTriangle.AdjacentTriangles)
+                {
+                    if (tri == nullptr)
+                    {
+                        continue;
+                    }
+                    
+                    if (tri->Indices[0] == newTriangle.Indices[0] && tri->Indices[1] == newTriangle.Indices[1] && tri->Indices[2] == newTriangle.Indices[2])
+                    {
+                        __nop();
+                    }
+                }
                 adjacentTriangle.AdjacentTriangles[2] = &newTriangle;
 
                 if (newTriangle.ContainsClosestPoint)
@@ -1237,6 +1288,11 @@ void PhysicsSystem::EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const V
     }
 
     triangle.Valid = false;
+    LOG(L"Invalidating triangle {} {} {}",
+        triangle.Indices[0],
+        triangle.Indices[1],
+        triangle.Indices[2]
+    );
 
     if (EPATriangle* adjTriangle = triangle.AdjacentTriangles[(adjIndex + 1) % 3])
     {

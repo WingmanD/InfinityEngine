@@ -1,6 +1,9 @@
 ﻿#include "FloatingControlSystem.h"
+
+#include "Engine/Subsystems/GameplaySubsystem.h"
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Math/Math.h"
+#include "Rendering/Widgets/ViewportWidget.h"
 
 void FloatingControlSystem::TakeControlOf(Entity& entity)
 {
@@ -40,15 +43,20 @@ void FloatingControlSystem::Tick(double deltaTime)
         return;
     }
 
+    if (!GameplaySubsystem::Get().GetMainViewport()->IsFocused())
+    {
+        return;
+    }
+
     const CFloatingControl& control = Get<const CFloatingControl>(*_controlledEntity);
     CTransform& transform = Get<CTransform>(*_controlledEntity);
 
     const Vector2 mouseDelta = _mouseDelta * control.AngularSpeed * static_cast<float>(deltaTime);
 
     Vector3 eulerAngles = transform.ComponentTransform.GetWorldRotationEuler();
-    eulerAngles.y = Math::Clamp(eulerAngles.y + mouseDelta.y, -89.0f, 89.0f);
     eulerAngles.x = 0.0f;
-    eulerAngles.z = mouseDelta.x;
+    eulerAngles.y = Math::Clamp(eulerAngles.y - mouseDelta.y, -89.0f, 89.0f);
+    eulerAngles.z += mouseDelta.x;
 
     const Quaternion rotation = Math::MakeQuaternionFromEuler(eulerAngles);
     transform.ComponentTransform.SetWorldRotation(rotation);
@@ -82,12 +90,10 @@ void FloatingControlSystem::Tick(double deltaTime)
     if (inputSubsystem.IsKeyDown(EKey::Q))
     {
         moveDirection += up;
-        LOG(L"Q pressed (up): {}", up);
     }
     if (inputSubsystem.IsKeyDown(EKey::E))
     {
         moveDirection -= up;
-        LOG(L"E pressed (down): {}", -up);
     }
 
     location += moveDirection * control.Speed * static_cast<float>(deltaTime);

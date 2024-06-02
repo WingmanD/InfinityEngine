@@ -45,6 +45,33 @@ public:
         Vector3 AABBMin;
         Vector3 AABBMax;
     };
+
+    struct LOD
+    {
+    public:
+        DArray<Vertex> Vertices;
+        DArray<uint32> Indices;
+        std::unique_ptr<StaticMeshRenderingData> RenderingData = nullptr;
+
+        // todo we need materials here, multiple slots per lod, but we need struct reflection for that
+
+    public:
+        LOD() = default;
+        
+        LOD(const LOD& other);
+        LOD& operator=(const LOD& other);
+
+        LOD(LOD&& other) noexcept;
+        LOD& operator=(LOD&& other) noexcept;
+
+        ~LOD() = default;
+
+        template <typename T> requires IsA<T, StaticMeshRenderingData>
+        T* GetRenderingData() const
+        {
+            return static_cast<T*>(RenderingData.get());
+        }
+    };
     
 public:
     static std::shared_ptr<StaticMesh> GetMeshByID(uint32 meshID);
@@ -64,9 +91,7 @@ public:
 
     virtual bool Deserialize(MemoryReader& reader) override;
 
-    [[nodiscard]] const DArray<Vertex>& GetVertices() const;
-
-    [[nodiscard]] const DArray<uint32_t>& GetIndices() const;
+    const LOD& GetLOD(uint8 lod) const;
 
     // todo multiple material slots
     void SetMaterial(const std::shared_ptr<Material>& material);
@@ -74,19 +99,11 @@ public:
 
     uint32 GetMeshID() const;
 
-    StaticMeshRenderingData* GetRenderingData() const;
-
-    template <typename T> requires IsA<T, StaticMeshRenderingData>
-    T* GetRenderingData() const
-    {
-        return static_cast<T*>(_renderingData.get());
-    }
-
     const BoundingBox& GetBoundingBox() const;
 
     // Asset
 public:
-    virtual std::vector<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
+    virtual DArray<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
 
     // Asset
 protected:
@@ -98,19 +115,19 @@ private:
     static DynamicGPUBuffer2<MeshInfo> _meshInfoBuffer;
 
 private:
-    DArray<Vertex> _vertices;
-    DArray<uint32_t> _indices;
+    DArray<LOD, 10> _lods;
 
     PROPERTY(Edit, Load)
     AssetPtr<Material> _material;
 
     uint32 _meshID = 0;
-
-    std::unique_ptr<StaticMeshRenderingData> _renderingData;
-
+    
     BoundingBox _boundingBox;
 
 private:
-    bool ImportInternal(const aiMesh* assimpMesh);
+    bool ImportLOD(const aiMesh* assimpMesh, uint8 lodIndex);
     void UpdateBoundingBox();
 };
+
+MemoryWriter& operator<<(MemoryWriter& writer, const StaticMesh::LOD& lod);
+MemoryReader& operator>>(MemoryReader& reader, StaticMesh::LOD& lod);

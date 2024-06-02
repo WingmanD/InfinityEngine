@@ -112,7 +112,7 @@ namespace Math
         return value1 > value2 ? value1 : value2;
     }
 
-    constexpr float Clamp(float value, float min, float max)
+    constexpr auto Clamp(auto value, auto min, auto max)
     {
         return value < min ? min : value > max ? max : value;
     }

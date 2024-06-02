@@ -23,9 +23,14 @@ void CoarseCulling(ThreadNodeInputRecord<SMInstance> inputData, [MaxRecords(1)] 
     {
         return;
     }
+
+    SMInstance instance = inputData.Get();
+
+    // LOD culling
+    instance.LOD = (int)(exp(distance * e / (GScene.DrawDistance / 10.0f)) - 1.0f);
     
     // Frustum culling
-    uint meshID = inputData.Get().MeshID;
+    const uint meshID = instance.MeshID;
     
     const float4 bbMin = float4(GMeshInfo[meshID].BoundingBox.Min, 1.0f);
     const float4 bbMax = float4(GMeshInfo[meshID].BoundingBox.Max, 1.0f);
@@ -41,10 +46,7 @@ void CoarseCulling(ThreadNodeInputRecord<SMInstance> inputData, [MaxRecords(1)] 
         bbMax
     };
     
-    const float4x4 MVP = mul(inputData.Get().World, GScene.ViewProjection);
-    
-    bool anyVertexInsideNDC = false;
-    float4 vertexCS;
+    const float4x4 MVP = mul(instance.World, GScene.ViewProjection);
 
     float4 transformedMin = float4(-1e6, -1e6, -1e6, 1.0f);
     float4 transformedMax = float4(1e6, 1e6, 1e6, 1.0f);
@@ -52,37 +54,24 @@ void CoarseCulling(ThreadNodeInputRecord<SMInstance> inputData, [MaxRecords(1)] 
     [unroll]
     for (int i = 0; i < 8; ++i)
     {
-        vertexCS = mul(vertices[i], MVP);
-    
-        // anyVertexInsideNDC |=
-        //     all(vertexCS.xy >= -vertexCS.w) &&
-        //     all(vertexCS.xy <= vertexCS.w) &&
-        //     vertexCS.z >= 0.0f && vertexCS.z <= vertexCS.w;
-        //
-        // if (anyVertexInsideNDC)
-        // {
-        //     break;
-        // }
+        float4 vertexCS = mul(vertices[i], MVP);
         
         transformedMin = min(transformedMin, vertexCS);
         transformedMax = max(transformedMax, vertexCS);
     }
+    
+    const float4 ndcMin = float4(-1.0f, -1.0f, 0.0f, 1.0f);
+    const float4 ndcMax = float4(1.0f, 1.0f, 1.0f, 1.0f);
 
-    //if (!anyVertexInsideNDC)
+    if (!(ndcMin.x <= transformedMax.x && ndcMax.x >= transformedMin.x &&
+          ndcMin.y <= transformedMax.y && ndcMax.y >= transformedMin.y &&
+          ndcMin.z <= transformedMax.z && ndcMax.z >= transformedMin.z))
     {
-        const float4 ndcMin = float4(-1.0f, -1.0f, 0.0f, 1.0f);
-        const float4 ndcMax = float4(1.0f, 1.0f, 1.0f, 1.0f);
-
-        if (!(ndcMin.x <= transformedMax.x && ndcMax.x >= transformedMin.x &&
-              ndcMin.y <= transformedMax.y && ndcMax.y >= transformedMin.y &&
-              ndcMin.z <= transformedMax.z && ndcMax.z >= transformedMin.z))
-        {
-            return;
-        }
+        return;
     }
 
     ThreadNodeOutputRecords<SMInstance> output = OcclusionCulling.GetThreadNodeOutputRecords(1);
-    output.Get() = inputData.Get();
+    output.Get() = instance;
     output.OutputComplete();
 }
 
