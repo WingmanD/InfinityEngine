@@ -17,7 +17,6 @@ class RenderingSubsystem;
 class DX12RenderingSubsystem;
 
 REFLECTED()
-
 class DX12ShaderImporter : public Importer
 {
     GENERATED()
@@ -68,7 +67,7 @@ public:
     virtual bool Serialize(MemoryWriter& writer) const override;
     virtual bool Deserialize(MemoryReader& reader) override;
 
-    virtual DArray<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
+    virtual DArray<SharedObjectPtr<Asset>> Import(const SharedObjectPtr<Importer>& importer) const override;
 
 protected:
     static ComPtr<IDxcResult> CompileShader(const std::filesystem::path& shaderPath,

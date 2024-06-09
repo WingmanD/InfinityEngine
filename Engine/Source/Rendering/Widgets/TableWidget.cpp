@@ -15,7 +15,7 @@ bool TableRowWidget::Initialize()
 
 void TableRowWidget::RebuildLayoutInternal()
 {
-    const std::shared_ptr<TableWidget> table = std::dynamic_pointer_cast<TableWidget>(
+    const SharedObjectPtr<TableWidget> table = std::dynamic_pointer_cast<TableWidget>(
         GetParentWidget()->GetParentWidget());
     if (table == nullptr)
     {
@@ -26,14 +26,14 @@ void TableRowWidget::RebuildLayoutInternal()
 
     const Vector2 screenSize = GetScreenSize();
 
-    if (GetChildren().size() > columnRatios.size())
+    if (GetChildren().Count() > columnRatios.size())
     {
         DEBUG_BREAK();
         return;
     }
 
     int32 index = 0;
-    for (const std::shared_ptr<Widget>& widget : GetChildren())
+    for (const SharedObjectPtr<Widget>& widget : GetChildren())
     {
         const Vector2& childDesiredSize = widget->GetDesiredSize();
         const Vector2& childPaddedDesiredSize = widget->GetPaddedDesiredSize();
@@ -83,14 +83,14 @@ void TableRowWidget::RebuildLayoutInternal()
 void TableRowWidget::UpdateDesiredSizeInternal()
 {
     Vector2 newDesiredSize;
-    std::vector<std::shared_ptr<Widget>> widgetsWithFill;
+    DArray<SharedObjectPtr<Widget>> widgetsWithFill;
 
-    for (const std::shared_ptr<Widget>& widget : GetChildren())
+    for (const SharedObjectPtr<Widget>& widget : GetChildren())
     {
         const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
         if ((widget->GetFillMode() & EWidgetFillMode::RetainAspectRatio) != EWidgetFillMode::None)
         {
-            widgetsWithFill.push_back(widget);
+            widgetsWithFill.Add(widget);
         }
         else
         {
@@ -100,7 +100,7 @@ void TableRowWidget::UpdateDesiredSizeInternal()
         newDesiredSize.y = std::max(newDesiredSize.y, paddedDesiredSize.y);
     }
 
-    for (const std::shared_ptr<Widget>& widget : widgetsWithFill)
+    for (const SharedObjectPtr<Widget>& widget : widgetsWithFill)
     {
         const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
         newDesiredSize.x += paddedDesiredSize.x * newDesiredSize.y / paddedDesiredSize.y;
@@ -109,12 +109,12 @@ void TableRowWidget::UpdateDesiredSizeInternal()
     SetDesiredSize(newDesiredSize);
 }
 
-void TableRowWidget::OnChildAdded(const std::shared_ptr<Widget>& child)
+void TableRowWidget::OnChildAdded(const SharedObjectPtr<Widget>& child)
 {
     child->SetAnchor(EWidgetAnchor::CenterLeft);
 }
 
-void TableWidget::AddRow(const std::shared_ptr<TableRowWidget>& row)
+void TableWidget::AddRow(const SharedObjectPtr<TableRowWidget>& row)
 {
     if (row == nullptr)
     {
@@ -125,7 +125,7 @@ void TableWidget::AddRow(const std::shared_ptr<TableRowWidget>& row)
     _verticalBox.lock()->AddChild(row);
 }
 
-void TableWidget::RemoveRow(const std::shared_ptr<TableRowWidget>& row)
+void TableWidget::RemoveRow(const SharedObjectPtr<TableRowWidget>& row)
 {
     if (row == nullptr)
     {
@@ -133,13 +133,13 @@ void TableWidget::RemoveRow(const std::shared_ptr<TableRowWidget>& row)
         return;
     }
 
-    const std::shared_ptr<FlowBox> verticalBox = _verticalBox.lock();
+    const SharedObjectPtr<FlowBox> verticalBox = _verticalBox.lock();
     verticalBox->RemoveChild(row);
 
     size_t numColumns = 0;
-    for (const std::shared_ptr<Widget>& widget : verticalBox->GetChildren())
+    for (const SharedObjectPtr<Widget>& widget : verticalBox->GetChildren())
     {
-        numColumns = std::max(numColumns, widget->GetChildren().size());
+        numColumns = std::max(numColumns, widget->GetChildren().Count());
     }
 
     _columnRatios.resize(numColumns);
@@ -157,7 +157,7 @@ bool TableWidget::Initialize()
         return false;
     }
 
-    const std::shared_ptr<FlowBox> flowBox = AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> flowBox = AddChild<FlowBox>();
     if (!flowBox->Initialize())
     {
         return false;
@@ -174,20 +174,20 @@ void TableWidget::UpdateDesiredSizeInternal()
 {
     Widget::UpdateDesiredSizeInternal();
 
-    const std::shared_ptr<FlowBox> verticalBox = _verticalBox.lock();
+    const SharedObjectPtr<FlowBox> verticalBox = _verticalBox.lock();
 
     size_t numColumns = 0;
-    for (const std::shared_ptr<Widget>& widget : verticalBox->GetChildren())
+    for (const SharedObjectPtr<Widget>& widget : verticalBox->GetChildren())
     {
-        numColumns = std::max(numColumns, widget->GetChildren().size());
+        numColumns = std::max(numColumns, widget->GetChildren().Count());
     }
     _columnRatios.resize(numColumns);
 
     std::vector<float> maxWidths(numColumns);
-    for (const std::shared_ptr<Widget>& row : verticalBox->GetChildren())
+    for (const SharedObjectPtr<Widget>& row : verticalBox->GetChildren())
     {
-        const std::vector<std::shared_ptr<Widget>>& children = row->GetChildren();
-        for (auto i = 0; i < children.size(); ++i)
+        const DArray<SharedObjectPtr<Widget>>& children = row->GetChildren();
+        for (auto i = 0; i < children.Count(); ++i)
         {
             maxWidths[i] = std::max(maxWidths[i], children[i]->GetPaddedDesiredSize().x);
         }

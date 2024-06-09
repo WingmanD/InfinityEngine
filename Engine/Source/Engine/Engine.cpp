@@ -53,7 +53,7 @@ bool Engine::Initialize(HINSTANCE hInstance)
     }
 
     const std::shared_ptr<Window::Layer> layer = window->AddLayer();
-    const std::shared_ptr<EditorWidget> editorWidget = layer->RootWidget->AddChild<EditorWidget>();
+    const SharedObjectPtr<EditorWidget> editorWidget = layer->RootWidget->AddChild<EditorWidget>();
     if (editorWidget == nullptr)
     {
         return false;

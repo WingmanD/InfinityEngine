@@ -55,7 +55,7 @@ private:
     D3D12_VIEWPORT _fullWindowViewport{};
     D3D12_RECT _fullWindowRect{};
 
-    std::shared_ptr<StaticMesh> _staticMeshTest = nullptr;
+    SharedObjectPtr<StaticMesh> _staticMeshTest = nullptr;
 
     DArray<DX12CommandList> _availableCommandLists;
     DArray<DX12CommandList> _closedCommandLists;

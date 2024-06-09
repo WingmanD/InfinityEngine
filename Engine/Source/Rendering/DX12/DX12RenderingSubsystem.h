@@ -99,7 +99,7 @@ public:
     virtual std::unique_ptr<StaticMeshRenderingData> CreateStaticMeshRenderingData() override;
     virtual std::unique_ptr<MaterialRenderingData> CreateMaterialRenderingData() override;
     virtual std::unique_ptr<MaterialParameterRenderingData> CreateMaterialParameterRenderingData() override;
-    virtual std::shared_ptr<Texture> CreateTexture(uint32 width, uint32 height) const override;
+    virtual SharedObjectPtr<Texture> CreateTexture(uint32 width, uint32 height) const override;
     virtual std::shared_ptr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) override;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateDefaultWidgetRenderingProxy() override;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateTextWidgetRenderingProxy() override;
@@ -152,10 +152,10 @@ private:
     DArray<StaticMeshRenderingSystem*> _staticMeshRenderingSystems;
 
     CullingWorkGraph _cullingWorkGraph;
-    std::shared_ptr<SortComputeShader> _sortCS;
-    std::shared_ptr<CompactSMInstancesComputeShader> _compactSMInstancesCS;
-    std::shared_ptr<InitializeForwardPlusComputeShader> _initializeForwardPlusCS;
-    std::shared_ptr<ForwardPlusCullingComputeShader> _forwardPlusCullingCS;
+    SharedObjectPtr<SortComputeShader> _sortCS;
+    SharedObjectPtr<CompactSMInstancesComputeShader> _compactSMInstancesCS;
+    SharedObjectPtr<InitializeForwardPlusComputeShader> _initializeForwardPlusCS;
+    SharedObjectPtr<ForwardPlusCullingComputeShader> _forwardPlusCullingCS;
 
 private:
     void LogAdapters();

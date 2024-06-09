@@ -28,7 +28,7 @@ Object* Type::NewObjectAt(void* ptr) const
 
 SharedObjectPtr<Object> Type::NewObject(BucketArrayBase& bucketArray) const
 {
-    return SharedObjectPtr<Object>(_newObjectInBucketArrayFactory(bucketArray), ObjectDeleter());
+    return _newObjectInBucketArrayFactory(bucketArray);
 }
 
 std::unique_ptr<BucketArrayBase> Type::NewBucketArray() const
@@ -176,7 +176,7 @@ bool Type::ForEachPropertyWithTag(const std::string& tag,
     return true;
 }
 
-std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Object>& object) const
+SharedObjectPtr<Widget> Type::CreatePropertiesWidget(const SharedObjectPtr<Object>& object) const
 {
     if (object == nullptr)
     {
@@ -184,8 +184,7 @@ std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Objec
         return nullptr;
     }
 
-
-    std::shared_ptr<TableWidget> table = std::make_shared<TableWidget>();
+    SharedObjectPtr<TableWidget> table = ::NewObject<TableWidget>();
     if (!table->Initialize())
     {
         return nullptr;
@@ -198,14 +197,14 @@ std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Objec
             return true;
         }
         
-        const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        const SharedObjectPtr<TableRowWidget> row = ::NewObject<TableRowWidget>();
         if (!row->Initialize())
         {
             return false;
         }
         table->AddRow(row);
 
-        const std::shared_ptr<TextBox> nameLabel = std::make_shared<TextBox>();
+        const SharedObjectPtr<TextBox> nameLabel = ::NewObject<TextBox>();
         if (!nameLabel->Initialize())
         {
             return false;
@@ -215,20 +214,24 @@ std::shared_ptr<Widget> Type::CreatePropertiesWidget(const std::shared_ptr<Objec
         nameLabel->SetText(prop->GetDisplayName().ToString() + L":");
 
         const Type* propertyType = prop->GetType();
+
+        SharedObjectPtr<Widget> newWidget = nullptr;
+
         if (propertyType != nullptr && !propertyType->IsA<Asset>())
         {
-            if (const std::shared_ptr<Widget> newWidget = propertyType->CreatePropertiesWidget(object))
-            {
-                row->AddChild(newWidget);
-            }
+            newWidget = propertyType->CreatePropertiesWidget(object);
         }
         else
         {
-            if (const std::shared_ptr<Widget> newWidget = prop->CreateWidget(object))
-            {
-                row->AddChild(newWidget);
-            }
+            newWidget = prop->CreateWidget(object);
         }
+
+        if (newWidget == nullptr)
+        {
+            return false;
+        }
+
+        row->AddChild(newWidget);
 
         return true;
     });

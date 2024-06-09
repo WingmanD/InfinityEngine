@@ -19,12 +19,12 @@ public:
     
     bool IsUploaded() const;
 
-    void SetMesh(const std::shared_ptr<StaticMesh>& mesh, uint8 lod, PassKey<StaticMesh>);
+    void SetMesh(const SharedObjectPtr<StaticMesh>& mesh, uint8 lod, PassKey<StaticMesh>);
 
 protected:
     virtual bool UploadToGPUInternal(RenderingSubsystem& renderingSubsystem) = 0;
     
-    std::shared_ptr<StaticMesh> GetMesh() const;
+    SharedObjectPtr<StaticMesh> GetMesh() const;
 
     StaticMesh& GetMeshRaw() const;
 

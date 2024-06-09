@@ -14,12 +14,12 @@ const Transform& CCamera::GetTransform() const
     return _transform;
 }
 
-std::shared_ptr<ViewportWidget> CCamera::GetViewport() const
+SharedObjectPtr<ViewportWidget> CCamera::GetViewport() const
 {
     return _viewport.lock();
 }
 
-void CCamera::SetViewport(const std::shared_ptr<ViewportWidget>& viewport)
+void CCamera::SetViewport(const SharedObjectPtr<ViewportWidget>& viewport)
 {
     _viewport = viewport;
 }

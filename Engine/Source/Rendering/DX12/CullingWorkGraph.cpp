@@ -72,7 +72,7 @@ void CullingWorkGraph::BindBuffers(DX12GraphicsCommandList* commandList) const
 {
     commandList->SetComputeRootDescriptorTable(0, _visibleInstancesBuffer.GetUAVGPUHandle());
 
-    const std::shared_ptr<Scene> scene = RenderingSubsystem::Get().GetScene();
+    const SharedObjectPtr<Scene> scene = RenderingSubsystem::Get().GetScene();
     DX12MaterialParameterRenderingData* renderingData = static_cast<DX12MaterialParameterRenderingData*>(scene->
         GetRenderingData());
     const ConstantBuffer<MaterialParameter>& constantBuffer = renderingData->GetConstantBuffer();

@@ -59,7 +59,7 @@ void InputSubsystem::SetMouseCaptured(bool value, PassKey<ViewportWidget>)
     {
         _mousePosition = GetMousePosition();
 
-        if (std::shared_ptr<Widget> widget = window->GetFocusedWidget())
+        if (SharedObjectPtr<Widget> widget = window->GetFocusedWidget())
         {
             SetCapture(window->GetHandle());
 
@@ -377,7 +377,7 @@ void InputSubsystem::Tick(double deltaTime)
         // todo cache
         if (std::shared_ptr<Window> window = GetFocusedWindow())
         {
-            if (std::shared_ptr<Widget> widget = window->GetFocusedWidget())
+            if (SharedObjectPtr<Widget> widget = window->GetFocusedWidget())
             {
                 POINT point;
                 GetCursorPos(&point);

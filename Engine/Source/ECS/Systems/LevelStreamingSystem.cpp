@@ -6,13 +6,13 @@ LevelStreamingSystem::LevelStreamingSystem(const LevelStreamingSystem& other) : 
 {
 }
 
-void LevelStreamingSystem::SetLevel(const std::shared_ptr<Level>& level)
+void LevelStreamingSystem::SetLevel(const SharedObjectPtr<Level>& level)
 {
     _level = level;
     _level->Load();
 }
 
-std::shared_ptr<Level> LevelStreamingSystem::GetLevel() const
+SharedObjectPtr<Level> LevelStreamingSystem::GetLevel() const
 {
     return _level;
 }
@@ -57,7 +57,7 @@ void LevelStreamingSystem::OnChunkLoaded(const Level::Chunk& chunk) const
     
     for (const Level::EntityElement& entityElement : chunk.EntityElements)
     {
-        std::shared_ptr<EntityTemplate> entityTemplate = assetManager.FindAsset<EntityTemplate>(entityElement.EntityTemplateID);
+        SharedObjectPtr<EntityTemplate> entityTemplate = assetManager.FindAsset<EntityTemplate>(entityElement.EntityTemplateID);
         if (entityTemplate == nullptr)
         {
             continue;

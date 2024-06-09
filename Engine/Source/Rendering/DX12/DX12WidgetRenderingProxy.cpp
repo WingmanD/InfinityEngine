@@ -15,12 +15,12 @@ DX12CommandList DX12WidgetRenderingProxy::SetupDrawing(DX12CommandList& commandL
         currentCommandList = SetupDrawingInternal(currentCommandList);
     }
 
-    static std::queue<std::shared_ptr<Widget>> queue;
+    static std::queue<SharedObjectPtr<Widget>> queue;
     queue.push(widget.SharedFromThis());
 
     while (!queue.empty())
     {
-        const std::shared_ptr<Widget>& child = queue.front();
+        const SharedObjectPtr<Widget>& child = queue.front();
         queue.pop();
 
         DX12WidgetRenderingProxy& proxy = dynamic_cast<DX12WidgetRenderingProxy&>(child->GetRenderingProxy());
@@ -29,7 +29,7 @@ DX12CommandList DX12WidgetRenderingProxy::SetupDrawing(DX12CommandList& commandL
             currentCommandList = proxy.SetupDrawingInternal(currentCommandList);
         }
 
-        for (const std::shared_ptr<Widget>& childWidget : child->GetChildren())
+        for (const SharedObjectPtr<Widget>& childWidget : child->GetChildren())
         {
             queue.push(childWidget);
         }

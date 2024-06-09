@@ -13,9 +13,9 @@ class AssetBrowserEntryBase : public TableRowWidget
 public:
     AssetBrowserEntryBase() = default;
 
-    virtual bool InitializeFromAsset(const std::shared_ptr<Asset>& asset);
+    virtual bool InitializeFromAsset(const SharedObjectPtr<Asset>& asset);
 
-    std::shared_ptr<Asset> GetAsset() const;
+    SharedObjectPtr<Asset> GetAsset() const;
 
 private:
     std::weak_ptr<Asset> _asset;
@@ -31,7 +31,7 @@ public:
 
     // AssetBrowserEntryBase
 public:
-    virtual bool InitializeFromAsset(const std::shared_ptr<Asset>& asset) override;
+    virtual bool InitializeFromAsset(const SharedObjectPtr<Asset>& asset) override;
 };
 
 REFLECTED()
@@ -53,9 +53,9 @@ public:
     bool Initialize() override;
 
 protected:
-    virtual void AddEntry(const std::shared_ptr<Asset>& asset) const;
+    virtual void AddEntry(const SharedObjectPtr<Asset>& asset) const;
 
-    [[nodiscard]] std::shared_ptr<TableWidget> GetTable() const;
+    [[nodiscard]] SharedObjectPtr<TableWidget> GetTable() const;
 
 private:
     std::weak_ptr<TableWidget> _table;

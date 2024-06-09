@@ -15,7 +15,7 @@ class DropdownMenu : public Widget
     GENERATED()
 
 public:
-    MulticastDelegate<const std::shared_ptr<Widget>> OnSelectionChanged;
+    MulticastDelegate<const SharedObjectPtr<Widget>> OnSelectionChanged;
 
 public:
     DropdownMenu() = default;
@@ -23,17 +23,17 @@ public:
     DropdownMenu(const DropdownMenu& other) = default;
     DropdownMenu& operator=(const DropdownMenu& other) = default;
 
-    void AddChoice(const std::shared_ptr<Widget>& choice);
+    void AddChoice(const SharedObjectPtr<Widget>& choice);
 
     void SetChoiceWidgetType(Type* choiceWidgetType);
     Type* GetChoiceWidgetType() const;
 
-    std::shared_ptr<Widget> GetSelectedChoice() const;
-    void SetSelectedChoice(const std::shared_ptr<Widget>& choice);
+    SharedObjectPtr<Widget> GetSelectedChoice() const;
+    void SetSelectedChoice(const SharedObjectPtr<Widget>& choice);
     void SetSelectedChoice(uint32 index);
 
     template <typename T> requires std::derived_from<T, Widget>
-    std::shared_ptr<T> GetSelectedChoice() const
+    SharedObjectPtr<T> GetSelectedChoice() const
     {
         return std::dynamic_pointer_cast<T>(GetSelectedChoice());
     }
@@ -43,8 +43,8 @@ public:
     virtual bool Initialize() override;
 
 protected:
-    void OnChoiceSelected(const std::shared_ptr<Widget>& choice);
-    const std::vector<std::shared_ptr<Widget>>& GetChoices() const;
+    void OnChoiceSelected(const SharedObjectPtr<Widget>& choice);
+    const DArray<SharedObjectPtr<Widget>>& GetChoices() const;
 
     // Widget
 protected:

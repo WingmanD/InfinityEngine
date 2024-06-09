@@ -15,15 +15,15 @@ public:
     LevelStreamingSystem() = default;
     LevelStreamingSystem(const LevelStreamingSystem& other);
 
-    void SetLevel(const std::shared_ptr<Level>& level);
-    std::shared_ptr<Level> GetLevel() const;
+    void SetLevel(const SharedObjectPtr<Level>& level);
+    SharedObjectPtr<Level> GetLevel() const;
     
     // System
 public:
     virtual void ProcessEntityList(EntityList& entityList, double deltaTime) override;
 
 private:
-    std::shared_ptr<Level> _level;
+    SharedObjectPtr<Level> _level;
     bool _first = true;
 
 private:

@@ -3,9 +3,9 @@
 #include "ScrollBox.h"
 #include "Rendering/Window.h"
 
-void DropdownMenu::AddChoice(const std::shared_ptr<Widget>& choice)
+void DropdownMenu::AddChoice(const SharedObjectPtr<Widget>& choice)
 {
-    const std::shared_ptr<FlowBox> flowBox = std::dynamic_pointer_cast<
+    const SharedObjectPtr<FlowBox> flowBox = std::dynamic_pointer_cast<
         FlowBox>(_scrollBox.lock()->GetChildren()[0]);
 
     flowBox->AddChild(choice);
@@ -31,20 +31,20 @@ Type* DropdownMenu::GetChoiceWidgetType() const
     return _choiceWidgetType;
 }
 
-std::shared_ptr<Widget> DropdownMenu::GetSelectedChoice() const
+SharedObjectPtr<Widget> DropdownMenu::GetSelectedChoice() const
 {
-    std::shared_ptr<Widget> cached = _selectedWidget.lock();
+    SharedObjectPtr<Widget> cached = _selectedWidget.lock();
     if (cached != nullptr)
     {
         return cached;
     }
 
-    std::shared_ptr<Widget> selectedWidget = GetChoices()[0];
+    SharedObjectPtr<Widget> selectedWidget = GetChoices()[0];
     const_cast<DropdownMenu*>(this)->_selectedWidget = selectedWidget;
     return selectedWidget;
 }
 
-void DropdownMenu::SetSelectedChoice(const std::shared_ptr<Widget>& choice)
+void DropdownMenu::SetSelectedChoice(const SharedObjectPtr<Widget>& choice)
 {
     OnChoiceSelected(choice);
 }
@@ -61,14 +61,14 @@ bool DropdownMenu::Initialize()
         return false;
     }
 
-    const std::shared_ptr<ScrollBox> scrollBox = AddChild<ScrollBox>();
+    const SharedObjectPtr<ScrollBox> scrollBox = AddChild<ScrollBox>();
     _scrollBox = scrollBox;
     scrollBox->SetDirection(EScrollBoxDirection::Vertical);
     scrollBox->SetFillMode(EWidgetFillMode::FillX);
     scrollBox->SetAnchor(EWidgetAnchor::BottomCenter);
     scrollBox->SetSelfAnchor(EWidgetAnchor::TopCenter);
 
-    const std::shared_ptr<FlowBox> flowBox = scrollBox->AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> flowBox = scrollBox->AddChild<FlowBox>();
     flowBox->SetFillMode(EWidgetFillMode::FillX);
 
     scrollBox->SetCollapsed(true);
@@ -85,7 +85,7 @@ bool DropdownMenu::Initialize()
     return true;
 }
 
-void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
+void DropdownMenu::OnChoiceSelected(const SharedObjectPtr<Widget>& choice)
 {
     if (choice == nullptr)
     {
@@ -93,12 +93,12 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
         return;
     }
 
-    if (const std::shared_ptr<Widget> selectedWidget = _selectedWidget.lock())
+    if (const SharedObjectPtr<Widget> selectedWidget = _selectedWidget.lock())
     {
         selectedWidget->DestroyWidget();
     }
 
-    const std::shared_ptr<Widget> selectedWidget = std::dynamic_pointer_cast<Widget>(choice->Duplicate());
+    const SharedObjectPtr<Widget> selectedWidget = std::dynamic_pointer_cast<Widget>(choice->Duplicate());
     selectedWidget->Initialize();
 
     AddChild(selectedWidget, false);
@@ -133,26 +133,26 @@ void DropdownMenu::OnChoiceSelected(const std::shared_ptr<Widget>& choice)
     OnSelectionChanged.Broadcast(std::move(choice));
 }
 
-const std::vector<std::shared_ptr<Widget>>& DropdownMenu::GetChoices() const
+const DArray<SharedObjectPtr<Widget>>& DropdownMenu::GetChoices() const
 {
     return _scrollBox.lock()->GetChildren()[0]->GetChildren();
 }
 
 void DropdownMenu::RebuildLayoutInternal()
 {
-    const std::shared_ptr<Widget> selectedWidget = GetSelectedChoice();
+    const SharedObjectPtr<Widget> selectedWidget = GetSelectedChoice();
     selectedWidget->SetPosition(Vector2::Zero);
     selectedWidget->SetSize({1.0f, 1.0f});
 
-    const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
-    const std::shared_ptr<Widget> flowBox = scrollBox->GetChildren()[0];
+    const SharedObjectPtr<Widget> scrollBox = _scrollBox.lock();
+    const SharedObjectPtr<Widget> flowBox = scrollBox->GetChildren()[0];
 
     flowBox->SetSize({
-        1.0f, std::max(static_cast<float>(GetChoices().size()) / static_cast<float>(_maxVisibleChoices), 1.0f)
+        1.0f, std::max(static_cast<float>(GetChoices().Count()) / static_cast<float>(_maxVisibleChoices), 1.0f)
     });
 
     scrollBox->SetSize(
-        {1.0f, std::min(static_cast<float>(GetChoices().size()), static_cast<float>(_maxVisibleChoices))});
+        {1.0f, std::min(static_cast<float>(GetChoices().Count()), static_cast<float>(_maxVisibleChoices))});
 
     if (scrollBox->GetParentWidget() == SharedFromThis())
     {
@@ -162,13 +162,13 @@ void DropdownMenu::RebuildLayoutInternal()
 
 void DropdownMenu::UpdateDesiredSizeInternal()
 {
-    const std::shared_ptr<Widget> selectedWidget = GetSelectedChoice();
+    const SharedObjectPtr<Widget> selectedWidget = GetSelectedChoice();
     if (selectedWidget == nullptr)
     {
         return;
     }
 
-    const std::shared_ptr<ScrollBox> scrollBox = _scrollBox.lock();
+    const SharedObjectPtr<ScrollBox> scrollBox = _scrollBox.lock();
     if (scrollBox == nullptr)
     {
         return;
@@ -176,10 +176,10 @@ void DropdownMenu::UpdateDesiredSizeInternal()
 
     // todo this shouldn't be here - scrollbox needs to take fillx from flowbox
     scrollBox->SetMaxDesiredSize(Vector2(GetScreenSize().x,
-                                         std::min(static_cast<float>(GetChoices().size()),
+                                         std::min(static_cast<float>(GetChoices().Count()),
                                                   static_cast<float>(_maxVisibleChoices))) * GetScreenSize());
 
-    const std::shared_ptr<Widget> flowBox = scrollBox->GetChildren()[0];
+    const SharedObjectPtr<Widget> flowBox = scrollBox->GetChildren()[0];
 
     const Vector2 newDesiredSize = Vector2(
         std::max(selectedWidget->GetPaddedDesiredSize().x, flowBox->GetPaddedDesiredSize().x),
@@ -191,7 +191,7 @@ void DropdownMenu::UpdateDesiredSizeInternal()
 
 void DropdownMenu::ToggleScrollBox()
 {
-    const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
+    const SharedObjectPtr<Widget> scrollBox = _scrollBox.lock();
     SetScrollBoxEnabled(scrollBox->IsCollapsed());
 }
 
@@ -202,7 +202,7 @@ void DropdownMenu::SetScrollBoxEnabled(bool value)
         return;
     }
 
-    const std::shared_ptr<Widget> scrollBox = _scrollBox.lock();
+    const SharedObjectPtr<Widget> scrollBox = _scrollBox.lock();
     scrollBox->SetCollapsed(!value);
 
     if (value)

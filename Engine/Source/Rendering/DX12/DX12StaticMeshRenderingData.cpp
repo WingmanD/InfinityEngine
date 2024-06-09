@@ -4,7 +4,7 @@
 #include "DX12MaterialRenderingData.h"
 #include <vector>
 
-void DX12StaticMeshRenderingData::SetupDrawing(DX12GraphicsCommandList* commandList, const std::shared_ptr<Material>& material) const
+void DX12StaticMeshRenderingData::SetupDrawing(DX12GraphicsCommandList* commandList, const SharedObjectPtr<Material>& material) const
 {
     material->GetRenderingData<DX12MaterialRenderingData>()->Apply(commandList);
 
@@ -13,7 +13,7 @@ void DX12StaticMeshRenderingData::SetupDrawing(DX12GraphicsCommandList* commandL
     commandList->IASetIndexBuffer(&_indexBufferView);
 }
 
-void DX12StaticMeshRenderingData::DrawDirect(DX12GraphicsCommandList* commandList, const std::shared_ptr<Material>& material) const
+void DX12StaticMeshRenderingData::DrawDirect(DX12GraphicsCommandList* commandList, const SharedObjectPtr<Material>& material) const
 {
     SetupDrawing(commandList, material);
     
@@ -26,7 +26,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
     IDxcUtils& dxcUtils = dx12RenderingSubsystem.GetDXCUtils();
 
     const uint8 lodIndex = GetLOD();
-    const std::shared_ptr<StaticMesh> mesh = GetMesh();
+    const SharedObjectPtr<StaticMesh> mesh = GetMesh();
     const StaticMesh::LOD& lod = mesh->GetLOD(lodIndex);
 
     const DArray<Vertex>& vertices = lod.Vertices;
@@ -67,7 +67,7 @@ bool DX12StaticMeshRenderingData::UploadToGPUInternal(RenderingSubsystem& render
     
     commandList.OnCompletedCallbacks.push_back([weakMesh, lodIndex]()
     {
-        const std::shared_ptr<StaticMesh> sharedMesh = weakMesh.lock();
+        const SharedObjectPtr<StaticMesh> sharedMesh = weakMesh.lock();
         if (sharedMesh == nullptr)
         {
             return;

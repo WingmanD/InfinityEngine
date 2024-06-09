@@ -41,7 +41,7 @@ void FlowBox::RebuildLayoutInternal()
     Vector2 totalDesiredSize;
     if (_direction == EFlowBoxDirection::Horizontal)
     {
-        for (const std::shared_ptr<Widget>& widget : GetChildren())
+        for (const SharedObjectPtr<Widget>& widget : GetChildren())
         {
             if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillX))
             {
@@ -56,7 +56,7 @@ void FlowBox::RebuildLayoutInternal()
     }
     else
     {
-        for (const std::shared_ptr<Widget>& widget : GetChildren())
+        for (const SharedObjectPtr<Widget>& widget : GetChildren())
         {
             if (HasFlags(widget->GetFillMode(), EWidgetFillMode::FillY))
             {
@@ -73,7 +73,7 @@ void FlowBox::RebuildLayoutInternal()
     const Vector2 fillSize = screenSize - totalDesiredSize;
 
     Vector2 offset;
-    for (const std::shared_ptr<Widget>& widget : GetChildren())
+    for (const SharedObjectPtr<Widget>& widget : GetChildren())
     {
         const Vector2& childDesiredSize = widget->GetDesiredSize();
         const Vector4& childPadding = widget->GetPadding();
@@ -164,15 +164,15 @@ void FlowBox::RebuildLayoutInternal()
 void FlowBox::UpdateDesiredSizeInternal()
 {
     Vector2 newDesiredSize;
-    std::vector<std::shared_ptr<Widget>> widgetsWithFill;
+    DArray<SharedObjectPtr<Widget>> widgetsWithFill;
     if (_direction == EFlowBoxDirection::Horizontal)
     {
-        for (const std::shared_ptr<Widget>& widget : GetChildren())
+        for (const SharedObjectPtr<Widget>& widget : GetChildren())
         {
             const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
             if ((widget->GetFillMode() & EWidgetFillMode::RetainAspectRatio) != EWidgetFillMode::None)
             {
-                widgetsWithFill.push_back(widget);
+                widgetsWithFill.Add(widget);
             }
             else
             {
@@ -182,7 +182,7 @@ void FlowBox::UpdateDesiredSizeInternal()
             newDesiredSize.y = std::max(newDesiredSize.y, paddedDesiredSize.y);
         }
 
-        for (const std::shared_ptr<Widget>& widget : widgetsWithFill)
+        for (const SharedObjectPtr<Widget>& widget : widgetsWithFill)
         {
             const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
             newDesiredSize.x += paddedDesiredSize.x * newDesiredSize.y / paddedDesiredSize.y;
@@ -190,12 +190,12 @@ void FlowBox::UpdateDesiredSizeInternal()
     }
     else
     {
-        for (const std::shared_ptr<Widget>& widget : GetChildren())
+        for (const SharedObjectPtr<Widget>& widget : GetChildren())
         {
             const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
             if ((widget->GetFillMode() & EWidgetFillMode::RetainAspectRatio) != EWidgetFillMode::None)
             {
-                widgetsWithFill.push_back(widget);
+                widgetsWithFill.Add(widget);
             }
             else
             {
@@ -205,7 +205,7 @@ void FlowBox::UpdateDesiredSizeInternal()
             newDesiredSize.x = std::max(newDesiredSize.x, paddedDesiredSize.x);
         }
 
-        for (const std::shared_ptr<Widget>& widget : widgetsWithFill)
+        for (const SharedObjectPtr<Widget>& widget : widgetsWithFill)
         {
             const Vector2& paddedDesiredSize = widget->GetPaddedDesiredSize();
             newDesiredSize.y += paddedDesiredSize.y * newDesiredSize.x / paddedDesiredSize.x;
@@ -215,7 +215,7 @@ void FlowBox::UpdateDesiredSizeInternal()
     SetDesiredSize(newDesiredSize);
 }
 
-void FlowBox::OnChildAdded(const std::shared_ptr<Widget>& child)
+void FlowBox::OnChildAdded(const SharedObjectPtr<Widget>& child)
 {
     Widget::OnChildAdded(child);
 
@@ -235,7 +235,7 @@ void FlowBox::OnChildAdded(const std::shared_ptr<Widget>& child)
     InvalidateTree();
 }
 
-void FlowBox::OnChildRemoved(const std::shared_ptr<Widget>& child)
+void FlowBox::OnChildRemoved(const SharedObjectPtr<Widget>& child)
 {
     Widget::OnChildRemoved(child);
 

@@ -15,9 +15,9 @@ public:
     DropdownAssetChoice(const DropdownAssetChoice& other);
     DropdownAssetChoice& operator=(const DropdownAssetChoice& other);
 
-    bool InitializeFromAsset(const std::shared_ptr<Asset>& asset);
+    bool InitializeFromAsset(const SharedObjectPtr<Asset>& asset);
 
-    std::shared_ptr<Asset> GetSelectedAsset() const;
+    SharedObjectPtr<Asset> GetSelectedAsset() const;
 
     // DropdownTextChoice
 public:
@@ -27,7 +27,7 @@ private:
     std::weak_ptr<Asset> _asset;
 
 private:
-    bool InitializeFromAssetInternal(const std::shared_ptr<Asset>& asset);
+    bool InitializeFromAssetInternal(const SharedObjectPtr<Asset>& asset);
 };
 
 REFLECTED()
@@ -41,14 +41,14 @@ public:
     AssetPicker(const AssetPicker& other) = default;
     AssetPicker& operator=(const AssetPicker& other) = default;
 
-    static std::shared_ptr<AssetPicker> CreateForType(Type* assetType);
+    static SharedObjectPtr<AssetPicker> CreateForType(Type* assetType);
 
     void InitializeFromAssetType(Type* assetType);
 
     Type* GetAssetType() const;
 
-    std::shared_ptr<Asset> GetSelectedAsset() const;
-    void SetSelectedAsset(const std::shared_ptr<Asset>& asset);
+    SharedObjectPtr<Asset> GetSelectedAsset() const;
+    void SetSelectedAsset(const SharedObjectPtr<Asset>& asset);
 
 private:
     Type* _assetType = nullptr;

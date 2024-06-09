@@ -90,7 +90,7 @@ bool Window::Initialize()
         }
 
         Widget* hitWidget = GetWidgetUnderCursor();
-        if (const std::shared_ptr<Widget> focusedWidget = GetFocusedWidget())
+        if (const SharedObjectPtr<Widget> focusedWidget = GetFocusedWidget())
         {
             if (focusedWidget.get() != hitWidget)
             {
@@ -108,7 +108,7 @@ bool Window::Initialize()
 
     _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Add([this, &inputSubsystem]()
     {
-        if (const std::shared_ptr<Widget> interactedWidget = _pressedWidget.lock())
+        if (const SharedObjectPtr<Widget> interactedWidget = _pressedWidget.lock())
         {
             interactedWidget->CallReleased({});
             _pressedWidget.reset();
@@ -169,7 +169,7 @@ bool Window::Initialize()
             return;
         }
         
-        const std::shared_ptr<Widget> previousHoveredWidget = _hoveredWidget.lock();
+        const SharedObjectPtr<Widget> previousHoveredWidget = _hoveredWidget.lock();
 
         Widget* hitWidget = GetWidgetUnderCursor();
         if (previousHoveredWidget != nullptr && hitWidget != previousHoveredWidget.get() || hitWidget == nullptr &&
@@ -196,7 +196,7 @@ bool Window::Initialize()
 
 void Window::Tick(double deltaTime)
 {
-    for (const std::shared_ptr<Layer>& layer : _layers)
+    for (const SharedObjectPtr<Layer>& layer : _layers)
     {
         layer->RootWidget->RebuildLayout();
     }
@@ -268,18 +268,18 @@ const std::wstring& Window::GetTitle() const
     return _title;
 }
 
-std::shared_ptr<WindowGlobals>& Window::GetWindowGlobals()
+SharedObjectPtr<WindowGlobals>& Window::GetWindowGlobals()
 {
     return _windowGlobals;
 }
 
 HitTestGrid<std::weak_ptr<Widget>>* Window::GetHitTestGridFor(
-    const std::shared_ptr<Widget>& widget)
+    const SharedObjectPtr<Widget>& widget)
 {
     // todo this is inefficient
     auto rootWidget = widget->GetRootWidget();
 
-    const auto it = std::ranges::find_if(_layers, [rootWidget](const std::shared_ptr<Layer>& layer)
+    const auto it = std::ranges::find_if(_layers, [rootWidget](const SharedObjectPtr<Layer>& layer)
     {
         return layer->RootWidget == rootWidget;
     });
@@ -289,7 +289,7 @@ HitTestGrid<std::weak_ptr<Widget>>* Window::GetHitTestGridFor(
         return nullptr;
     }
 
-    const std::shared_ptr<Layer> layer = *it;
+    const SharedObjectPtr<Layer> layer = *it;
 
     return &layer->HitTestGrid;
 }
@@ -302,19 +302,19 @@ void Window::RequestResize(uint32 width, uint32 height)
     _pendingResize.IsValid = true;
 }
 
-std::shared_ptr<Window::Layer> Window::GetTopLayer() const
+SharedObjectPtr<Window::Layer> Window::GetTopLayer() const
 {
     return _layers.empty() ? nullptr : _layers.back();
 }
 
-const std::vector<std::shared_ptr<Window::Layer>>& Window::GetLayers() const
+const std::vector<SharedObjectPtr<Window::Layer>>& Window::GetLayers() const
 {
     return _layers;
 }
 
-std::shared_ptr<Window::Layer> Window::AddLayer()
+SharedObjectPtr<Window::Layer> Window::AddLayer()
 {
-    const std::shared_ptr<CanvasPanel> rootWidget = std::make_shared<CanvasPanel>();
+    const SharedObjectPtr<CanvasPanel> rootWidget = NewObject<CanvasPanel>();
     if (!rootWidget->Initialize())
     {
         return nullptr;
@@ -335,7 +335,7 @@ std::shared_ptr<Window::Layer> Window::AddLayer()
 
     std::ignore = rootWidget->OnDestroyed.Add([this, weakLayer = std::weak_ptr(newLayer)]()
     {
-        auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
+        auto it = std::ranges::find_if(_layers, [weakLayer](const SharedObjectPtr<Layer>& layer)
         {
             return layer == weakLayer.lock();
         });
@@ -344,7 +344,7 @@ std::shared_ptr<Window::Layer> Window::AddLayer()
     return newLayer;
 }
 
-bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
+bool Window::AddPopup(const SharedObjectPtr<Widget>& popup)
 {
     if (popup == nullptr)
     {
@@ -352,7 +352,7 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
         return false;
     }
 
-    const std::shared_ptr<Layer> layer = AddLayer();
+    const SharedObjectPtr<Layer> layer = AddLayer();
     if (layer == nullptr)
     {
         return false;
@@ -362,7 +362,7 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
 
     auto removeLayer = [this, weakLayer = std::weak_ptr(layer)]()
     {
-        const auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
+        const auto it = std::ranges::find_if(_layers, [weakLayer](const SharedObjectPtr<Layer>& layer)
         {
             return layer == weakLayer.lock();
         });
@@ -403,7 +403,7 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
     return true;
 }
 
-bool Window::AddBorrowedPopup(const std::shared_ptr<Widget>& popup)
+bool Window::AddBorrowedPopup(const SharedObjectPtr<Widget>& popup)
 {
     // todo refactor this, same as AddPopup
     if (popup == nullptr)
@@ -412,7 +412,7 @@ bool Window::AddBorrowedPopup(const std::shared_ptr<Widget>& popup)
         return false;
     }
 
-    const std::shared_ptr<Layer> layer = AddLayer();
+    const SharedObjectPtr<Layer> layer = AddLayer();
     if (layer == nullptr)
     {
         return false;
@@ -422,7 +422,7 @@ bool Window::AddBorrowedPopup(const std::shared_ptr<Widget>& popup)
 
     auto removeLayer = [this, weakLayer = std::weak_ptr(layer), popup]()
     {
-        const auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
+        const auto it = std::ranges::find_if(_layers, [weakLayer](const SharedObjectPtr<Layer>& layer)
         {
             return layer == weakLayer.lock();
         });
@@ -475,7 +475,7 @@ Widget* Window::GetWidgetAt(const Vector2& positionWS) const
     std::weak_ptr<Widget>* hitWidgetPtr = GetTopLayer()->HitTestGrid.FindAtByPredicate(positionWS,
     [](const Vector2& position, const std::weak_ptr<Widget> widget)
     {
-        if (std::shared_ptr<Widget> shared = widget.lock())
+        if (SharedObjectPtr<Widget> shared = widget.lock())
         {
             return shared->GetBoundingBox().Contains(position);
         }
@@ -514,7 +514,7 @@ void Window::OnResized()
     _windowGlobals->AspectRatio = _aspectRatio;
     _windowGlobals->MarkAsDirty();
 
-    for (const std::shared_ptr<Layer>& layer : _layers)
+    for (const SharedObjectPtr<Layer>& layer : _layers)
     {
         if (layer != nullptr)
         {
@@ -532,9 +532,9 @@ bool Window::IsFocused() const
     return _isFocused;
 }
 
-void Window::SetFocusedWidget(const std::shared_ptr<Widget>& widget)
+void Window::SetFocusedWidget(const SharedObjectPtr<Widget>& widget)
 {
-    const std::shared_ptr<Widget> focusedWidget = _focusedWidget.lock();
+    const SharedObjectPtr<Widget> focusedWidget = _focusedWidget.lock();
     if (focusedWidget != nullptr)
     {
         focusedWidget->SetFocused(false);
@@ -543,7 +543,7 @@ void Window::SetFocusedWidget(const std::shared_ptr<Widget>& widget)
     _focusedWidget = widget;
 }
 
-std::shared_ptr<Widget> Window::GetFocusedWidget() const
+SharedObjectPtr<Widget> Window::GetFocusedWidget() const
 {
     return _focusedWidget.lock();
 }

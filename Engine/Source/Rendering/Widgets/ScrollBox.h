@@ -24,8 +24,8 @@ public:
     const Vector2& GetMaxDesiredSize() const;
 
 protected:
-    virtual void OnChildAdded(const std::shared_ptr<Widget>& child) override;
-    virtual void OnChildRemoved(const std::shared_ptr<Widget>& child) override;
+    virtual void OnChildAdded(const SharedObjectPtr<Widget>& child) override;
+    virtual void OnChildRemoved(const SharedObjectPtr<Widget>& child) override;
 
     virtual bool OnScrolledInternal(int32 value) override;
 

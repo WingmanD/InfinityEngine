@@ -1,4 +1,5 @@
 ﻿#include "PropertyMap.h"
+#include "Rendering/Widgets/Widget.h"
 #include <ranges>
 
 Name PropertyBase::GetDisplayName() const
@@ -21,7 +22,7 @@ PropertyBase::EEditorVisibility PropertyBase::GetEditorVisibility() const
     return _editorVisibility;
 }
 
-std::shared_ptr<Widget> PropertyBase::CreateWidget(const std::shared_ptr<Object>& object)
+SharedObjectPtr<Widget> PropertyBase::CreateWidget(const SharedObjectPtr<Object>& object)
 {
     return nullptr;
 }

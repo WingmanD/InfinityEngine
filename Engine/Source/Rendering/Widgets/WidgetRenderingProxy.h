@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "NonCopyable.h"
-#include <memory>
+#include "ObjectShared.h"
 
 class Window;
 class Widget;

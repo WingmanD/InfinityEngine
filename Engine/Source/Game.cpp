@@ -28,7 +28,7 @@ bool Game::IsRunning() const
     return _isRunning;
 }
 
-std::shared_ptr<EntityTemplate> Game::GetPlayerTemplate() const
+SharedObjectPtr<EntityTemplate> Game::GetPlayerTemplate() const
 {
     return _playerTemplate;
 }
@@ -49,7 +49,7 @@ bool Game::OnStartup()
 
 void Game::OnShutdown()
 {
-    std::shared_ptr<ViewportWidget> viewport = GameplaySubsystem::Get().GetMainViewport();
+    SharedObjectPtr<ViewportWidget> viewport = GameplaySubsystem::Get().GetMainViewport();
     viewport->SetFocused(false);
     viewport->SetCamera(nullptr);
 }

@@ -15,12 +15,12 @@ class TabSwitcher : public Widget
 public:
     TabSwitcher() = default;
 
-    void AddTab(const std::wstring& name, const std::shared_ptr<Widget>& widget, bool closeable = true);
+    void AddTab(const std::wstring& name, const SharedObjectPtr<Widget>& widget, bool closeable = true);
 
     template <typename T> requires std::derived_from<T, Widget>
-    std::shared_ptr<T> AddTab(const std::wstring& name, bool closeable = true)
+    SharedObjectPtr<T> AddTab(const std::wstring& name, bool closeable = true)
     {
-        auto widget = std::make_shared<T>();
+        auto widget = NewObject<T>();
         if (!widget->Initialize())
         {
             return nullptr;

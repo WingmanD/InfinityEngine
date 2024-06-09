@@ -7,7 +7,7 @@ AssetPtrBase::AssetPtrBase(const AssetPtrBase& other)
     _type = other._type;
 }
 
-AssetPtrBase::AssetPtrBase(const std::shared_ptr<Asset>& asset)
+AssetPtrBase::AssetPtrBase(const SharedObjectPtr<Asset>& asset)
 {
     _asset = asset;
 }
@@ -25,7 +25,7 @@ AssetPtrBase& AssetPtrBase::operator=(const AssetPtrBase& other)
     return *this;
 }
 
-bool AssetPtrBase::operator==(const std::shared_ptr<Asset>& other) const
+bool AssetPtrBase::operator==(const SharedObjectPtr<Asset>& other) const
 {
     return _asset == other;
 }
@@ -40,7 +40,7 @@ bool AssetPtrBase::operator!=(const AssetPtrBase& other) const
     return !(*this == other);
 }
 
-void AssetPtrBase::SetAsset(const std::shared_ptr<Asset>& asset)
+void AssetPtrBase::SetAsset(const SharedObjectPtr<Asset>& asset)
 {
     _asset = asset;
 
@@ -50,7 +50,7 @@ void AssetPtrBase::SetAsset(const std::shared_ptr<Asset>& asset)
     }
 }
 
-std::shared_ptr<Asset> AssetPtrBase::GetAsset() const
+SharedObjectPtr<Asset> AssetPtrBase::GetAsset() const
 {
     return _asset;
 }
@@ -60,7 +60,7 @@ Type* AssetPtrBase::GetType() const
     return _type;
 }
 
-AssetPtrBase::operator std::shared_ptr<Asset>() const
+AssetPtrBase::operator SharedObjectPtr<Asset>() const
 {
     return _asset;
 }

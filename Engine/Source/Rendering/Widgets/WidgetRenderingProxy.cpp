@@ -1,4 +1,5 @@
 ﻿#include "WidgetRenderingProxy.h"
+#include "Rendering/Window.h"
 
 bool WidgetRenderingProxy::Initialize()
 {

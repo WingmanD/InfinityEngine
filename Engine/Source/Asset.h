@@ -3,6 +3,7 @@
 #include "Object.h"
 #include "PassKey.h"
 #include "Name.h"
+#include "Importer.h"
 #include "Asset.reflection.h"
 
 class Importer;
@@ -45,10 +46,10 @@ public:
 
     const Type* GetImporterType() const;
 
-    std::shared_ptr<Widget> CreateImportWidget() const;
-    virtual std::shared_ptr<Widget> CreateEditWidget();
+    SharedObjectPtr<Widget> CreateImportWidget() const;
+    virtual SharedObjectPtr<Widget> CreateEditWidget();
 
-    virtual DArray<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const;
+    virtual DArray<SharedObjectPtr<Asset>> Import(const SharedObjectPtr<Importer>& importer) const;
 
     // Object
 public:

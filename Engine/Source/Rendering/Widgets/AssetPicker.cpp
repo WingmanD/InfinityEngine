@@ -17,7 +17,7 @@ DropdownAssetChoice& DropdownAssetChoice::operator=(const DropdownAssetChoice& o
     return *this;
 }
 
-bool DropdownAssetChoice::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
+bool DropdownAssetChoice::InitializeFromAsset(const SharedObjectPtr<Asset>& asset)
 {
     if (!Initialize())
     {
@@ -27,7 +27,7 @@ bool DropdownAssetChoice::InitializeFromAsset(const std::shared_ptr<Asset>& asse
     return InitializeFromAssetInternal(asset);
 }
 
-std::shared_ptr<Asset> DropdownAssetChoice::GetSelectedAsset() const
+SharedObjectPtr<Asset> DropdownAssetChoice::GetSelectedAsset() const
 {
     return _asset.lock();
 }
@@ -44,7 +44,7 @@ bool DropdownAssetChoice::Initialize()
     return true;
 }
 
-bool DropdownAssetChoice::InitializeFromAssetInternal(const std::shared_ptr<Asset>& asset)
+bool DropdownAssetChoice::InitializeFromAssetInternal(const SharedObjectPtr<Asset>& asset)
 {
     _asset = asset;
 
@@ -60,7 +60,7 @@ bool DropdownAssetChoice::InitializeFromAssetInternal(const std::shared_ptr<Asse
     return true;
 }
 
-std::shared_ptr<AssetPicker> AssetPicker::CreateForType(Type* assetType)
+SharedObjectPtr<AssetPicker> AssetPicker::CreateForType(Type* assetType)
 {
     if (assetType == nullptr)
     {
@@ -68,7 +68,7 @@ std::shared_ptr<AssetPicker> AssetPicker::CreateForType(Type* assetType)
         return nullptr;
     }
 
-    const std::shared_ptr<AssetPicker> assetPicker = std::make_shared<AssetPicker>();
+    const SharedObjectPtr<AssetPicker> assetPicker = NewObject<AssetPicker>();
     assetPicker->InitializeFromAssetType(assetType);
     return assetPicker;
 }
@@ -90,14 +90,14 @@ void AssetPicker::InitializeFromAssetType(Type* assetType)
 
     AssetManager& assetManager = AssetManager::Get();
 
-    const std::shared_ptr<DropdownAssetChoice> nullChoice = std::make_shared<DropdownAssetChoice>();
+    const SharedObjectPtr<DropdownAssetChoice> nullChoice = NewObject<DropdownAssetChoice>();
     nullChoice->InitializeFromAsset(nullptr);
     AddChoice(nullChoice);
 
     assetManager.ForEachAssetOfType(assetType,
-                                    [this](const std::shared_ptr<Asset>& asset)
+                                    [this](const SharedObjectPtr<Asset>& asset)
                                     {
-                                        const std::shared_ptr<DropdownAssetChoice> choice = std::make_shared<
+                                        const SharedObjectPtr<DropdownAssetChoice> choice = NewObject<
                                             DropdownAssetChoice>();
                                         choice->InitializeFromAsset(asset);
                                         AddChoice(choice);
@@ -112,9 +112,9 @@ Type* AssetPicker::GetAssetType() const
     return _assetType;
 }
 
-std::shared_ptr<Asset> AssetPicker::GetSelectedAsset() const
+SharedObjectPtr<Asset> AssetPicker::GetSelectedAsset() const
 {
-    const std::shared_ptr<DropdownAssetChoice> selectedWidget = GetSelectedChoice<DropdownAssetChoice>();
+    const SharedObjectPtr<DropdownAssetChoice> selectedWidget = GetSelectedChoice<DropdownAssetChoice>();
     if (selectedWidget == nullptr)
     {
         return nullptr;
@@ -123,11 +123,11 @@ std::shared_ptr<Asset> AssetPicker::GetSelectedAsset() const
     return selectedWidget->GetSelectedAsset();
 }
 
-void AssetPicker::SetSelectedAsset(const std::shared_ptr<Asset>& asset)
+void AssetPicker::SetSelectedAsset(const SharedObjectPtr<Asset>& asset)
 {
-    for (const std::shared_ptr<Widget>& widget : GetChoices())
+    for (const SharedObjectPtr<Widget>& widget : GetChoices())
     {
-        const std::shared_ptr<DropdownAssetChoice> choice = std::dynamic_pointer_cast<DropdownAssetChoice>(widget);
+        const SharedObjectPtr<DropdownAssetChoice> choice = std::dynamic_pointer_cast<DropdownAssetChoice>(widget);
         if (choice == nullptr)
         {
             continue;

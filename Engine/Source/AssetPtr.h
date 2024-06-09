@@ -15,7 +15,7 @@ public:
         SetType(T::StaticType());
     }
 
-    AssetPtr(const std::shared_ptr<T>& asset) : AssetPtr()
+    AssetPtr(const SharedObjectPtr<T>& asset) : AssetPtr()
     {
         SetAsset(asset);
     }
@@ -31,18 +31,18 @@ public:
         return *this;
     }
 
-    AssetPtr& operator=(const std::shared_ptr<T>& asset)
+    AssetPtr& operator=(const SharedObjectPtr<T>& asset)
     {
         SetAsset(asset);
         return *this;
     }
 
-    std::shared_ptr<T> operator->() const
+    SharedObjectPtr<T> operator->() const
     {
         return std::static_pointer_cast<T>(GetAsset());
     }
 
-    operator std::shared_ptr<T>() const
+    operator SharedObjectPtr<T>() const
     {
         return std::static_pointer_cast<T>(GetAsset());
     }
@@ -51,7 +51,7 @@ public:
 template <typename T>
 MemoryWriter& operator<<(MemoryWriter& writer, const AssetPtr<T>& assetPtr)
 {
-    const std::shared_ptr<Asset> asset = assetPtr.GetAsset();
+    const SharedObjectPtr<Asset> asset = assetPtr.GetAsset();
     if (asset == nullptr)
     {
         writer << 0ull;
@@ -75,7 +75,7 @@ MemoryReader& operator>>(MemoryReader& reader, AssetPtr<T>& assetPtr)
         return reader;
     }
 
-    const std::shared_ptr<Asset> asset = AssetManager::Get().FindAsset(assetID);
+    const SharedObjectPtr<Asset> asset = AssetManager::Get().FindAsset(assetID);
     if (asset == nullptr)
     {
         return reader;

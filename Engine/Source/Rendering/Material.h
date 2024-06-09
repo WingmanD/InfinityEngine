@@ -15,7 +15,7 @@ class Material : public Asset
     GENERATED()
 
 public:
-    static std::shared_ptr<Material> GetMaterialByID(uint32 materialID);
+    static SharedObjectPtr<Material> GetMaterialByID(uint32 materialID);
 
 public:
     Material() = default;
@@ -23,11 +23,11 @@ public:
 
     Material(const Material& other);
 
-    void SetShader(const std::shared_ptr<Shader>& shader);
-    [[nodiscard]] std::shared_ptr<Shader> GetShader() const;
+    void SetShader(const SharedObjectPtr<Shader>& shader);
+    [[nodiscard]] SharedObjectPtr<Shader> GetShader() const;
 
     template <typename T> requires IsA<T, Shader>
-    [[nodiscard]] std::shared_ptr<T> GetShader() const
+    [[nodiscard]] SharedObjectPtr<T> GetShader() const
     {
         return std::static_pointer_cast<T>(GetShader());
     }
@@ -81,5 +81,5 @@ private:
     std::unique_ptr<MaterialRenderingData> _renderingData;
 
 private:
-    void OnShaderChanged(const std::shared_ptr<Shader>& oldShader = nullptr);
+    void OnShaderChanged(const SharedObjectPtr<Shader>& oldShader = nullptr);
 };

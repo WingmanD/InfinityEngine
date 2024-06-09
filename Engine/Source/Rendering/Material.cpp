@@ -7,7 +7,7 @@
 IDGenerator<uint32> Material::_materialIDGenerator;
 std::unordered_map<uint32, std::weak_ptr<Material>> Material::_materialIDToMaterial;
 
-std::shared_ptr<Material> Material::GetMaterialByID(uint32 materialID)
+SharedObjectPtr<Material> Material::GetMaterialByID(uint32 materialID)
 {
     return _materialIDToMaterial[materialID].lock();
 }
@@ -26,7 +26,7 @@ Material::Material(const Material& other) : Asset(other)
     }
 }
 
-void Material::SetShader(const std::shared_ptr<Shader>& shader)
+void Material::SetShader(const SharedObjectPtr<Shader>& shader)
 {
     if (_shader == shader)
     {
@@ -38,7 +38,7 @@ void Material::SetShader(const std::shared_ptr<Shader>& shader)
     OnShaderChanged();
 }
 
-std::shared_ptr<Shader> Material::GetShader() const
+SharedObjectPtr<Shader> Material::GetShader() const
 {
     return _shader;
 }
@@ -128,7 +128,7 @@ void Material::PostLoad()
     _materialIDToMaterial[_materialID] = SharedFromThis();
 }
 
-void Material::OnShaderChanged(const std::shared_ptr<Shader>& oldShader /*= nullptr*/)
+void Material::OnShaderChanged(const SharedObjectPtr<Shader>& oldShader /*= nullptr*/)
 {
     if (oldShader != nullptr)
     {
@@ -145,7 +145,7 @@ void Material::OnShaderChanged(const std::shared_ptr<Shader>& oldShader /*= null
         std::weak_ptr weakThis = shared_from_this();
         _materialParameterMapChangedHandle = _shader->OnRecompiled.Add([weakThis](const Shader* shader)
         {
-            const std::shared_ptr<Material> sharedThis = std::static_pointer_cast<Material>(weakThis.lock());
+            const SharedObjectPtr<Material> sharedThis = std::static_pointer_cast<Material>(weakThis.lock());
             if (sharedThis == nullptr)
             {
                 return;

@@ -9,14 +9,14 @@
 #include "Rendering/Widgets/ViewportWidget.h"
 #include <ranges>
 
-bool LevelAssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
+bool LevelAssetBrowserEntry::InitializeFromAsset(const SharedObjectPtr<Asset>& asset)
 {
     if (!AssetBrowserEntry::InitializeFromAsset(asset))
     {
         return false;
     }
 
-    const std::shared_ptr<Button> spawnButton = AddChild<Button>();
+    const SharedObjectPtr<Button> spawnButton = AddChild<Button>();
     if (spawnButton == nullptr)
     {
         return false;
@@ -47,7 +47,7 @@ Level::Level(const Level& other) : Asset(other)
     // todo
 }
 
-uint64 Level::AddEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, const Transform& transform)
+uint64 Level::AddEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, const Transform& transform)
 {
     const uint64 id = _elementIDGenerator.GenerateID();
     
@@ -116,6 +116,12 @@ void Level::Stream(const Vector3& location, float radius, const std::function<vo
 
 void Level::LoadAllChunks()
 {
+    if (!Load())
+    {
+        LOG(L"ERROR: Failed to load level {}!", GetName());
+        return;
+    }
+    
     if (_isFullyLoaded)
     {
         return;
@@ -259,9 +265,9 @@ bool Level::Deserialize(MemoryReader& reader)
     return true;
 }
 
-std::shared_ptr<Widget> Level::CreateEditWidget()
+SharedObjectPtr<Widget> Level::CreateEditWidget()
 {
-    std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+    SharedObjectPtr<FlowBox> flowBox = NewObject<FlowBox>();
     if (!flowBox->Initialize())
     {
         return nullptr;
@@ -269,7 +275,7 @@ std::shared_ptr<Widget> Level::CreateEditWidget()
     flowBox->SetDirection(EFlowBoxDirection::Horizontal);
     flowBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
-    std::shared_ptr<AssetBrowser> browser = std::make_shared<AssetBrowser>();
+    SharedObjectPtr<AssetBrowser> browser = NewObject<AssetBrowser>();
 
     browser->SetEntryType(LevelAssetBrowserEntry::StaticType());
     browser->SetFilter([](const Asset& asset)
@@ -282,7 +288,7 @@ std::shared_ptr<Widget> Level::CreateEditWidget()
     }
     flowBox->AddChild(browser);
     
-    std::shared_ptr<ViewportWidget> viewport = flowBox->AddChild<ViewportWidget>();
+    SharedObjectPtr<ViewportWidget> viewport = flowBox->AddChild<ViewportWidget>();
     if (!viewport->Initialize())
     {
         return nullptr;
@@ -292,7 +298,7 @@ std::shared_ptr<Widget> Level::CreateEditWidget()
     viewport->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
     GameplaySubsystem& gameplaySubsystem = GameplaySubsystem::Get();
-    const std::shared_ptr<ProjectSettings> projectSettings = ProjectSettings::Get();
+    const SharedObjectPtr<ProjectSettings> projectSettings = ProjectSettings::Get();
 
     const SharedObjectPtr<LevelEditorGame> game = projectSettings->GetLevelEditorGame()->DuplicateObject<LevelEditorGame>();
 
@@ -341,7 +347,7 @@ void Level::LoadChunk(Chunk& chunk)
     AssetManager& assetManager = AssetManager::Get();
     for (const EntityElement& entityElement : chunk.EntityElements)
     {
-        std::shared_ptr<EntityTemplate> entityTemplate = assetManager.FindAsset<EntityTemplate>(entityElement.EntityTemplateID);
+        SharedObjectPtr<EntityTemplate> entityTemplate = assetManager.FindAsset<EntityTemplate>(entityElement.EntityTemplateID);
         if (entityTemplate == nullptr)
         {
             continue;

@@ -168,9 +168,9 @@ bool Font::Deserialize(MemoryReader& reader)
     return true;
 }
 
-DArray<std::shared_ptr<Asset>> Font::Import(const std::shared_ptr<Importer>& importer) const
+DArray<SharedObjectPtr<Asset>> Font::Import(const SharedObjectPtr<Importer>& importer) const
 {
-    const std::shared_ptr<FontImporter> fontImporter = std::dynamic_pointer_cast<FontImporter>(importer);
+    const SharedObjectPtr<FontImporter> fontImporter = std::dynamic_pointer_cast<FontImporter>(importer);
     if (fontImporter == nullptr)
     {
         LOG(L"Invalid importer type!");
@@ -235,7 +235,7 @@ DArray<std::shared_ptr<Asset>> Font::Import(const std::shared_ptr<Importer>& imp
         return {};
     }
 
-    std::shared_ptr<Font> font = assetManager.NewAsset<Font>(Name(Util::ToWString(name)));
+    SharedObjectPtr<Font> font = assetManager.NewAsset<Font>(Name(Util::ToWString(name)));
     font->_bitmapPathBase = fontPath / legalName;
     if (!font->Initialize())
     {

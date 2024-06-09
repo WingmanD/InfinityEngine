@@ -9,7 +9,7 @@ GameplaySubsystem& GameplaySubsystem::Get()
     return Engine::Get().GetGameplaySubsystem();
 }
 
-bool GameplaySubsystem::StartGame(const std::shared_ptr<ViewportWidget>& viewport, const std::shared_ptr<Game>& game /*= nullptr*/)
+bool GameplaySubsystem::StartGame(const SharedObjectPtr<ViewportWidget>& viewport, const SharedObjectPtr<Game>& game /*= nullptr*/)
 {
     if (_game != nullptr && _game->IsRunning())
     {
@@ -19,9 +19,9 @@ bool GameplaySubsystem::StartGame(const std::shared_ptr<ViewportWidget>& viewpor
     
     if (game == nullptr)
     {
-        std::shared_ptr<ProjectSettings> projectSettings = ProjectSettings::Get();
+        SharedObjectPtr<ProjectSettings> projectSettings = ProjectSettings::Get();
 
-        const std::shared_ptr<Game>& projectGame = projectSettings->GetGame();
+        const SharedObjectPtr<Game>& projectGame = projectSettings->GetGame();
         if (projectGame == nullptr)
         {
             const Type* gameType = projectSettings->GetGameType();
@@ -76,7 +76,7 @@ void GameplaySubsystem::StopGame()
     _worlds.Clear();
 }
 
-std::shared_ptr<Game> GameplaySubsystem::GetGame() const
+SharedObjectPtr<Game> GameplaySubsystem::GetGame() const
 {
     return _game;
 }
@@ -86,7 +86,7 @@ BucketArray<World>& GameplaySubsystem::GetWorlds()
     return _worlds;
 }
 
-std::shared_ptr<ViewportWidget> GameplaySubsystem::GetMainViewport() const
+SharedObjectPtr<ViewportWidget> GameplaySubsystem::GetMainViewport() const
 {
     return _viewport.lock();
 }

@@ -88,7 +88,7 @@ private:
         newType->_newObjectInBucketArrayFactory = [](BucketArrayBase& bucketArray)
         {
             BucketArray<T>& concreteBucketArray = static_cast<BucketArray<T>&>(bucketArray);
-            return concreteBucketArray.AddDefault();
+            return T::New(concreteBucketArray);
         };
 
         return newType;

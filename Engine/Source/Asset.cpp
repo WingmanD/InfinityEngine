@@ -110,7 +110,7 @@ bool Asset::Load()
     GetType()->ForEachPropertyWithTag("Load", [this](PropertyBase* property)
     {
         // todo this should be dynamic cast
-        const std::shared_ptr<Asset> valueRef = static_cast<Property<Asset, AssetPtrBase>*>(property)->GetRef(this);
+        const SharedObjectPtr<Asset> valueRef = static_cast<Property<Asset, AssetPtrBase>*>(property)->GetRef(this);
         if (valueRef == nullptr)
         {
             return true;
@@ -192,7 +192,7 @@ const Type* Asset::GetImporterType() const
     return _importerType;
 }
 
-std::shared_ptr<Widget> Asset::CreateImportWidget() const
+SharedObjectPtr<Widget> Asset::CreateImportWidget() const
 {
     if (_importerType == nullptr)
     {
@@ -200,7 +200,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
         return nullptr;
     }
 
-    const std::shared_ptr<FlowBox> verticalBox = std::make_shared<FlowBox>();
+    const SharedObjectPtr<FlowBox> verticalBox = NewObject<FlowBox>();
     if (!verticalBox->Initialize())
     {
         return nullptr;
@@ -209,7 +209,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
     verticalBox->SetDirection(EFlowBoxDirection::Vertical);
 
     {
-        const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+        const SharedObjectPtr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
         if (horizontalBox == nullptr)
         {
             return nullptr;
@@ -217,7 +217,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
         horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
         horizontalBox->SetFillMode(EWidgetFillMode::FillX);
 
-        const std::shared_ptr<TextBox> title = horizontalBox->AddChild<TextBox>();
+        const SharedObjectPtr<TextBox> title = horizontalBox->AddChild<TextBox>();
         if (title == nullptr)
         {
             return nullptr;
@@ -227,7 +227,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
         title->SetFillMode(EWidgetFillMode::FillX);
         title->SetPadding({0.0f, 50.0f, 0.0f, 0.0f});
 
-        const std::shared_ptr<Button> closeButton = horizontalBox->AddChild<Button>();
+        const SharedObjectPtr<Button> closeButton = horizontalBox->AddChild<Button>();
         if (closeButton == nullptr)
         {
             return nullptr;
@@ -241,11 +241,11 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
         });
     }
 
-    const std::shared_ptr<Importer> importer = _importerType->NewObject<Importer>();
-    const std::shared_ptr<Widget> widget = _importerType->CreatePropertiesWidget(importer);
+    const SharedObjectPtr<Importer> importer = _importerType->NewObject<Importer>();
+    const SharedObjectPtr<Widget> widget = _importerType->CreatePropertiesWidget(importer);
     verticalBox->AddChild(widget);
 
-    const std::shared_ptr<Button> importButton = verticalBox->AddChild<Button>();
+    const SharedObjectPtr<Button> importButton = verticalBox->AddChild<Button>();
     if (importButton == nullptr)
     {
         return nullptr;
@@ -257,10 +257,10 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
     const Type* assetType = GetType();
     std::ignore = importButton->OnReleased.Add([assetType, importer, verticalBox]()
     {
-        const DArray<std::shared_ptr<Asset>> importedAssets = assetType->GetCDO<Asset>()->Import(importer);
+        const DArray<SharedObjectPtr<Asset>> importedAssets = assetType->GetCDO<Asset>()->Import(importer);
         // todo notification
         LOG(L"Imported assets: ");
-        for (const std::shared_ptr<Asset>& asset : importedAssets)
+        for (const SharedObjectPtr<Asset>& asset : importedAssets)
         {
             LOG(L"{}", asset->GetName().ToString());
         }
@@ -271,12 +271,12 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
     return verticalBox;
 }
 
-std::shared_ptr<Widget> Asset::CreateEditWidget()
+SharedObjectPtr<Widget> Asset::CreateEditWidget()
 {
     return GetType()->CreatePropertiesWidget(SharedFromThis());
 }
 
-DArray<std::shared_ptr<Asset>> Asset::Import(const std::shared_ptr<Importer>& importer) const
+DArray<SharedObjectPtr<Asset>> Asset::Import(const SharedObjectPtr<Importer>& importer) const
 {
     return {};
 }

@@ -15,7 +15,7 @@ bool EditorWidget::Initialize()
 
     SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
-    const std::shared_ptr<FlowBox> mainTab = AddTab<FlowBox>(L"Infinity Engine", false);
+    const SharedObjectPtr<FlowBox> mainTab = AddTab<FlowBox>(L"Infinity Engine", false);
     if (!mainTab)
     {
         return false;
@@ -25,13 +25,13 @@ bool EditorWidget::Initialize()
     mainTab->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
     mainTab->SetDirection(EFlowBoxDirection::Vertical);
 
-    const std::shared_ptr<FlowBox> toolbar = mainTab->AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> toolbar = mainTab->AddChild<FlowBox>();
     if (toolbar == nullptr)
     {
         return false;
     }
 
-    std::shared_ptr<Button> playButton = toolbar->AddChild<Button>();
+    SharedObjectPtr<Button> playButton = toolbar->AddChild<Button>();
     if (!playButton)
     {
         return false;
@@ -39,7 +39,7 @@ bool EditorWidget::Initialize()
 
     playButton->SetText(L"Play");
 
-    const std::shared_ptr<FlowBox> horizontalBox = mainTab->AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> horizontalBox = mainTab->AddChild<FlowBox>();
     if (horizontalBox == nullptr)
     {
         return false;
@@ -48,7 +48,7 @@ bool EditorWidget::Initialize()
     horizontalBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
     horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
 
-    const std::shared_ptr<AssetBrowser> assetBrowser = horizontalBox->AddChild<AssetBrowser>();
+    const SharedObjectPtr<AssetBrowser> assetBrowser = horizontalBox->AddChild<AssetBrowser>();
     if (!assetBrowser)
     {
         return false;
@@ -56,7 +56,7 @@ bool EditorWidget::Initialize()
 
     assetBrowser->SetFillMode(EWidgetFillMode::FillY);
 
-    const std::shared_ptr<ViewportWidget> viewport = horizontalBox->AddChild<ViewportWidget>();
+    const SharedObjectPtr<ViewportWidget> viewport = horizontalBox->AddChild<ViewportWidget>();
     if (viewport == nullptr)
     {
         return false;
@@ -68,7 +68,7 @@ bool EditorWidget::Initialize()
     {
         GameplaySubsystem& gameplaySubsystem = Engine::Get().GetGameplaySubsystem();
 
-        if (const std::shared_ptr<Game> game = gameplaySubsystem.GetGame())
+        if (const SharedObjectPtr<Game> game = gameplaySubsystem.GetGame())
         {
             if (game->IsRunning())
             {

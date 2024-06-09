@@ -11,11 +11,11 @@ class ProjectSettings : public Asset
     GENERATED()
     
 public:
-    static std::shared_ptr<ProjectSettings> Get();
+    static SharedObjectPtr<ProjectSettings> Get();
 
     Type* GetGameType() const;
-    std::shared_ptr<Game> GetGame() const;
-    std::shared_ptr<Game> GetLevelEditorGame() const;
+    SharedObjectPtr<Game> GetGame() const;
+    SharedObjectPtr<Game> GetLevelEditorGame() const;
     
 private:
     PROPERTY(Edit, Serialize, DisplayName = "Game Type")

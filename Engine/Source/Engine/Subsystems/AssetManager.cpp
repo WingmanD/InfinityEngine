@@ -24,9 +24,9 @@ AssetManager::~AssetManager()
     _assetCache.close();
 }
 
-std::shared_ptr<Asset> AssetManager::NewAsset(const Type& type, Name name)
+SharedObjectPtr<Asset> AssetManager::NewAsset(const Type& type, Name name)
 {
-    std::shared_ptr<Asset> asset = type.NewObject<Asset>();
+    SharedObjectPtr<Asset> asset = type.NewObject<Asset>();
     asset->SetName(name);
     asset->SetAssetID(_idGenerator.GenerateID(), {});
 
@@ -60,7 +60,7 @@ std::shared_ptr<Asset> AssetManager::NewAsset(const Type& type, Name name)
     return asset;
 }
 
-void AssetManager::DeleteAsset(const std::shared_ptr<Asset>& asset)
+void AssetManager::DeleteAsset(const SharedObjectPtr<Asset>& asset)
 {
     if (asset == nullptr)
     {
@@ -81,7 +81,7 @@ void AssetManager::DeleteAsset(const std::shared_ptr<Asset>& asset)
     }
 }
 
-bool AssetManager::ForEachAssetOfType(Type* type, const std::function<bool(const std::shared_ptr<Asset>&)>& callback,
+bool AssetManager::ForEachAssetOfType(Type* type, const std::function<bool(const SharedObjectPtr<Asset>&)>& callback,
                                       bool recursive /*= false*/) const
 {
     if (type == nullptr)
@@ -94,7 +94,7 @@ bool AssetManager::ForEachAssetOfType(Type* type, const std::function<bool(const
     {
         for (const uint64 id : it->second)
         {
-            if (const std::shared_ptr<Asset> asset = FindAsset(id))
+            if (const SharedObjectPtr<Asset> asset = FindAsset(id))
             {
                 if (!callback(asset))
                 {
@@ -118,10 +118,10 @@ bool AssetManager::ForEachAssetOfType(Type* type, const std::function<bool(const
     return true;
 }
 
-void AssetManager::ForEachAsset(const std::function<bool(std::shared_ptr<Asset>&)>& callback)
+void AssetManager::ForEachAsset(const std::function<bool(SharedObjectPtr<Asset>&)>& callback)
 {
     // todo optimize this
-    for (std::shared_ptr<Asset>& asset : _assetMap | std::views::values)
+    for (SharedObjectPtr<Asset>& asset : _assetMap | std::views::values)
     {
         if (!callback(asset))
         {
@@ -130,7 +130,7 @@ void AssetManager::ForEachAsset(const std::function<bool(std::shared_ptr<Asset>&
     }
 }
 
-bool AssetManager::RegisterAsset(const std::shared_ptr<Asset>& asset)
+bool AssetManager::RegisterAsset(const SharedObjectPtr<Asset>& asset)
 {
     if (asset == nullptr)
     {
@@ -167,7 +167,7 @@ bool AssetManager::RegisterAsset(const std::shared_ptr<Asset>& asset)
     return true;
 }
 
-bool AssetManager::UnregisterAsset(const std::shared_ptr<Asset>& asset)
+bool AssetManager::UnregisterAsset(const SharedObjectPtr<Asset>& asset)
 {
     if (asset == nullptr)
     {
@@ -195,7 +195,7 @@ bool AssetManager::UnregisterAsset(const std::shared_ptr<Asset>& asset)
     return false;
 }
 
-void AssetManager::MarkDirtyForAutosave(const std::shared_ptr<const Asset>& asset)
+void AssetManager::MarkDirtyForAutosave(const SharedObjectPtr<const Asset>& asset)
 {
     if (asset == nullptr)
     {
@@ -243,7 +243,7 @@ void AssetManager::RediscoverAssets()
 
         if (!FindAsset(assetID))
         {
-            std::shared_ptr<Asset> existingAsset = type->NewObject<Asset>();
+            SharedObjectPtr<Asset> existingAsset = type->NewObject<Asset>();
 
             reader.ResetOffset();
 
@@ -263,7 +263,7 @@ void AssetManager::RediscoverAssets()
     }
 }
 
-std::shared_ptr<Asset> AssetManager::FindAssetByName(Name name) const
+SharedObjectPtr<Asset> AssetManager::FindAssetByName(Name name) const
 {
     const auto it = _assetNameMap.find(name);
     if (it != _assetNameMap.end())
@@ -274,9 +274,9 @@ std::shared_ptr<Asset> AssetManager::FindAssetByName(Name name) const
     return nullptr;
 }
 
-std::shared_ptr<Asset> AssetManager::FindOrCreateAssetByName(const Type& type, Name name)
+SharedObjectPtr<Asset> AssetManager::FindOrCreateAssetByName(const Type& type, Name name)
 {
-    if (const std::shared_ptr<Asset> asset = FindAssetByName(name))
+    if (const SharedObjectPtr<Asset> asset = FindAssetByName(name))
     {
         return asset;
     }
@@ -284,7 +284,7 @@ std::shared_ptr<Asset> AssetManager::FindOrCreateAssetByName(const Type& type, N
     return NewAsset(type, name);
 }
 
-std::shared_ptr<Asset> AssetManager::FindAsset(uint64 id) const
+SharedObjectPtr<Asset> AssetManager::FindAsset(uint64 id) const
 {
     const auto it = _assetMap.find(id);
 
@@ -433,7 +433,7 @@ bool AssetManager::Load()
             continue;
         }
 
-        std::shared_ptr<Asset> asset = type->NewObject<Asset>();
+        SharedObjectPtr<Asset> asset = type->NewObject<Asset>();
         if (asset == nullptr)
         {
             LOG(L"Loading asset description failed - failed to create asset {}...", assetPath.wstring());
@@ -480,7 +480,7 @@ bool AssetManager::Save()
 
     const uint64 assetCount = _assetMap.size();
     writer << assetCount;
-    for (const std::shared_ptr<Asset> asset : _assetMap | std::views::values)
+    for (const SharedObjectPtr<Asset> asset : _assetMap | std::views::values)
     {
         writer << asset->GetType()->GetID();
         writer << asset->GetAssetID();
@@ -497,7 +497,7 @@ void AssetManager::AutosaveAssets() const
 {
     for (const uint64 assetID : _assetIDsToAutosave)
     {
-        if (const std::shared_ptr<const Asset> asset = FindAsset(assetID))
+        if (const SharedObjectPtr<const Asset> asset = FindAsset(assetID))
         {
             LOG(L"Saving asset {}...", asset->GetName().ToString());
             if (!asset->Save())

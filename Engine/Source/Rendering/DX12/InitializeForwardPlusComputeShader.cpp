@@ -39,7 +39,7 @@ void InitializeForwardPlusComputeShader::BindResources(DX12GraphicsCommandList& 
 {
     DX12ComputeShader::BindResources(commandList);
 
-    const std::shared_ptr<Scene> scene = RenderingSubsystem::Get().GetScene();
+    const SharedObjectPtr<Scene> scene = RenderingSubsystem::Get().GetScene();
     const ConstantBuffer<MaterialParameter>& constantBuffer =
         static_cast<DX12MaterialParameterRenderingData*>(scene->GetRenderingData())->GetConstantBuffer();
     if (scene->IsDirty())

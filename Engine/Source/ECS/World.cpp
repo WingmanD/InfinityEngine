@@ -43,7 +43,7 @@ void World::DestroyEntityAsync(Entity& entity)
     });
 }
 
-Entity& World::CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate)
+Entity& World::CreateEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate)
 {
     assert(entityTemplate != nullptr);
 
@@ -54,7 +54,7 @@ Entity& World::CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplat
     return entity;
 }
 
-void World::CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, uint32 count)
+void World::CreateEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, uint32 count)
 {
     for (uint32 i = 0; i < count; ++i)
     {
@@ -192,7 +192,7 @@ Entity& World::CreateEntityInternal(const Archetype& archetype)
     return entity;
 }
 
-Entity& World::CreateEntityInternal(const std::shared_ptr<EntityTemplate>& entityTemplate)
+Entity& World::CreateEntityInternal(const SharedObjectPtr<EntityTemplate>& entityTemplate)
 {
     const Archetype& archetype = entityTemplate->GetArchetype();
     
@@ -213,7 +213,7 @@ void World::OnEntityCreated(Entity& entity, const Archetype& archetype) const
     }
 }
 
-void World::OnEntityCreated(Entity& entity, const std::shared_ptr<EntityTemplate>& archetype) const
+void World::OnEntityCreated(Entity& entity, const SharedObjectPtr<EntityTemplate>& archetype) const
 {
     OnEntityCreated(entity, archetype->GetArchetype());
 }

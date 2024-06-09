@@ -25,7 +25,7 @@ void DemoGame::OnInitializeWorld(World& world)
         return;
     }
 
-    std::shared_ptr<EntityTemplate> playerTemplate = GetPlayerTemplate();
+    SharedObjectPtr<EntityTemplate> playerTemplate = GetPlayerTemplate();
     const Archetype& playerArchetype = playerTemplate->GetArchetype();
 
     Entity& playerEntity = world.CreateEntity(playerTemplate);

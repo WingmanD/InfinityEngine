@@ -1446,6 +1446,11 @@ private:
 
     void ShiftElementsRight(SizeType index)
     {
+        if (_count == 0 || index >= _count)
+        {
+            return;
+        }
+        
         if constexpr (SSO_SIZE > 0)
         {
             const int64 numData = _count - SSO_SIZE;

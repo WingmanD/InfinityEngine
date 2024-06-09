@@ -64,7 +64,7 @@ bool EditableTextBox::Initialize()
     SetBackgroundVisibility(true);
     SetCollisionEnabled(true);
 
-    const std::shared_ptr<Caret> caret = std::make_shared<Caret>();
+    const SharedObjectPtr<Caret> caret = NewObject<Caret>();
     if (!caret->Initialize())
     {
         return false;
@@ -89,7 +89,7 @@ void EditableTextBox::OnTextChanged()
 void EditableTextBox::UpdateDesiredSizeInternal()
 {
     // todo this is mostly copy-paste from TextBox::OnTextChanged - refactor
-    const std::shared_ptr<Font> font = GetFont();
+    const SharedObjectPtr<Font> font = GetFont();
     if (font == nullptr)
     {
         DEBUG_BREAK();
@@ -126,7 +126,7 @@ void EditableTextBox::RebuildLayoutInternal()
 {
     TextBox::RebuildLayoutInternal();
 
-    const std::shared_ptr<Caret> caret = _caret.lock();
+    const SharedObjectPtr<Caret> caret = _caret.lock();
     caret->SetSize(caret->GetDesiredSize() / GetScreenSize());
 
     OnCursorPositionChanged();
@@ -136,7 +136,7 @@ void EditableTextBox::OnFocusChangedInternal(bool focused)
 {
     TextBox::OnFocusChangedInternal(focused);
 
-    const std::shared_ptr<Caret> caret = _caret.lock();
+    const SharedObjectPtr<Caret> caret = _caret.lock();
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     if (focused)
     {
@@ -263,7 +263,7 @@ void EditableTextBox::OnFocusChangedInternal(bool focused)
 
 void EditableTextBox::OnCursorPositionChanged() const
 {
-    const std::shared_ptr<Caret> caret = _caret.lock();
+    const SharedObjectPtr<Caret> caret = _caret.lock();
     const std::wstring& text = GetText();
     if (text.empty())
     {
@@ -272,7 +272,7 @@ void EditableTextBox::OnCursorPositionChanged() const
         return;
     }
 
-    const std::shared_ptr<Font> font = GetFont();
+    const SharedObjectPtr<Font> font = GetFont();
     if (font == nullptr)
     {
         return;

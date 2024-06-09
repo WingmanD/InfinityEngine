@@ -13,13 +13,13 @@ class StaticMeshInstance : public Asset
 
 public:
     StaticMeshInstance() = default;
-    StaticMeshInstance(const std::shared_ptr<StaticMesh>& mesh, const std::shared_ptr<Material>& material = nullptr);
+    StaticMeshInstance(const SharedObjectPtr<StaticMesh>& mesh, const SharedObjectPtr<Material>& material = nullptr);
     
-    [[nodiscard]] std::shared_ptr<StaticMesh> GetMesh() const;
-    void SetMesh(const std::shared_ptr<StaticMesh>& mesh);
+    [[nodiscard]] SharedObjectPtr<StaticMesh> GetMesh() const;
+    void SetMesh(const SharedObjectPtr<StaticMesh>& mesh);
     
-    [[nodiscard]] std::shared_ptr<Material> GetMaterial() const;
-    void SetMaterial(const std::shared_ptr<Material>& material);
+    [[nodiscard]] SharedObjectPtr<Material> GetMaterial() const;
+    void SetMaterial(const SharedObjectPtr<Material>& material);
 
 private:
     PROPERTY(Edit, Load, Serialize, DisplayName = "Mesh")

@@ -6,9 +6,9 @@
 #include <memory>
 
 template <typename T> requires std::is_arithmetic_v<T>
-std::shared_ptr<Widget> CreateWidgetForNumber(const std::shared_ptr<Object>& object, PropertyBase& property, T* value)
+SharedObjectPtr<Widget> CreateWidgetForNumber(const SharedObjectPtr<Object>& object, PropertyBase& property, T* value)
 {
-    std::shared_ptr<TextBox> textBox = std::make_shared<TextBox>();
+    SharedObjectPtr<TextBox> textBox = NewObject<TextBox>();
     if (!textBox->Initialize())
     {
         return nullptr;
@@ -45,10 +45,10 @@ std::shared_ptr<Widget> CreateWidgetForNumber(const std::shared_ptr<Object>& obj
 
 
 template <typename T> requires std::is_arithmetic_v<T>
-std::shared_ptr<Widget> CreateEditableWidgetForNumber(const std::shared_ptr<Object>& object, PropertyBase& property,
+SharedObjectPtr<Widget> CreateEditableWidgetForNumber(const SharedObjectPtr<Object>& object, PropertyBase& property,
                                                       T* value)
 {
-    std::shared_ptr<EditableTextBox> textBox = std::make_shared<EditableTextBox>();
+    SharedObjectPtr<EditableTextBox> textBox = NewObject<EditableTextBox>();
     if (!textBox->Initialize())
     {
         return nullptr;

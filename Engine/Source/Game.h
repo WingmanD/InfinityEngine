@@ -19,7 +19,7 @@ public:
 
     bool IsRunning() const;
 
-    std::shared_ptr<EntityTemplate> GetPlayerTemplate() const;
+    SharedObjectPtr<EntityTemplate> GetPlayerTemplate() const;
 
 protected:
     virtual void OnInitializeWorld(World& world);

@@ -152,7 +152,7 @@ public:
     bool ForEachProperty(const std::function<bool(PropertyBase*)>& callback) const;
     bool ForEachPropertyWithTag(const std::string& tag, const std::function<bool(PropertyBase*)>& callback) const;
 
-    std::shared_ptr<Widget> CreatePropertiesWidget(const std::shared_ptr<Object>& object) const;
+    SharedObjectPtr<Widget> CreatePropertiesWidget(const SharedObjectPtr<Object>& object) const;
 
     friend auto operator<=>(const Type& lhs, const Type& rhs);
     bool operator==(const Type&) const;
@@ -181,7 +181,7 @@ private:
     PropertyMap _propertyMap;
 
     std::function<std::unique_ptr<BucketArrayBase>()> _bucketArrayFactory;
-    std::function<Object*(BucketArrayBase&)> _newObjectInBucketArrayFactory;
+    std::function<SharedObjectPtr<Object>(BucketArrayBase&)> _newObjectInBucketArrayFactory;
 
     friend class TypeRegistry;
 

@@ -19,8 +19,8 @@ protected:
     void RebuildLayoutInternal() override;
     void UpdateDesiredSizeInternal() override;
     
-    void OnChildAdded(const std::shared_ptr<Widget>& child) override;
-    void OnChildRemoved(const std::shared_ptr<Widget>& child) override;
+    void OnChildAdded(const SharedObjectPtr<Widget>& child) override;
+    void OnChildRemoved(const SharedObjectPtr<Widget>& child) override;
 
 private:
     int32 _selectedIndex = 0;

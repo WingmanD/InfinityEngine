@@ -4,7 +4,7 @@
 #include "TextBox.h"
 #include "WidgetSwitcher.h"
 
-void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>& widget, bool closeable /*= true*/)
+void TabSwitcher::AddTab(const std::wstring& name, const SharedObjectPtr<Widget>& widget, bool closeable /*= true*/)
 {
     if (widget == nullptr)
     {
@@ -13,7 +13,7 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
 
     _tabNames.push_back(name);
 
-    const std::shared_ptr<FlowBox> tab = _tabHorizontalBox.lock()->AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> tab = _tabHorizontalBox.lock()->AddChild<FlowBox>();
     if (!tab)
     {
         return;
@@ -25,7 +25,7 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
 
     constexpr Vector4 textPadding = {4.0f, 4.0f, 1.0f, 1.0f};
     
-    const std::shared_ptr<Button> tabButton = tab->AddChild<Button>();
+    const SharedObjectPtr<Button> tabButton = tab->AddChild<Button>();
     if (!tabButton)
     {
         return;
@@ -45,7 +45,7 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
             RemoveTab(name);
         });
 
-        const std::shared_ptr<Button> closeButton = tab->AddChild<Button>();
+        const SharedObjectPtr<Button> closeButton = tab->AddChild<Button>();
         if (!closeButton)
         {
             return;
@@ -63,7 +63,7 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
         });
     }
 
-    const std::shared_ptr<Widget> tabContent = _switcher.lock()->AddChild<Widget>();
+    const SharedObjectPtr<Widget> tabContent = _switcher.lock()->AddChild<Widget>();
     if (!tabContent)
     {
         return;
@@ -80,7 +80,7 @@ void TabSwitcher::RemoveTab(const std::wstring& name)
 
     _tabHorizontalBox.lock()->RemoveChildAt(index);
 
-    const std::shared_ptr<WidgetSwitcher> switcher = _switcher.lock();
+    const SharedObjectPtr<WidgetSwitcher> switcher = _switcher.lock();
     switcher->RemoveChildAt(index);
 
     SetTabIndex(GetCurrentTabIndex() - 1);
@@ -109,7 +109,7 @@ int32 TabSwitcher::GetTabIndex(const std::wstring& name) const
 
 int32 TabSwitcher::GetTabCount() const
 {
-    return static_cast<int32>(_switcher.lock()->GetChildren().size());
+    return static_cast<int32>(_switcher.lock()->GetChildren().Count());
 }
 
 bool TabSwitcher::Initialize()
@@ -122,7 +122,7 @@ bool TabSwitcher::Initialize()
     // todo remove
     SetVisibility(false);
 
-    const std::shared_ptr<FlowBox> verticalBox = AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> verticalBox = AddChild<FlowBox>();
     if (!verticalBox)
     {
         return false;
@@ -131,7 +131,7 @@ bool TabSwitcher::Initialize()
     verticalBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
     verticalBox->SetVisibility(false);
 
-    const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
     if (!horizontalBox)
     {
         return false;
@@ -142,7 +142,7 @@ bool TabSwitcher::Initialize()
     horizontalBox->SetFillMode(EWidgetFillMode::FillX);
     horizontalBox->SetVisibility(false);
 
-    const std::shared_ptr<WidgetSwitcher> switcher = verticalBox->AddChild<WidgetSwitcher>();
+    const SharedObjectPtr<WidgetSwitcher> switcher = verticalBox->AddChild<WidgetSwitcher>();
     if (!switcher)
     {
         return false;

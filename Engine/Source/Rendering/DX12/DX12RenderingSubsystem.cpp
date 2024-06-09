@@ -174,7 +174,7 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
     }
 
     {
-        const std::shared_ptr<Scene> scene = GetScene();
+        const SharedObjectPtr<Scene> scene = GetScene();
         
         CCamera* camera = viewport.GetCamera();
         const Transform& cameraTransform = camera->GetTransform(); // todo this triggers recalculation of matrices
@@ -308,13 +308,13 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
     {
         const SMInstance& firstInstance = data[processedInstances];
 
-        const std::shared_ptr<StaticMesh> staticMesh = StaticMesh::GetMeshByID(firstInstance.MeshID);
+        const SharedObjectPtr<StaticMesh> staticMesh = StaticMesh::GetMeshByID(firstInstance.MeshID);
         if (staticMesh != nullptr)
         {
-            const std::shared_ptr<Material> material = Material::GetMaterialByID(firstInstance.MaterialID);
+            const SharedObjectPtr<Material> material = Material::GetMaterialByID(firstInstance.MaterialID);
             if (material != nullptr)
             {
-                const std::shared_ptr<DX12Shader> shader = material->GetShader<DX12Shader>();
+                const SharedObjectPtr<DX12Shader> shader = material->GetShader<DX12Shader>();
                 
                 const StaticMesh::LOD& lod = staticMesh->GetLOD(firstInstance.LOD);
 
@@ -799,7 +799,7 @@ std::unique_ptr<MaterialParameterRenderingData> DX12RenderingSubsystem::CreateMa
     return std::make_unique<DX12MaterialParameterRenderingData>();
 }
 
-std::shared_ptr<Texture> DX12RenderingSubsystem::CreateTexture(uint32 width, uint32 height) const
+SharedObjectPtr<Texture> DX12RenderingSubsystem::CreateTexture(uint32 width, uint32 height) const
 {
     return nullptr;
 }

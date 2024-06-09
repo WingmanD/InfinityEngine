@@ -18,7 +18,7 @@ bool DropdownTextChoice::Initialize()
     SetPadding({0.005f, 0.005f, 0.005f, 0.005f});
     SetCollisionEnabled(true);
 
-    const std::shared_ptr<TextBox> textWidget = AddChild<TextBox>();
+    const SharedObjectPtr<TextBox> textWidget = AddChild<TextBox>();
     if (textWidget == nullptr)
     {
         return false;
@@ -31,7 +31,7 @@ bool DropdownTextChoice::Initialize()
     return true;
 }
 
-std::shared_ptr<TextBox> DropdownTextChoice::GetTextBox() const
+SharedObjectPtr<TextBox> DropdownTextChoice::GetTextBox() const
 {
     return _textBox.lock();
 }

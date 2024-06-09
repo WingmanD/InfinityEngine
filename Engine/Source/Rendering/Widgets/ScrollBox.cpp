@@ -34,7 +34,7 @@ const Vector2& ScrollBox::GetMaxDesiredSize() const
     return _maxDesiredSize;
 }
 
-void ScrollBox::OnChildAdded(const std::shared_ptr<Widget>& child)
+void ScrollBox::OnChildAdded(const SharedObjectPtr<Widget>& child)
 {
     Widget::OnChildAdded(child);
 
@@ -55,7 +55,7 @@ void ScrollBox::OnChildAdded(const std::shared_ptr<Widget>& child)
     child->SetPosition(Vector2(0.0f, 0.0f));
 }
 
-void ScrollBox::OnChildRemoved(const std::shared_ptr<Widget>& child)
+void ScrollBox::OnChildRemoved(const SharedObjectPtr<Widget>& child)
 {
     Widget::OnChildRemoved(child);
 
@@ -67,13 +67,13 @@ bool ScrollBox::OnScrolledInternal(int32 value)
 {
     Widget::OnScrolledInternal(value);
 
-    const std::vector<std::shared_ptr<Widget>>& children = GetChildren();
-    if (children.empty())
+    const DArray<SharedObjectPtr<Widget>>& children = GetChildren();
+    if (children.IsEmpty())
     {
         return false;
     }
 
-    const std::shared_ptr<Widget> firstChild = GetChildren().front();
+    const SharedObjectPtr<Widget> firstChild = GetChildren().Front();
 
     const Vector2 childSize = firstChild->GetScreenSize() / GetScreenSize();
 
@@ -118,7 +118,7 @@ void ScrollBox::SetProgress(float value)
 
     constexpr float scrollSpeed = 0.1f;
 
-    const std::shared_ptr<Widget> firstChild = GetChildren().front();
+    const SharedObjectPtr<Widget> firstChild = GetChildren().Front();
 
     const Vector2 childSize = firstChild->GetScreenSize() / GetScreenSize();
 

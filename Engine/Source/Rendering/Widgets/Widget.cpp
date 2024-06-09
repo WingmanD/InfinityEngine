@@ -11,9 +11,9 @@
 
 static constexpr auto GWidgetComparator = [](const std::weak_ptr<Widget>& a, const std::weak_ptr<Widget>& b)
 {
-    if (const std::shared_ptr<Widget> aWidget = a.lock())
+    if (const SharedObjectPtr<Widget> aWidget = a.lock())
     {
-        if (const std::shared_ptr<Widget> bWidget = b.lock())
+        if (const SharedObjectPtr<Widget> bWidget = b.lock())
         {
             return aWidget->GetZOrder() > bWidget->GetZOrder();
         }
@@ -73,21 +73,21 @@ bool Widget::operator==(const Widget& other) const
 
 bool Widget::Initialize()
 {
-    _quadMeshInstance = std::make_shared<StaticMeshInstance>(UIStatics::GetUIQuadMesh());
+    _quadMeshInstance = NewObject<StaticMeshInstance>(UIStatics::GetUIQuadMesh());
 
     if (_material != nullptr)
     {
         _material->Load();
 
-        const std::shared_ptr<Material> newMaterial = _material->DuplicateStatic<Material>();
+        const SharedObjectPtr<Material> newMaterial = _material->DuplicateStatic<Material>();
         newMaterial->Initialize();
         _quadMeshInstance->SetMaterial(newMaterial);
     }
     else
     {
-        if (const std::shared_ptr<Material> material = _quadMeshInstance->GetMaterial())
+        if (const SharedObjectPtr<Material> material = _quadMeshInstance->GetMaterial())
         {
-            const std::shared_ptr<Material> newMaterial = material->DuplicateStatic<Material>();
+            const SharedObjectPtr<Material> newMaterial = material->DuplicateStatic<Material>();
             newMaterial->Initialize();
             _quadMeshInstance->SetMaterial(newMaterial);
         }
@@ -140,7 +140,7 @@ void Widget::SetVisibility(bool value, bool recursive /*= false*/)
 
     if (recursive)
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->SetVisibility(value, recursive);
         }
@@ -164,7 +164,7 @@ void Widget::SetCollisionEnabled(bool value, bool recursive /*= false*/)
 
     if (recursive)
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->SetCollisionEnabled(value, recursive);
         }
@@ -203,7 +203,7 @@ bool Widget::IsCollapsed() const
 {
     const bool isCollapsed = (_state & EWidgetState::Collapsed) != EWidgetState::None;
 
-    if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         return isCollapsed || parentWidget->IsCollapsed();
     }
@@ -243,7 +243,7 @@ bool Widget::IsRootWidget() const
 
 void Widget::SetPosition(const Vector2& position)
 {
-    if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         _transform.SetPosition(
             GetAnchorPosition(GetAnchor()) + position * parentWidget->GetSizeWS() - GetAnchorPosition(GetSelfAnchor()) *
@@ -318,7 +318,7 @@ void Widget::SetSize(const Vector2& size)
         DEBUG_BREAK();
     }
 
-    if (const std::shared_ptr<Widget> widget = GetParentWidget())
+    if (const SharedObjectPtr<Widget> widget = GetParentWidget())
     {
         _quadTransform.SetScale(_size * widget->GetSizeWS());
     }
@@ -337,7 +337,7 @@ Vector2 Widget::GetSize() const
 
 Vector2 Widget::GetSizeWS() const
 {
-    if (const std::shared_ptr<Widget> widget = GetParentWidget())
+    if (const SharedObjectPtr<Widget> widget = GetParentWidget())
     {
         return _size * widget->GetSizeWS();
     }
@@ -357,7 +357,7 @@ Vector2 Widget::GetScreenSize() const
 
 Vector2 Widget::GetScreenRelativeSize() const
 {
-    if (const std::shared_ptr<Widget> widget = GetParentWidget())
+    if (const SharedObjectPtr<Widget> widget = GetParentWidget())
     {
         return _size * widget->GetScreenRelativeSize();
     }
@@ -423,7 +423,7 @@ const Transform2D& Widget::GetTransform() const
 
 Transform2D Widget::GetTransformWS() const
 {
-    if (const std::shared_ptr<Widget> widget = GetParentWidget())
+    if (const SharedObjectPtr<Widget> widget = GetParentWidget())
     {
         return widget->GetTransformWS() * _transform;
     }
@@ -443,13 +443,13 @@ void Widget::SetZOrder(uint16 zOrder)
     _quadTransform.SetZOffset(1.0f - static_cast<float>(zOrder) / 100.0f);
 
     const uint16 childZOrder = zOrder + 1;
-    for (const std::shared_ptr<Widget>& widget : _children)
+    for (const SharedObjectPtr<Widget>& widget : _children)
     {
         widget->SetZOrder(childZOrder);
     }
 }
 
-void Widget::SetMaterial(const std::shared_ptr<Material>& material)
+void Widget::SetMaterial(const SharedObjectPtr<Material>& material)
 {
     // todo unlink old material and shared param
     _quadMeshInstance->SetMaterial(material);
@@ -463,17 +463,17 @@ void Widget::SetMaterial(const std::shared_ptr<Material>& material)
     }
 }
 
-std::shared_ptr<Material> Widget::GetMaterial() const
+SharedObjectPtr<Material> Widget::GetMaterial() const
 {
     return _material;
 }
 
-void Widget::AddChild(const std::shared_ptr<Widget>& widget, bool invalidateLayout /*= true*/)
+void Widget::AddChild(const SharedObjectPtr<Widget>& widget, bool invalidateLayout /*= true*/)
 {
-    InsertChild(widget, _children.size(), invalidateLayout);
+    InsertChild(widget, _children.Count(), invalidateLayout);
 }
 
-void Widget::InsertChild(const std::shared_ptr<Widget>& widget, size_t index, bool invalidateLayout /*= true*/)
+void Widget::InsertChild(const SharedObjectPtr<Widget>& widget, size_t index, bool invalidateLayout /*= true*/)
 {
     if (widget == nullptr)
     {
@@ -489,7 +489,7 @@ void Widget::InsertChild(const std::shared_ptr<Widget>& widget, size_t index, bo
 
     assert(widget.get() != this);
 
-    _children.insert(_children.begin() + index, widget);
+    _children.InsertAt(index, widget);
 
     OnChildAdded(widget);
 
@@ -501,28 +501,28 @@ void Widget::InsertChild(const std::shared_ptr<Widget>& widget, size_t index, bo
     }
 }
 
-void Widget::RemoveChild(const std::shared_ptr<Widget>& widget)
+void Widget::RemoveChild(const SharedObjectPtr<Widget>& widget)
 {
     OnChildRemoved(widget);
-
-    std::erase(_children, widget);
+    
+    _children.Remove(widget);
 }
 
 void Widget::RemoveChildAt(size_t index)
 {
-    assert(index < _children.size());
+    assert(index < _children.Count());
 
     RemoveChild(_children[index]);
 }
 
-const std::vector<std::shared_ptr<Widget>>& Widget::GetChildren() const
+const DArray<SharedObjectPtr<Widget>>& Widget::GetChildren() const
 {
     return _children;
 }
 
 void Widget::RemoveFromParent()
 {
-    if (const std::shared_ptr<Widget> parent = GetParentWidget())
+    if (const SharedObjectPtr<Widget> parent = GetParentWidget())
     {
         parent->RemoveChild(SharedFromThis());
     }
@@ -537,7 +537,7 @@ void Widget::InvalidateLayout()
 
     _isLayoutDirty = true;
 
-    if (const std::shared_ptr<Widget> parent = GetParentWidget())
+    if (const SharedObjectPtr<Widget> parent = GetParentWidget())
     {
         parent->InvalidateLayout();
     }
@@ -547,7 +547,7 @@ void Widget::InvalidateTree()
 {
     InvalidateLayout();
 
-    for (const std::shared_ptr<Widget>& widget : _children)
+    for (const SharedObjectPtr<Widget>& widget : _children)
     {
         widget->InvalidateTree();
     }
@@ -567,14 +567,14 @@ void Widget::RebuildLayout()
 
     if (!IsCollapsed())
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->UpdateDesiredSize();
         }
 
         RebuildLayoutInternal();
 
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->RebuildLayout();
         }
@@ -593,7 +593,7 @@ void Widget::ForceRebuildLayout(bool recursive /*= false*/)
     }
 
     // todo resizing window does not trigger update of desired size because 
-    for (const std::shared_ptr<Widget>& widget : _children)
+    for (const SharedObjectPtr<Widget>& widget : _children)
     {
         widget->ForceUpdateDesiredSize(recursive);
     }
@@ -604,14 +604,14 @@ void Widget::ForceRebuildLayout(bool recursive /*= false*/)
 
     if (recursive)
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->ForceRebuildLayout(recursive);
         }
     }
     else
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->RebuildLayout();
         }
@@ -635,21 +635,21 @@ void Widget::UpdateCollision(bool recursive /*= false*/)
 
     if (recursive)
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->UpdateCollision(recursive);
         }
     }
 }
 
-std::shared_ptr<Widget> Widget::GetParentWidget() const
+SharedObjectPtr<Widget> Widget::GetParentWidget() const
 {
     return _parentWidget.lock();
 }
 
-std::shared_ptr<Widget> Widget::GetRootWidget()
+SharedObjectPtr<Widget> Widget::GetRootWidget()
 {
-    if (const std::shared_ptr<Widget> parent = GetParentWidget())
+    if (const SharedObjectPtr<Widget> parent = GetParentWidget())
     {
         return parent->GetRootWidget();
     }
@@ -692,22 +692,35 @@ StaticMeshInstance& Widget::GetQuadMesh() const
 
 void Widget::DestroyWidget()
 {
+    if (!IsValid())
+    {
+        return;
+    }
+    
+    SetValid(false);
+    
     SetCollisionEnabledInternal(false);
 
-    for (const std::shared_ptr<Widget>& child : _children)
+    for (const SharedObjectPtr<Widget>& child : _children)
     {
         if (child != nullptr)
         {
             child->DestroyWidget();
         }
     }
+    _children.Clear();
 
-    if (const std::shared_ptr<Widget> parent = GetParentWidget())
+    if (const SharedObjectPtr<Widget> parent = GetParentWidget())
     {
-        parent->RemoveChild(SharedFromThis());
+        if (parent->IsValid())
+        {
+            parent->RemoveChild(SharedFromThis());
+        }
     }
 
     OnDestroyed.Broadcast();
+
+    _quadMeshInstance.reset();
 }
 
 void Widget::SetAnchor(EWidgetAnchor anchor)
@@ -762,7 +775,7 @@ void Widget::SetConstrainedToParent(bool value)
 
     UpdateBoundingBox();
 
-    for (const std::shared_ptr<Widget> child : _children)
+    for (const SharedObjectPtr<Widget> child : _children)
     {
         child->SetConstrainedToParent(value);
     }
@@ -865,12 +878,12 @@ void Widget::CallScrolled(int32 value, PassKey<Window>)
 
 void Widget::RebuildLayoutInternal()
 {
-    if (_children.empty())
+    if (_children.IsEmpty())
     {
         return;
     }
 
-    const std::shared_ptr<Widget> firstChild = _children[0];
+    const SharedObjectPtr<Widget> firstChild = _children[0];
 
     firstChild->SetPosition({0.0f, 0.0f});
 
@@ -899,7 +912,7 @@ void Widget::UpdateDesiredSize()
         return;
     }
 
-    for (const std::shared_ptr<Widget>& child : _children)
+    for (const SharedObjectPtr<Widget>& child : _children)
     {
         child->UpdateDesiredSize();
     }
@@ -918,14 +931,14 @@ void Widget::ForceUpdateDesiredSize(bool recursive)
 {
     if (recursive)
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->ForceUpdateDesiredSize(recursive);
         }
     }
     else
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->UpdateDesiredSize();
         }
@@ -936,14 +949,14 @@ void Widget::ForceUpdateDesiredSize(bool recursive)
 
 void Widget::UpdateDesiredSizeInternal()
 {
-    if (_children.empty())
+    if (_children.IsEmpty())
     {
         SetDesiredSize(Vector2::Zero);
 
         return;
     }
 
-    const std::shared_ptr<Widget> firstChild = _children[0];
+    const SharedObjectPtr<Widget> firstChild = _children[0];
     const Vector2 totalSize = firstChild->GetPaddedDesiredSize();
 
     SetDesiredSize(totalSize);
@@ -974,7 +987,7 @@ void Widget::OnTransformChanged()
 
     GetRenderingProxy().OnTransformChanged();
 
-    for (const std::shared_ptr<Widget>& widget : GetChildren())
+    for (const SharedObjectPtr<Widget>& widget : GetChildren())
     {
         widget->OnTransformChanged();
     }
@@ -983,7 +996,7 @@ void Widget::OnTransformChanged()
 Vector2 Widget::GetAnchorPosition(EWidgetAnchor anchor) const
 {
     const Vector2 anchorPosition = _anchorPositionMap[static_cast<uint32>(anchor)];
-    if (const std::shared_ptr<Widget>& parentWidget = GetParentWidget())
+    if (const SharedObjectPtr<Widget>& parentWidget = GetParentWidget())
     {
         return parentWidget->GetSizeWS() * anchorPosition * 0.5f;
     }
@@ -997,7 +1010,7 @@ void Widget::SetVisibilityInternal(bool value, bool recursive /*= false*/)
 
     if (recursive)
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->SetVisibilityInternal(value, recursive);
         }
@@ -1036,7 +1049,7 @@ void Widget::SetCollisionEnabledInternal(bool value, bool recursive /*= false*/)
 
     if (recursive)
     {
-        for (const std::shared_ptr<Widget>& widget : _children)
+        for (const SharedObjectPtr<Widget>& widget : _children)
         {
             widget->SetCollisionEnabledInternal(value, recursive);
         }
@@ -1055,7 +1068,7 @@ void Widget::EnableCollisionForTree()
             }
         }
 
-        for (const std::shared_ptr<Widget>& child : GetChildren())
+        for (const SharedObjectPtr<Widget>& child : GetChildren())
         {
             child->EnableCollisionForTree();
         }
@@ -1066,7 +1079,7 @@ void Widget::DisableCollisionForTree()
 {
     SetCollisionEnabledInternal(false);
 
-    for (const std::shared_ptr<Widget>& child : GetChildren())
+    for (const SharedObjectPtr<Widget>& child : GetChildren())
     {
         child->DisableCollisionForTree();
     }
@@ -1086,9 +1099,12 @@ void Widget::OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std
         SetCollisionEnabledInternal(false);
     }
 
-    UpdateWidgetRect();
+    if (newWindow != nullptr)
+    {
+        UpdateWidgetRect();
+    }
 
-    for (const std::shared_ptr<Widget>& widget : _children)
+    for (const SharedObjectPtr<Widget>& widget : _children)
     {
         widget->SetWindow(newWindow);
     }
@@ -1098,26 +1114,26 @@ void Widget::OnWidgetRectChanged()
 {
 }
 
-void Widget::OnChildAdded(const std::shared_ptr<Widget>& child)
+void Widget::OnChildAdded(const SharedObjectPtr<Widget>& child)
 {
     child->SetConstrainedToParent(IsConstrainedToParent());
 }
 
-void Widget::OnChildRemoved(const std::shared_ptr<Widget>& child)
+void Widget::OnChildRemoved(const SharedObjectPtr<Widget>& child)
 {
     child->OnRemovedFromParent(SharedFromThis());
 
     InvalidateLayout();
 }
 
-void Widget::OnAddedToParent(const std::shared_ptr<Widget>& parent)
+void Widget::OnAddedToParent(const SharedObjectPtr<Widget>& parent)
 {
     _parentWidget = parent;
     SetZOrder(parent->GetZOrder() + 1);
     SetWindow(parent->GetParentWindow());
 }
 
-void Widget::OnRemovedFromParent(const std::shared_ptr<Widget>& parent)
+void Widget::OnRemovedFromParent(const SharedObjectPtr<Widget>& parent)
 {
     SetWindow(nullptr);
     _parentWidget.reset();
@@ -1213,7 +1229,7 @@ void Widget::UpdateBoundingBox()
 
     if (IsConstrainedToParent())
     {
-        if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+        if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
         {
             if (parentWidget->_isBoundingBoxValid)
             {
@@ -1272,7 +1288,7 @@ void Widget::Pressed()
     {
         OnPressed.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->Pressed();
     }
@@ -1284,7 +1300,7 @@ void Widget::Released()
     {
         OnReleased.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->Released();
     }
@@ -1296,7 +1312,7 @@ void Widget::HoverStarted()
     {
         OnHoverStarted.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->HoverStarted();
     }
@@ -1308,7 +1324,7 @@ void Widget::HoverEnded()
     {
         OnHoverEnded.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->HoverEnded();
     }
@@ -1320,7 +1336,7 @@ void Widget::DragStarted()
     {
         OnDragStarted.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->DragStarted();
     }
@@ -1332,7 +1348,7 @@ void Widget::DragEnded()
     {
         OnDragEnded.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->DragEnded();
     }
@@ -1344,7 +1360,7 @@ void Widget::RightClickPressed()
     {
         OnRightClickPressed.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->RightClickPressed();
     }
@@ -1356,7 +1372,7 @@ void Widget::RightClickReleased()
     {
         OnRightClickReleased.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->RightClickReleased();
     }
@@ -1368,7 +1384,7 @@ void Widget::MiddleClickPressed()
     {
         OnMiddleClickPressed.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->MiddleClickPressed();
     }
@@ -1380,7 +1396,7 @@ void Widget::MiddleClickReleased()
     {
         OnMiddleClickReleased.Broadcast();
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->MiddleClickReleased();
     }
@@ -1392,7 +1408,7 @@ void Widget::Scrolled(int32 value)
     {
         OnScrolled.Broadcast(value);
     }
-    else if (const std::shared_ptr<Widget> parentWidget = GetParentWidget())
+    else if (const SharedObjectPtr<Widget> parentWidget = GetParentWidget())
     {
         parentWidget->Scrolled(value);
     }

@@ -22,7 +22,7 @@ protected:
     void RebuildLayoutInternal() override;
     void UpdateDesiredSizeInternal() override;
 
-    void OnChildAdded(const std::shared_ptr<Widget>& child) override;
+    void OnChildAdded(const SharedObjectPtr<Widget>& child) override;
 };
 
 REFLECTED()
@@ -33,8 +33,8 @@ class TableWidget : public Widget
 public:
     TableWidget() = default;
     
-    void AddRow(const std::shared_ptr<TableRowWidget>& row);
-    void RemoveRow(const std::shared_ptr<TableRowWidget>& row);
+    void AddRow(const SharedObjectPtr<TableRowWidget>& row);
+    void RemoveRow(const SharedObjectPtr<TableRowWidget>& row);
 
     const std::vector<float>& GetColumnRatios() const;
 

@@ -53,7 +53,7 @@ bool DropdownTypeChoice::Initialize()
     return true;
 }
 
-std::shared_ptr<TypePicker> TypePicker::CreateForType(Type* baseType, const std::function<bool(const Type*)>& callback /*= nullptr*/)
+SharedObjectPtr<TypePicker> TypePicker::CreateForType(Type* baseType, const std::function<bool(const Type*)>& callback /*= nullptr*/)
 {
     if (baseType == nullptr)
     {
@@ -61,7 +61,7 @@ std::shared_ptr<TypePicker> TypePicker::CreateForType(Type* baseType, const std:
         return nullptr;
     }
 
-    const std::shared_ptr<TypePicker> typePicker = std::make_shared<TypePicker>();
+    const SharedObjectPtr<TypePicker> typePicker = NewObject<TypePicker>();
     if (!typePicker->Initialize())
     {
         return nullptr;
@@ -91,7 +91,7 @@ void TypePicker::InitializeFromType(Type* baseType, const std::function<bool(con
                                          return true;
                                      }
                                  }
-                                 const std::shared_ptr<DropdownTypeChoice> choice = std::make_shared<
+                                 const SharedObjectPtr<DropdownTypeChoice> choice = NewObject<
                                      DropdownTypeChoice>();
                                  if (!choice->Initialize())
                                  {
@@ -118,7 +118,7 @@ Type* TypePicker::GetBaseType() const
 
 Type* TypePicker::GetSelectedType() const
 {
-    const std::shared_ptr<DropdownTypeChoice> selectedWidget = GetSelectedChoice<DropdownTypeChoice>();
+    const SharedObjectPtr<DropdownTypeChoice> selectedWidget = GetSelectedChoice<DropdownTypeChoice>();
     if (selectedWidget == nullptr)
     {
         return nullptr;
@@ -135,9 +135,9 @@ void TypePicker::SetSelectedType(const Type* type)
         return;
     }
 
-    for (const std::shared_ptr<Widget>& widget : GetChoices())
+    for (const SharedObjectPtr<Widget>& widget : GetChoices())
     {
-        const std::shared_ptr<DropdownTypeChoice> choice = std::dynamic_pointer_cast<DropdownTypeChoice>(widget);
+        const SharedObjectPtr<DropdownTypeChoice> choice = std::dynamic_pointer_cast<DropdownTypeChoice>(widget);
         if (choice == nullptr)
         {
             continue;

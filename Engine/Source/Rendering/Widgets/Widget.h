@@ -152,15 +152,15 @@ public:
 
     void SetZOrder(uint16 zOrder);
 
-    void SetMaterial(const std::shared_ptr<Material>& material);
-    std::shared_ptr<Material> GetMaterial() const;
+    void SetMaterial(const SharedObjectPtr<Material>& material);
+    SharedObjectPtr<Material> GetMaterial() const;
 
-    void AddChild(const std::shared_ptr<Widget>& widget, bool invalidateLayout = true);
+    void AddChild(const SharedObjectPtr<Widget>& widget, bool invalidateLayout = true);
 
     template <typename T> requires std::is_base_of_v<Widget, T>
-    std::shared_ptr<T> AddChild(bool invalidateLayout = true)
+    SharedObjectPtr<T> AddChild(bool invalidateLayout = true)
     {
-        std::shared_ptr<T> widget = std::make_shared<T>();
+        SharedObjectPtr<T> widget = NewObject<T>();
         if (!widget->Initialize())
         {
             return nullptr;
@@ -171,12 +171,12 @@ public:
         return widget;
     }
 
-    void InsertChild(const std::shared_ptr<Widget>& widget, size_t index, bool invalidateLayout = true);
+    void InsertChild(const SharedObjectPtr<Widget>& widget, size_t index, bool invalidateLayout = true);
     
     template <typename T> requires std::is_base_of_v<Widget, T>
-    std::shared_ptr<T> InsertChild(size_t index, bool invalidateLayout = true)
+    SharedObjectPtr<T> InsertChild(size_t index, bool invalidateLayout = true)
     {
-        std::shared_ptr<T> widget = std::make_shared<T>();
+        SharedObjectPtr<T> widget = NewObject<T>();
         if (!widget->Initialize())
         {
             return nullptr;
@@ -187,11 +187,11 @@ public:
         return widget;
     }
 
-    void RemoveChild(const std::shared_ptr<Widget>& widget);
+    void RemoveChild(const SharedObjectPtr<Widget>& widget);
 
     void RemoveChildAt(size_t index);
     
-    const std::vector<std::shared_ptr<Widget>>& GetChildren() const;
+    const DArray<SharedObjectPtr<Widget>>& GetChildren() const;
     void RemoveFromParent();
 
     void InvalidateLayout();
@@ -202,8 +202,8 @@ public:
 
     void UpdateCollision(bool recursive = false);
 
-    [[nodiscard]] std::shared_ptr<Widget> GetParentWidget() const;
-    std::shared_ptr<Widget> GetRootWidget();
+    [[nodiscard]] SharedObjectPtr<Widget> GetParentWidget() const;
+    SharedObjectPtr<Widget> GetRootWidget();
     const RECT& GetRect() const;
 
     void SetWindow(const std::shared_ptr<Window>& window);
@@ -289,11 +289,11 @@ protected:
     virtual void OnWindowChanged(const std::shared_ptr<Window>& oldWindow, const std::shared_ptr<Window>& newWindow);
     virtual void OnWidgetRectChanged();
 
-    virtual void OnChildAdded(const std::shared_ptr<Widget>& child);
-    virtual void OnChildRemoved(const std::shared_ptr<Widget>& child);
+    virtual void OnChildAdded(const SharedObjectPtr<Widget>& child);
+    virtual void OnChildRemoved(const SharedObjectPtr<Widget>& child);
 
-    virtual void OnAddedToParent(const std::shared_ptr<Widget>& parent);
-    virtual void OnRemovedFromParent(const std::shared_ptr<Widget>& parent);
+    virtual void OnAddedToParent(const SharedObjectPtr<Widget>& parent);
+    virtual void OnRemovedFromParent(const SharedObjectPtr<Widget>& parent);
 
     virtual bool OnPressedInternal();
     virtual bool OnReleasedInternal();
@@ -330,7 +330,7 @@ private:
     PROPERTY(Edit, DisplayName = "Input Compatibility")
     EWidgetInputCompatibility _inputCompatibility = EWidgetInputCompatibility::None;
 
-    std::shared_ptr<StaticMeshInstance> _quadMeshInstance;
+    SharedObjectPtr<StaticMeshInstance> _quadMeshInstance;
 
     std::weak_ptr<Widget> _parentWidget;
     std::weak_ptr<Window> _parentWindow;
@@ -340,7 +340,7 @@ private:
     PROPERTY(Edit, Load, EditInPlace, DisplayName = "Material")
     AssetPtr<Material> _material;
 
-    std::vector<std::shared_ptr<Widget>> _children;
+    DArray<SharedObjectPtr<Widget>> _children;
 
     PROPERTY(Edit, DisplayName = "Constrain To Parent")
     bool _isConstrainedToParent = false;

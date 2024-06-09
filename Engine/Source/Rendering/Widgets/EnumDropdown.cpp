@@ -81,7 +81,7 @@ bool DropdownEnumChoice::InitializeFromEnumInternal(const Enum* enumType, uint32
     return true;
 }
 
-std::shared_ptr<EnumDropdown> EnumDropdown::CreateForEnum(const Enum* enumType)
+SharedObjectPtr<EnumDropdown> EnumDropdown::CreateForEnum(const Enum* enumType)
 {
     if (enumType == nullptr)
     {
@@ -89,7 +89,7 @@ std::shared_ptr<EnumDropdown> EnumDropdown::CreateForEnum(const Enum* enumType)
         return nullptr;
     }
 
-    const std::shared_ptr<EnumDropdown> dropdown = std::make_shared<EnumDropdown>();
+    const SharedObjectPtr<EnumDropdown> dropdown = NewObject<EnumDropdown>();
     if (!dropdown->Initialize())
     {
         return nullptr;
@@ -111,7 +111,7 @@ void EnumDropdown::InitializeFromEnum(const Enum* enumType)
 
     for (const auto& value : enumType->GetEntries() | std::views::values)
     {
-        std::shared_ptr<DropdownEnumChoice> choice = std::make_shared<DropdownEnumChoice>();
+        SharedObjectPtr<DropdownEnumChoice> choice = NewObject<DropdownEnumChoice>();
         if (!choice->InitializeFromEnum(enumType, value))
         {
             DEBUG_BREAK();
@@ -129,13 +129,13 @@ const Enum* EnumDropdown::GetEnumType() const
 
 const std::string& EnumDropdown::GetSelectedEnumName() const
 {
-    const std::shared_ptr<DropdownEnumChoice> selectedWidget = GetSelectedChoice<DropdownEnumChoice>();
+    const SharedObjectPtr<DropdownEnumChoice> selectedWidget = GetSelectedChoice<DropdownEnumChoice>();
     return selectedWidget->GetSelectedEnumName();
 }
 
 uint32 EnumDropdown::GetSelectedEnumValue() const
 {
-    const std::shared_ptr<DropdownEnumChoice> selectedWidget = GetSelectedChoice<DropdownEnumChoice>();
+    const SharedObjectPtr<DropdownEnumChoice> selectedWidget = GetSelectedChoice<DropdownEnumChoice>();
     if (selectedWidget == nullptr)
     {
         return 0;
@@ -146,9 +146,9 @@ uint32 EnumDropdown::GetSelectedEnumValue() const
 
 void EnumDropdown::SetSelectedEnumValue(uint32 value)
 {
-    for (const std::shared_ptr<Widget>& widget : GetChoices())
+    for (const SharedObjectPtr<Widget>& widget : GetChoices())
     {
-        const std::shared_ptr<DropdownEnumChoice> choice = std::dynamic_pointer_cast<DropdownEnumChoice>(widget);
+        const SharedObjectPtr<DropdownEnumChoice> choice = std::dynamic_pointer_cast<DropdownEnumChoice>(widget);
         if (choice == nullptr)
         {
             continue;

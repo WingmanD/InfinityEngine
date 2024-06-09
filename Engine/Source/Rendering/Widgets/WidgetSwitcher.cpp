@@ -2,9 +2,9 @@
 
 void WidgetSwitcher::SetSelectedIndex(int32 index)
 {
-    if (index < 0 || index >= GetChildren().size())
+    if (index < 0 || index >= GetChildren().Count())
     {
-        index = std::clamp(index, 0, static_cast<int32>(GetChildren().size() - 1));
+        index = std::clamp(index, 0, static_cast<int32>(GetChildren().Count() - 1));
     }
 
     if (_selectedIndex == index)
@@ -12,7 +12,7 @@ void WidgetSwitcher::SetSelectedIndex(int32 index)
         return;
     }
 
-    const std::vector<std::shared_ptr<Widget>>& children = GetChildren();
+    const DArray<SharedObjectPtr<Widget>>& children = GetChildren();
     children[_selectedIndex]->SetCollapsed(true);
     
     children[index]->SetCollapsed(false);
@@ -28,13 +28,13 @@ int32 WidgetSwitcher::GetSelectedIndex() const
 
 void WidgetSwitcher::RebuildLayoutInternal()
 {
-    const std::vector<std::shared_ptr<Widget>>& children = GetChildren();
-    if (children.empty())
+    const DArray<SharedObjectPtr<Widget>>& children = GetChildren();
+    if (children.IsEmpty())
     {
         return;
     }
 
-    const std::shared_ptr<Widget> selectedChild = children[_selectedIndex];
+    const SharedObjectPtr<Widget> selectedChild = children[_selectedIndex];
 
     selectedChild->SetPosition({0.0f, 0.0f});
 
@@ -53,15 +53,15 @@ void WidgetSwitcher::RebuildLayoutInternal()
 
 void WidgetSwitcher::UpdateDesiredSizeInternal()
 {
-    const std::vector<std::shared_ptr<Widget>>& children = GetChildren();
-    if (children.empty())
+    const DArray<SharedObjectPtr<Widget>>& children = GetChildren();
+    if (children.IsEmpty())
     {
         SetDesiredSize(Vector2::Zero);
         return;
     }
 
     Vector2 desiredSize = children[0]->GetDesiredSize();
-    for (size_t i = 1; i < children.size(); i++)
+    for (size_t i = 1; i < children.Count(); i++)
     {
         desiredSize = Vector2::Max(desiredSize, children[i]->GetDesiredSize());
     }
@@ -69,19 +69,19 @@ void WidgetSwitcher::UpdateDesiredSizeInternal()
     SetDesiredSize(desiredSize);
 }
 
-void WidgetSwitcher::OnChildAdded(const std::shared_ptr<Widget>& child)
+void WidgetSwitcher::OnChildAdded(const SharedObjectPtr<Widget>& child)
 {
     Widget::OnChildAdded(child);
 
-    if (GetChildren().size() != 1)
+    if (GetChildren().Count() != 1)
     {
         child->SetCollapsed(true);
     }
 }
 
-void WidgetSwitcher::OnChildRemoved(const std::shared_ptr<Widget>& child)
+void WidgetSwitcher::OnChildRemoved(const SharedObjectPtr<Widget>& child)
 {
-    const auto it = std::ranges::find(GetChildren(), child);
+    const auto it = GetChildren().Find(child);
     if (it != GetChildren().end())
     {
         const int32 index = static_cast<int32>(it - GetChildren().begin());

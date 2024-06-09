@@ -12,7 +12,7 @@ bool AssetImportMenu::Initialize()
         return false;
     }
 
-    const std::shared_ptr<FlowBox> verticalBox = AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> verticalBox = AddChild<FlowBox>();
     if (verticalBox == nullptr)
     {
         return false;
@@ -20,7 +20,7 @@ bool AssetImportMenu::Initialize()
     verticalBox->SetDirection(EFlowBoxDirection::Vertical);
 
     {
-        const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+        const SharedObjectPtr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
         if (horizontalBox == nullptr)
         {
             return false;
@@ -37,7 +37,7 @@ bool AssetImportMenu::Initialize()
         textBox->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
         textBox->SetPadding({0.0f, 50.0f, 0.0f, 0.0f});
 
-        const std::shared_ptr<Button> closeButton = horizontalBox->AddChild<Button>();
+        const SharedObjectPtr<Button> closeButton = horizontalBox->AddChild<Button>();
         if (closeButton == nullptr)
         {
             return false;
@@ -51,7 +51,7 @@ bool AssetImportMenu::Initialize()
         });
     }
 
-    const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
     if (horizontalBox == nullptr)
     {
         return false;
@@ -59,7 +59,7 @@ bool AssetImportMenu::Initialize()
     horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
     horizontalBox->SetFillMode(EWidgetFillMode::FillX);
 
-    const std::shared_ptr<TextBox> textBox = horizontalBox->AddChild<TextBox>();
+    const SharedObjectPtr<TextBox> textBox = horizontalBox->AddChild<TextBox>();
     if (textBox == nullptr)
     {
         return false;
@@ -67,7 +67,7 @@ bool AssetImportMenu::Initialize()
     textBox->SetText(L"Type:");
     textBox->SetPadding({0.0f, 50.0f, 0.0f, 0.0f});
 
-    const std::shared_ptr<TypePicker> typePicker = TypePicker::CreateForType(
+    const SharedObjectPtr<TypePicker> typePicker = TypePicker::CreateForType(
         Asset::StaticType(), [](const Type* type)
         {
             return type->GetCDO<Asset>()->GetImporterType() != nullptr;
@@ -79,7 +79,7 @@ bool AssetImportMenu::Initialize()
     }
     horizontalBox->AddChild(typePicker);
 
-    const std::shared_ptr<Button> button = verticalBox->AddChild<Button>();
+    const SharedObjectPtr<Button> button = verticalBox->AddChild<Button>();
     if (button == nullptr)
     {
         return false;

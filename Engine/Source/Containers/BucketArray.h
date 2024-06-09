@@ -19,6 +19,10 @@ public:
     
 public:
     BucketArray() = default;
+    ~BucketArray()
+    {
+        Clear();
+    }
 
     T* Add(const T& element)
     {
@@ -78,6 +82,11 @@ public:
 
     bool Remove(T& element)
     {
+        if (!element.IsValid())
+        {
+            return false;
+        }
+        
         for (auto i = 0; i < _buckets.Count(); ++i)
         {
             auto& bucket = _buckets[i];
@@ -159,8 +168,8 @@ private:
                     continue;
                 }
 
-                element.SetValid(false);
                 element.~T();
+                element.SetValid(false);
             }
         }
 
@@ -184,11 +193,16 @@ private:
 
         bool Remove(T& element)
         {
+            if (!element.IsValid())
+            {
+                return false;
+            }
+            
             const size_t index = IndexOf(element);
             if (index < BucketSize)
             {
-                element.SetValid(false);
                 element.~T();
+                element.SetValid(false);
 
                 _freeIndices.Add(index);
 

@@ -37,7 +37,7 @@ public:
 
     EEditorVisibility GetEditorVisibility() const;
 
-    virtual std::shared_ptr<Widget> CreateWidget(const std::shared_ptr<Object>& object);
+    virtual SharedObjectPtr<Widget> CreateWidget(const SharedObjectPtr<Object>& object);
 
 protected:
     void SetDisplayName(Name displayName);
@@ -106,7 +106,7 @@ public:
         return object->*_memberPointer;
     }
 
-    std::shared_ptr<Widget> CreateWidget(const std::shared_ptr<Object>& object) override
+    SharedObjectPtr<Widget> CreateWidget(const SharedObjectPtr<Object>& object) override
     {
         if constexpr (std::is_enum_v<ValueType>)
         {

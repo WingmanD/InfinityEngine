@@ -11,26 +11,26 @@
 class AssetManager : public EngineSubsystem
 {
 public:
-    MulticastDelegate<std::shared_ptr<Asset>> OnAssetCreated;
-    MulticastDelegate<std::shared_ptr<Asset>> OnAssetDeleted;
+    MulticastDelegate<SharedObjectPtr<Asset>> OnAssetCreated;
+    MulticastDelegate<SharedObjectPtr<Asset>> OnAssetDeleted;
     
 public:
     static AssetManager& Get();
 
     ~AssetManager() override;
 
-    std::shared_ptr<Asset> NewAsset(const Type& type, Name name);
+    SharedObjectPtr<Asset> NewAsset(const Type& type, Name name);
 
     template <typename T> requires IsA<T, Asset>
-    std::shared_ptr<T> NewAsset(Name name) requires IsA<T, Asset>
+    SharedObjectPtr<T> NewAsset(Name name) requires IsA<T, Asset>
     {
         return std::dynamic_pointer_cast<T>(NewAsset(*T::StaticType(), name));
     }
 
-    void DeleteAsset(const std::shared_ptr<Asset>& asset);
+    void DeleteAsset(const SharedObjectPtr<Asset>& asset);
 
     template <typename T, typename... Args>
-    std::shared_ptr<T> Import(const std::filesystem::path& path, Args&&... args) requires IsA<T, Asset>
+    SharedObjectPtr<T> Import(const std::filesystem::path& path, Args&&... args) requires IsA<T, Asset>
     {
         std::filesystem::path actualPath = path;
         if (path.is_relative())
@@ -50,37 +50,37 @@ public:
         return asset;
     }
 
-    std::shared_ptr<Asset> FindAssetByName(Name name) const;
+    SharedObjectPtr<Asset> FindAssetByName(Name name) const;
 
     template <typename T>
-    std::shared_ptr<T> FindAssetByName(Name name) const requires IsA<T, Asset>
+    SharedObjectPtr<T> FindAssetByName(Name name) const requires IsA<T, Asset>
     {
         return std::dynamic_pointer_cast<T>(FindAssetByName(name));
     }
 
-    std::shared_ptr<Asset> FindOrCreateAssetByName(const Type& type, Name name);
+    SharedObjectPtr<Asset> FindOrCreateAssetByName(const Type& type, Name name);
     
     template <typename T>
-    std::shared_ptr<T> FindOrCreateAssetByName(Name name) requires IsA<T, Asset>
+    SharedObjectPtr<T> FindOrCreateAssetByName(Name name) requires IsA<T, Asset>
     {
         return std::dynamic_pointer_cast<T>(FindOrCreateAssetByName(*T::StaticType(), name));
     }
 
-    std::shared_ptr<Asset> FindAsset(uint64 id) const;
+    SharedObjectPtr<Asset> FindAsset(uint64 id) const;
 
     template <typename T>
-    std::shared_ptr<T> FindAsset(uint64 id) const requires IsA<T, Asset>
+    SharedObjectPtr<T> FindAsset(uint64 id) const requires IsA<T, Asset>
     {
         return std::dynamic_pointer_cast<T>(FindAsset(id));
     }
 
-    bool ForEachAssetOfType(Type* type, const std::function<bool(const std::shared_ptr<Asset>&)>& callback, bool recursive = false) const;
-    void ForEachAsset(const std::function<bool(std::shared_ptr<Asset>&)>& callback);
+    bool ForEachAssetOfType(Type* type, const std::function<bool(const SharedObjectPtr<Asset>&)>& callback, bool recursive = false) const;
+    void ForEachAsset(const std::function<bool(SharedObjectPtr<Asset>&)>& callback);
 
-    bool RegisterAsset(const std::shared_ptr<Asset>& asset);
-    bool UnregisterAsset(const std::shared_ptr<Asset>& asset);
+    bool RegisterAsset(const SharedObjectPtr<Asset>& asset);
+    bool UnregisterAsset(const SharedObjectPtr<Asset>& asset);
 
-    void MarkDirtyForAutosave(const std::shared_ptr<const Asset>& asset);
+    void MarkDirtyForAutosave(const SharedObjectPtr<const Asset>& asset);
 
     void RediscoverAssets();
 
@@ -98,7 +98,7 @@ private:
     std::unique_ptr<PackageManifest> _manifest;
     std::fstream _assetCache;
     
-    std::unordered_map<uint64, std::shared_ptr<Asset>> _assetMap;
+    std::unordered_map<uint64, SharedObjectPtr<Asset>> _assetMap;
     std::unordered_map<Name, uint64> _assetNameMap;
     std::unordered_map<Type*, std::vector<uint64>> _assetTypeMap;
 

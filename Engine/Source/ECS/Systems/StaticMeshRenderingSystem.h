@@ -44,5 +44,5 @@ private:
     EventHandle _onTransformChangedHandle;
     
 private:
-    DynamicGPUBuffer<MaterialParameter>& GetOrCreateMaterialParameterBuffer(uint32 materialID, const std::shared_ptr<Shader>& shader);
+    DynamicGPUBuffer<MaterialParameter>& GetOrCreateMaterialParameterBuffer(uint32 materialID, const SharedObjectPtr<Shader>& shader);
 };

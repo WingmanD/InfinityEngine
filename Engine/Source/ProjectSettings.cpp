@@ -2,7 +2,7 @@
 #include "LevelEditorGame.h"
 #include "Engine/Subsystems/AssetManager.h"
 
-std::shared_ptr<ProjectSettings> ProjectSettings::Get()
+SharedObjectPtr<ProjectSettings> ProjectSettings::Get()
 {
     static std::weak_ptr instance = AssetManager::Get().FindOrCreateAssetByName<ProjectSettings>(Name(L"ProjectSettings"));
     return instance.lock();
@@ -13,12 +13,12 @@ Type* ProjectSettings::GetGameType() const
     return _gameType;
 }
 
-std::shared_ptr<Game> ProjectSettings::GetGame() const
+SharedObjectPtr<Game> ProjectSettings::GetGame() const
 {
     return _game;
 }
 
-std::shared_ptr<Game> ProjectSettings::GetLevelEditorGame() const
+SharedObjectPtr<Game> ProjectSettings::GetLevelEditorGame() const
 {
     return _levelEditorGame;
 }

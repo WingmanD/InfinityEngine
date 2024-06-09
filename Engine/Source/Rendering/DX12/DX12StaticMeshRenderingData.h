@@ -14,8 +14,8 @@ class DX12StaticMeshRenderingData : public StaticMeshRenderingData
 public:
     DX12StaticMeshRenderingData() = default;
 
-    void SetupDrawing(DX12GraphicsCommandList* commandList, const std::shared_ptr<Material>& material) const;
-    void DrawDirect(DX12GraphicsCommandList* commandList, const std::shared_ptr<Material>& material) const;
+    void SetupDrawing(DX12GraphicsCommandList* commandList, const SharedObjectPtr<Material>& material) const;
+    void DrawDirect(DX12GraphicsCommandList* commandList, const SharedObjectPtr<Material>& material) const;
 
 protected:
     virtual bool UploadToGPUInternal(RenderingSubsystem& renderingSubsystem) override;

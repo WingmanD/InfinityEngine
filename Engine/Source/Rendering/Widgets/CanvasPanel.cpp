@@ -8,7 +8,7 @@ void CanvasPanel::RebuildLayoutInternal()
         return;
     }
 
-    for (const std::shared_ptr<Widget>& child : GetChildren())
+    for (const SharedObjectPtr<Widget>& child : GetChildren())
     {
         Vector2 newSize = child->GetDesiredSize() / screenSize;
         if (HasFlags(child->GetFillMode(), EWidgetFillMode::FillY))
@@ -35,7 +35,7 @@ void CanvasPanel::RebuildLayoutInternal()
     // const std::shared_ptr<Window> window = GetParentWindow();
     // const Vector2 screenSize = GetScreenSize();
     //
-    // for (const std::shared_ptr<Widget>& child : GetChildren())
+    // for (const SharedObjectPtr<Widget>& child : GetChildren())
     // {
     //     if (screenSize.LengthSquared() <= 0.0f)
     //     {

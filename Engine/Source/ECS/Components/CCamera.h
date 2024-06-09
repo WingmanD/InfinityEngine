@@ -15,8 +15,8 @@ public:
     Transform& GetTransform();
     const Transform& GetTransform() const;
 
-    std::shared_ptr<ViewportWidget> GetViewport() const;
-    void SetViewport(const std::shared_ptr<ViewportWidget>& viewport);
+    SharedObjectPtr<ViewportWidget> GetViewport() const;
+    void SetViewport(const SharedObjectPtr<ViewportWidget>& viewport);
     
     float GetHorizontalFieldOfView() const;
     void SetHorizontalFieldOfView(float horizontalFieldOfView);

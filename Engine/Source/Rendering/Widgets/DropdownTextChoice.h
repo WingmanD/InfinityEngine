@@ -20,7 +20,7 @@ public:
     virtual bool Initialize() override;
 
 protected:
-    std::shared_ptr<TextBox> GetTextBox() const;
+    SharedObjectPtr<TextBox> GetTextBox() const;
 
 private:
     // todo temporary, until we implement proper duplication

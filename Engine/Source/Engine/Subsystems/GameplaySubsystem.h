@@ -13,13 +13,13 @@ public:
 
     GameplaySubsystem() = default;
 
-    bool StartGame(const std::shared_ptr<ViewportWidget>& viewport, const std::shared_ptr<Game>& game = nullptr);
+    bool StartGame(const SharedObjectPtr<ViewportWidget>& viewport, const SharedObjectPtr<Game>& game = nullptr);
     void StopGame();
 
-    std::shared_ptr<Game> GetGame() const;
+    SharedObjectPtr<Game> GetGame() const;
 
     template <typename T> requires IsA<T, Game>
-    std::shared_ptr<T> GetGame() const
+    SharedObjectPtr<T> GetGame() const
     {
         return std::dynamic_pointer_cast<T>(GetGame());
     }
@@ -28,7 +28,7 @@ public:
     BucketArray<World>& GetWorlds();
 
     // todo temporary
-    std::shared_ptr<ViewportWidget> GetMainViewport() const;
+    SharedObjectPtr<ViewportWidget> GetMainViewport() const;
 
     // EngineSubsystem
 protected:
@@ -38,7 +38,7 @@ protected:
 
 private:
     BucketArray<World> _worlds;
-    std::shared_ptr<Game> _game;
+    SharedObjectPtr<Game> _game;
 
     // todo temporary until we implement players
     std::weak_ptr<ViewportWidget> _viewport;

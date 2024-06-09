@@ -74,7 +74,7 @@ public:
     };
     
 public:
-    static std::shared_ptr<StaticMesh> GetMeshByID(uint32 meshID);
+    static SharedObjectPtr<StaticMesh> GetMeshByID(uint32 meshID);
     static DynamicGPUBuffer2<MeshInfo>& GetMeshInfoBuffer();
     
 public:
@@ -94,8 +94,8 @@ public:
     const LOD& GetLOD(uint8 lod) const;
 
     // todo multiple material slots
-    void SetMaterial(const std::shared_ptr<Material>& material);
-    [[nodiscard]] std::shared_ptr<Material> GetMaterial() const;
+    void SetMaterial(const SharedObjectPtr<Material>& material);
+    [[nodiscard]] SharedObjectPtr<Material> GetMaterial() const;
 
     uint32 GetMeshID() const;
 
@@ -103,7 +103,7 @@ public:
 
     // Asset
 public:
-    virtual DArray<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const override;
+    virtual DArray<SharedObjectPtr<Asset>> Import(const SharedObjectPtr<Importer>& importer) const override;
 
     // Asset
 protected:

@@ -35,7 +35,7 @@ const std::wstring& TextBox::GetText() const
     return _text;
 }
 
-void TextBox::SetFont(const std::shared_ptr<Font>& font)
+void TextBox::SetFont(const SharedObjectPtr<Font>& font)
 {
     _font = font;
 
@@ -47,7 +47,7 @@ void TextBox::SetFont(const std::shared_ptr<Font>& font)
     OnTextChanged();
 }
 
-std::shared_ptr<Font> TextBox::GetFont() const
+SharedObjectPtr<Font> TextBox::GetFont() const
 {
     return _font;
 }
@@ -153,7 +153,7 @@ void TextBox::RebuildLayoutInternal()
 
 void TextBox::UpdateDesiredSizeInternal()
 {
-    const std::shared_ptr<Font>& font = GetFont();
+    const SharedObjectPtr<Font>& font = GetFont();
     if (font == nullptr)
     {
         SetDesiredSize(Vector2::Zero);

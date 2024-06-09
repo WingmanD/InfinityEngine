@@ -106,7 +106,7 @@ bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor
     return true;
 }
 
-void MaterialParameterMap::SetSharedParameter(const std::string& name, const std::shared_ptr<MaterialParameter>& parameter, bool allowMissing /*= false*/)
+void MaterialParameterMap::SetSharedParameter(const std::string& name, const SharedObjectPtr<MaterialParameter>& parameter, bool allowMissing /*= false*/)
 {
     if (!_nameToParameter.contains(name))
     {

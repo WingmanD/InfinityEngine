@@ -19,7 +19,7 @@ DX12CommandList DX12TextWidgetRenderingProxy::SetupDrawingInternal(DX12CommandLi
 
     currentCommandList.CommandList->RSSetScissorRects(1, &GetOwningWidget().GetRect());
 
-    const std::shared_ptr<Font> font = widget.GetFont();
+    const SharedObjectPtr<Font> font = widget.GetFont();
     if (font == nullptr)
     {
         return currentCommandList;

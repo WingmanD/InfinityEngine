@@ -78,11 +78,11 @@ public:
         });
     }
 
-    Entity& CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate);
-    void CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, uint32 count);
+    Entity& CreateEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate);
+    void CreateEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, uint32 count);
 
     template <typename Func>
-    void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, Func onCreated)
+    void CreateEntityAsync(const SharedObjectPtr<EntityTemplate>& entityTemplate, Func onCreated)
     {
         _eventQueue.Enqueue([entityTemplate, onCreated](World* world)
         {
@@ -92,7 +92,7 @@ public:
     }
 
     template <typename FuncInit, typename FuncOnCreated>
-    void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, FuncInit preInitialize, FuncOnCreated onCreated)
+    void CreateEntityAsync(const SharedObjectPtr<EntityTemplate>& entityTemplate, FuncInit preInitialize, FuncOnCreated onCreated)
     {
         _eventQueue.Enqueue([entityTemplate, onCreated, preInitialize, this](World* world)
         {
@@ -106,7 +106,7 @@ public:
     }
     
     template <typename Func>
-    void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, uint32 count, Func onCreated)
+    void CreateEntityAsync(const SharedObjectPtr<EntityTemplate>& entityTemplate, uint32 count, Func onCreated)
     {
         _eventQueue.Enqueue([entityTemplate, onCreated, count](World* world)
         {
@@ -230,10 +230,10 @@ private:
 
 private:
     Entity& CreateEntityInternal(const Archetype& archetype);
-    Entity& CreateEntityInternal(const std::shared_ptr<EntityTemplate>& entityTemplate);
+    Entity& CreateEntityInternal(const SharedObjectPtr<EntityTemplate>& entityTemplate);
     
     void OnEntityCreated(Entity& entity, const Archetype& archetype) const;
-    void OnEntityCreated(Entity& entity, const std::shared_ptr<EntityTemplate>& archetype) const;
+    void OnEntityCreated(Entity& entity, const SharedObjectPtr<EntityTemplate>& archetype) const;
     SharedObjectPtr<Component> AddComponentInternal(Entity& entity, Type& componentType, Name name);
 
     EntityList& GetEntityList(const Archetype& archetype);

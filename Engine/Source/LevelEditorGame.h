@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Game.h"
+#include "Level.h"
 #include "LevelEditorGame.reflection.h"
 
 class ViewportWidget;
@@ -14,8 +15,8 @@ class LevelEditorGame : public Game
 public:
     LevelEditorGame();
     
-    void SetLevel(const std::shared_ptr<Level>& level);
-    std::shared_ptr<Level> GetLevel() const;
+    void SetLevel(const SharedObjectPtr<Level>& level);
+    SharedObjectPtr<Level> GetLevel() const;
     
     // Game
 public:
@@ -23,5 +24,5 @@ public:
 
 private:
     std::weak_ptr<ViewportWidget> _viewport;
-    std::shared_ptr<Level> _level;
+    SharedObjectPtr<Level> _level;
 };

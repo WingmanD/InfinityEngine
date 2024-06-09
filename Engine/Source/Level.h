@@ -18,7 +18,7 @@ public:
 
     // AssetBrowserEntry
 public:
-    virtual bool InitializeFromAsset(const std::shared_ptr<Asset>& asset) override;
+    virtual bool InitializeFromAsset(const SharedObjectPtr<Asset>& asset) override;
 };
 
 REFLECTED(CustomSerialization)
@@ -50,7 +50,7 @@ public:
 
     Level(const Level& other);
     
-    uint64 AddEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, const Transform& transform);
+    uint64 AddEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, const Transform& transform);
     void RemoveEntity(uint64 elementID);
 
     void Stream(const Vector3& location, float radius, const std::function<void(const Chunk& chunk)>& callback, bool includeLoaded = false);
@@ -68,7 +68,7 @@ public:
     virtual bool Serialize(MemoryWriter& writer) const override;
     virtual bool Deserialize(MemoryReader& reader) override;
 
-    virtual std::shared_ptr<Widget> CreateEditWidget() override;
+    virtual SharedObjectPtr<Widget> CreateEditWidget() override;
 
     // Object
 

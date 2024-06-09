@@ -26,8 +26,8 @@ public:
     void SetText(const std::wstring& text);
     const std::wstring& GetText() const;
 
-    void SetFont(const std::shared_ptr<Font>& font);
-    std::shared_ptr<Font> GetFont() const;
+    void SetFont(const SharedObjectPtr<Font>& font);
+    SharedObjectPtr<Font> GetFont() const;
 
     void SetFontType(Font::EType fontType);
     Font::EType GetFontType() const;

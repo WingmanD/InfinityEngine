@@ -36,8 +36,8 @@ public:
     virtual std::unique_ptr<StaticMeshRenderingData> CreateStaticMeshRenderingData() = 0;
     virtual std::unique_ptr<MaterialRenderingData> CreateMaterialRenderingData() = 0;
     virtual std::unique_ptr<MaterialParameterRenderingData> CreateMaterialParameterRenderingData() = 0;
-    virtual std::shared_ptr<Texture> CreateTexture(uint32 width, uint32 height) const = 0;
-    virtual std::shared_ptr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) = 0;
+    virtual SharedObjectPtr<Texture> CreateTexture(uint32 width, uint32 height) const = 0;
+    virtual SharedObjectPtr<RenderTarget> CreateRenderTarget(uint32 width, uint32 height) = 0;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateDefaultWidgetRenderingProxy() = 0;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateTextWidgetRenderingProxy() = 0;
     virtual std::unique_ptr<WidgetRenderingProxy> CreateViewportWidgetRenderingProxy() = 0;
@@ -55,7 +55,7 @@ public:
 
     EventQueue<RenderingSubsystem>& GetEventQueue();
 
-    std::shared_ptr<Scene> GetScene() const;
+    SharedObjectPtr<Scene> GetScene() const;
 
 protected:
     virtual bool Initialize() override;
@@ -65,5 +65,5 @@ protected:
 private:
     EventQueue<RenderingSubsystem> _eventQueue;
     std::unique_ptr<ShaderChangeListener> _shaderChangeListener;
-    std::shared_ptr<Scene> _scene = nullptr;
+    SharedObjectPtr<Scene> _scene = nullptr;
 };

@@ -49,7 +49,7 @@ void RenderingSubsystem::Tick(double deltaTime)
     _scene->Time += static_cast<float>(deltaTime);
 }
 
-std::shared_ptr<Scene> RenderingSubsystem::GetScene() const
+SharedObjectPtr<Scene> RenderingSubsystem::GetScene() const
 {
     return _scene;
 }

@@ -34,7 +34,7 @@ class TypePicker : public DropdownMenu
 public:
     TypePicker() = default;
 
-    static std::shared_ptr<TypePicker> CreateForType(Type* baseType, const std::function<bool(const Type*)>& callback = nullptr);
+    static SharedObjectPtr<TypePicker> CreateForType(Type* baseType, const std::function<bool(const Type*)>& callback = nullptr);
 
     void InitializeFromType(Type* baseType, const std::function<bool(const Type*)>& callback = nullptr);
 

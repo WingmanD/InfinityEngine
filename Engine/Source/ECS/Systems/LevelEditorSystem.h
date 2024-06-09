@@ -13,11 +13,11 @@ class LevelEditorSystem : public System<CTransform>
     GENERATED()
 
 public:
-    void SetLevel(const std::shared_ptr<Level>& level);
-    std::shared_ptr<Level> GetLevel() const;
+    void SetLevel(const SharedObjectPtr<Level>& level);
+    SharedObjectPtr<Level> GetLevel() const;
 
-    void SpawnEntity(const std::shared_ptr<EntityTemplate>& entityTemplate) const;
-    void SpawnEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, const Transform& transform, uint64 id = 0u) const;
+    void SpawnEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate) const;
+    void SpawnEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, const Transform& transform, uint64 id = 0u) const;
     
     // System
 public:
@@ -44,7 +44,7 @@ private:
     DelegateHandle _onScaleSelectedHandle;
     DelegateHandle _onCoordinateSpaceChangedHandle;
     
-    std::shared_ptr<Level> _level;
+    SharedObjectPtr<Level> _level;
     Entity* _selectedEntity = nullptr;
     Archetype _selectedEntityArchetype;
 

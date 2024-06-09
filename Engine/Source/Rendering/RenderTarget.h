@@ -1,17 +1,20 @@
 ﻿#pragma once
 
 #include "Texture.h"
-#include "Core.h"
+#include "RenderTarget.reflection.h"
 
 class RenderingSubsystem;
 
+REFLECTED()
 class RenderTarget : public Texture
 {
+    GENERATED()
+    
 public:
-    RenderTarget(const RenderTarget&) = delete;
-    RenderTarget& operator=(const RenderTarget&) = delete;
+    RenderTarget() = default;
+    RenderTarget(const RenderTarget&);
 
-    virtual void Resize(uint32 width, uint32 height) = 0;
+    virtual void Resize(uint32 width, uint32 height);
 
 protected:
     RenderTarget(uint32 width, uint32 height);

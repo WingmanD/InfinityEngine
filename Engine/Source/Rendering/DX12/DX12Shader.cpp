@@ -221,10 +221,10 @@ bool DX12Shader::Recompile(bool immediate)
         return false;
     }
 
-    std::weak_ptr weakThis = shared_from_this();
+    std::weak_ptr weakThis = SharedFromThis();
     auto lambda = [weakThis, recompiledData](RenderingSubsystem* renderingSubsystem)
     {
-        const std::shared_ptr<DX12Shader> shader = std::static_pointer_cast<DX12Shader>(weakThis.lock());
+        const SharedObjectPtr<DX12Shader> shader = std::static_pointer_cast<DX12Shader>(weakThis.lock());
         if (shader == nullptr)
         {
             return;
@@ -476,9 +476,9 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
     return true;
 }
 
-DArray<std::shared_ptr<Asset>> DX12Shader::Import(const std::shared_ptr<Importer>& importer) const
+DArray<SharedObjectPtr<Asset>> DX12Shader::Import(const SharedObjectPtr<Importer>& importer) const
 {
-    const std::shared_ptr<DX12ShaderImporter> shaderImporter = std::dynamic_pointer_cast<DX12ShaderImporter>(importer);
+    const SharedObjectPtr<DX12ShaderImporter> shaderImporter = std::dynamic_pointer_cast<DX12ShaderImporter>(importer);
     if (shaderImporter == nullptr)
     {
         return {};
@@ -500,7 +500,7 @@ DArray<std::shared_ptr<Asset>> DX12Shader::Import(const std::shared_ptr<Importer
 
     AssetManager& assetManager = AssetManager::Get();
 
-    std::shared_ptr<DX12Shader> shader = assetManager.NewAsset<DX12Shader>(Name(path.stem().wstring()));
+    SharedObjectPtr<DX12Shader> shader = assetManager.NewAsset<DX12Shader>(Name(path.stem().wstring()));
     shader->SetImportPath(path);
 
     if (!shader->Recompile(true))

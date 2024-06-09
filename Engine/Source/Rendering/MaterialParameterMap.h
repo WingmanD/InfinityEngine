@@ -3,13 +3,12 @@
 #include "Core.h"
 #include "Type.h"
 #include "ISerializeable.h"
+#include "MaterialParameterTypes.h"
 #include <cstddef>
 #include <memory>
 #include <set>
 #include <string>
 #include <unordered_map>
-
-struct MaterialParameter;
 
 struct MaterialParameterDescriptor
 {
@@ -51,7 +50,7 @@ public:
         return parameter;
     }
 
-    void SetSharedParameter(const std::string& name, const std::shared_ptr<MaterialParameter>& parameter, bool allowMissing = false);
+    void SetSharedParameter(const std::string& name, const SharedObjectPtr<MaterialParameter>& parameter, bool allowMissing = false);
 
     // ISerializeable
 public:

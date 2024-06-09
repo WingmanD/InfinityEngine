@@ -10,7 +10,7 @@
 #include "Engine/Subsystems/GameplaySubsystem.h"
 #include "Rendering/Widgets/ViewportWidget.h"
 
-void LevelEditorSystem::SetLevel(const std::shared_ptr<Level>& level)
+void LevelEditorSystem::SetLevel(const SharedObjectPtr<Level>& level)
 {
     _level = level;
 
@@ -30,12 +30,12 @@ void LevelEditorSystem::SetLevel(const std::shared_ptr<Level>& level)
     });
 }
 
-std::shared_ptr<Level> LevelEditorSystem::GetLevel() const
+SharedObjectPtr<Level> LevelEditorSystem::GetLevel() const
 {
     return _level;
 }
 
-void LevelEditorSystem::SpawnEntity(const std::shared_ptr<EntityTemplate>& entityTemplate) const
+void LevelEditorSystem::SpawnEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate) const
 {
     Transform transform = GetCamera()->GetTransform();
     transform.SetWorldLocation(transform.GetWorldLocation() + transform.GetForwardVector() * 5.0f);
@@ -44,7 +44,7 @@ void LevelEditorSystem::SpawnEntity(const std::shared_ptr<EntityTemplate>& entit
     SpawnEntity(entityTemplate, transform);
 }
 
-void LevelEditorSystem::SpawnEntity(const std::shared_ptr<EntityTemplate>& entityTemplate, const Transform& transform, uint64 id /*= 0*/) const
+void LevelEditorSystem::SpawnEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, const Transform& transform, uint64 id /*= 0*/) const
 {
     if (!entityTemplate->Load())
     {
@@ -108,7 +108,7 @@ void LevelEditorSystem::Initialize()
     GameplaySubsystem& gameplaySubsystem = GameplaySubsystem::Get();
     SetLevel(gameplaySubsystem.GetGame<LevelEditorGame>()->GetLevel());
     
-    std::shared_ptr<ViewportWidget> viewport = gameplaySubsystem.GetMainViewport();
+    SharedObjectPtr<ViewportWidget> viewport = gameplaySubsystem.GetMainViewport();
     std::ignore = viewport->OnPressed.Add([this, viewport]
     {
         const Vector3 direction = viewport->GetMouseDirectionWS();

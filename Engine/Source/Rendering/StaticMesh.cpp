@@ -13,7 +13,7 @@ IDGenerator<uint32> StaticMesh::_meshIDGenerator = IDGenerator<uint32>(0);
 std::unordered_map<uint32, std::weak_ptr<StaticMesh>> StaticMesh::_meshIDToStaticMesh;
 DynamicGPUBuffer2<StaticMesh::MeshInfo> StaticMesh::_meshInfoBuffer;
 
-std::shared_ptr<StaticMesh> StaticMesh::GetMeshByID(uint32 meshID)
+SharedObjectPtr<StaticMesh> StaticMesh::GetMeshByID(uint32 meshID)
 {
     return _meshIDToStaticMesh[meshID].lock();
 }
@@ -133,7 +133,7 @@ const StaticMesh::LOD& StaticMesh::GetLOD(uint8 lod) const
     return _lods[lodIndex];
 }
 
-void StaticMesh::SetMaterial(const std::shared_ptr<Material>& material)
+void StaticMesh::SetMaterial(const SharedObjectPtr<Material>& material)
 {
     if (_material == material)
     {
@@ -148,7 +148,7 @@ void StaticMesh::SetMaterial(const std::shared_ptr<Material>& material)
     MarkDirtyForAutosave();
 }
 
-std::shared_ptr<Material> StaticMesh::GetMaterial() const
+SharedObjectPtr<Material> StaticMesh::GetMaterial() const
 {
     return _material;
 }
@@ -163,9 +163,9 @@ const BoundingBox& StaticMesh::GetBoundingBox() const
     return _boundingBox;
 }
 
-DArray<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Importer>& importer) const
+DArray<SharedObjectPtr<Asset>> StaticMesh::Import(const SharedObjectPtr<Importer>& importer) const
 {
-    const std::shared_ptr<StaticMeshImporter> smImporter = std::dynamic_pointer_cast<StaticMeshImporter>(importer);
+    const SharedObjectPtr<StaticMeshImporter> smImporter = std::dynamic_pointer_cast<StaticMeshImporter>(importer);
     if (smImporter == nullptr)
     {
         DEBUG_BREAK();
@@ -195,7 +195,7 @@ DArray<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Importer
         return {};
     }
 
-    DArray<std::shared_ptr<Asset>> meshes;
+    DArray<SharedObjectPtr<Asset>> meshes;
     for (uint32 i = 0; i < scene->mNumMeshes; ++i)
     {
         std::wstring meshName = Util::ToWString(scene->mMeshes[i]->mName.C_Str());
@@ -217,13 +217,13 @@ DArray<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Importer
         }
 
         const Name name = Name(meshName);
-        auto it = meshes.FindIf([&name](const std::shared_ptr<Asset>& asset)
+        auto it = meshes.FindIf([&name](const SharedObjectPtr<Asset>& asset)
         {
             return asset->GetName() == name;
         });
 
         bool existing = false;
-        std::shared_ptr<StaticMesh> mesh;
+        SharedObjectPtr<StaticMesh> mesh;
         if (it != meshes.end())
         {
             mesh = std::dynamic_pointer_cast<StaticMesh>(*it);
@@ -253,7 +253,7 @@ DArray<std::shared_ptr<Asset>> StaticMesh::Import(const std::shared_ptr<Importer
             continue;
         }
         
-        std::shared_ptr<Material> defaultMaterial = AssetManager::Get().FindAssetByName<Material>(
+        SharedObjectPtr<Material> defaultMaterial = AssetManager::Get().FindAssetByName<Material>(
             Name(L"DefaultMaterial"));
         if (defaultMaterial == nullptr)
         {

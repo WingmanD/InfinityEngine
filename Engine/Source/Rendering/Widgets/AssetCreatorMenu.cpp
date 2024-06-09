@@ -15,14 +15,14 @@ bool AssetCreatorMenu::Initialize()
         return false;
     }
 
-    const std::shared_ptr<FlowBox> verticalBox = AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> verticalBox = AddChild<FlowBox>();
     if (verticalBox == nullptr)
     {
         return false;
     }
 
     {
-        const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+        const SharedObjectPtr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
         if (horizontalBox == nullptr)
         {
             return false;
@@ -30,7 +30,7 @@ bool AssetCreatorMenu::Initialize()
         horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
         horizontalBox->SetFillMode(EWidgetFillMode::FillX);
 
-        const std::shared_ptr<TextBox> title = horizontalBox->AddChild<TextBox>();
+        const SharedObjectPtr<TextBox> title = horizontalBox->AddChild<TextBox>();
         if (title == nullptr)
         {
             return false;
@@ -39,7 +39,7 @@ bool AssetCreatorMenu::Initialize()
         title->SetPadding({0.0f, 50.0f, 0.0f, 0.0f});
         title->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
-        const std::shared_ptr<Button> closeButton = horizontalBox->AddChild<Button>();
+        const SharedObjectPtr<Button> closeButton = horizontalBox->AddChild<Button>();
         if (closeButton == nullptr)
         {
             return false;
@@ -53,27 +53,27 @@ bool AssetCreatorMenu::Initialize()
         });
     }
 
-    const std::shared_ptr<TableWidget> table = verticalBox->AddChild<TableWidget>();
+    const SharedObjectPtr<TableWidget> table = verticalBox->AddChild<TableWidget>();
     if (table == nullptr)
     {
         return false;
     }
 
-    const auto nameRow = std::make_shared<TableRowWidget>();
+    const auto nameRow = NewObject<TableRowWidget>();
     if (!nameRow->Initialize())
     {
         return false;
     }
     table->AddRow(nameRow);
 
-    const std::shared_ptr<TextBox> nameTextBox = nameRow->AddChild<TextBox>();
+    const SharedObjectPtr<TextBox> nameTextBox = nameRow->AddChild<TextBox>();
     if (nameTextBox == nullptr)
     {
         return false;
     }
     nameTextBox->SetText(L"Name: ");
 
-    const std::shared_ptr<EditableTextBox> nameInput = nameRow->AddChild<EditableTextBox>();
+    const SharedObjectPtr<EditableTextBox> nameInput = nameRow->AddChild<EditableTextBox>();
     if (nameInput == nullptr)
     {
         return false;
@@ -81,21 +81,21 @@ bool AssetCreatorMenu::Initialize()
     nameInput->SetFillMode(EWidgetFillMode::FillX);
     _nameInput = nameInput;
 
-    const auto typeRow = std::make_shared<TableRowWidget>();
+    const auto typeRow = NewObject<TableRowWidget>();
     if (!typeRow->Initialize())
     {
         return false;
     }
     table->AddRow(typeRow);
 
-    const std::shared_ptr<TextBox> typeNameBox = typeRow->AddChild<TextBox>();
+    const SharedObjectPtr<TextBox> typeNameBox = typeRow->AddChild<TextBox>();
     if (typeNameBox == nullptr)
     {
         return false;
     }
     typeNameBox->SetText(L"Type: ");
 
-    const std::shared_ptr<TypePicker> typePicker = typeRow->AddChild<TypePicker>();
+    const SharedObjectPtr<TypePicker> typePicker = typeRow->AddChild<TypePicker>();
     if (typePicker == nullptr)
     {
         return false;
@@ -104,7 +104,7 @@ bool AssetCreatorMenu::Initialize()
 
     typePicker->InitializeFromType(Asset::StaticType());
 
-    const std::shared_ptr<Button> createButton = verticalBox->AddChild<Button>();
+    const SharedObjectPtr<Button> createButton = verticalBox->AddChild<Button>();
     if (createButton == nullptr)
     {
         return false;

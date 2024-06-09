@@ -13,12 +13,12 @@ LevelEditorGame::LevelEditorGame() : Game()
     SetShouldAutoFocusViewportOnStartup(false);
 }
 
-void LevelEditorGame::SetLevel(const std::shared_ptr<Level>& level)
+void LevelEditorGame::SetLevel(const SharedObjectPtr<Level>& level)
 {
     _level = level;
 }
 
-std::shared_ptr<Level> LevelEditorGame::GetLevel() const
+SharedObjectPtr<Level> LevelEditorGame::GetLevel() const
 {
     return _level;
 }
@@ -38,7 +38,7 @@ void LevelEditorGame::OnInitializeWorld(World& world)
         return;
     }
 
-    std::shared_ptr<EntityTemplate> playerTemplate = GetPlayerTemplate();
+    SharedObjectPtr<EntityTemplate> playerTemplate = GetPlayerTemplate();
 
     Entity& playerEntity = world.CreateEntity(playerTemplate);
     gameplaySubsystem.GetMainViewport()->SetCamera(&playerEntity.Get<CCamera>(playerTemplate->GetArchetype()));

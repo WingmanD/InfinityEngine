@@ -1,10 +1,5 @@
 #include "Object.h"
 
-void ObjectDeleter::operator()(Object* object) const
-{
-    object->Destroy();
-}
-
 Type* Object::StaticType()
 {
     static Type* staticType = TypeRegistry::Get().CreateRootType<Object>();
@@ -16,9 +11,9 @@ Type* Object::GetType() const
     return StaticType();
 }
 
-std::shared_ptr<Object> Object::Duplicate() const
+SharedObjectPtr<Object> Object::Duplicate() const
 {
-    std::shared_ptr<Object> newObject =  std::shared_ptr<Object>(ClassBucketArray.Add(*this), ObjectDeleter());
+    SharedObjectPtr<Object> newObject = SharedObjectPtr<Object>(ClassBucketArray.Add(*this), ObjectDeleter<Object>());
     newObject->Copy(*this);
 
     return newObject;
@@ -46,16 +41,6 @@ bool Object::Deserialize(MemoryReader& reader)
 
 void Object::OnPropertyChanged(Name propertyName)
 {
-}
-
-void Object::Destroy()
-{
-    if (!IsValid())
-    {
-        return;
-    }
-
-    ClassBucketArray.Remove(*this);
 }
 
 void Object::SetValidImplementation(bool value)

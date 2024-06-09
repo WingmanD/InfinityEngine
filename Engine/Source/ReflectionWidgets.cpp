@@ -1,7 +1,4 @@
 ﻿#include "ReflectionWidgets.h"
-
-#include <memory>
-
 #include "AssetPtrBase.h"
 #include "MeshCollision.h"
 #include "ObjectEntryBase.h"
@@ -20,7 +17,7 @@
 #include "Rendering/Widgets/TypePicker.h"
 #include "Rendering/Widgets/UIStatics.h"
 
-std::shared_ptr<Widget> ReflectionWidgets::DisableWidget(const std::shared_ptr<Widget>& widget)
+SharedObjectPtr<Widget> ReflectionWidgets::DisableWidget(const SharedObjectPtr<Widget>& widget)
 {
     if (widget == nullptr)
     {
@@ -31,17 +28,17 @@ std::shared_ptr<Widget> ReflectionWidgets::DisableWidget(const std::shared_ptr<W
     return widget;
 }
 
-void ReflectionWidgets::SwapWidget(const std::shared_ptr<Widget>& oldWidget, const std::shared_ptr<Widget>& newWidget)
+void ReflectionWidgets::SwapWidget(const SharedObjectPtr<Widget>& oldWidget, const SharedObjectPtr<Widget>& newWidget)
 {
-    std::shared_ptr<Widget> parent = oldWidget->GetParentWidget();
+    SharedObjectPtr<Widget> parent = oldWidget->GetParentWidget();
 
     parent->RemoveChild(oldWidget);
     parent->AddChild(newWidget);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateDropdownMenu(const std::wstring& label, DArray<DropdownMenuEntry>& entries, uint32 selectedIndex)
+SharedObjectPtr<Widget> ReflectionWidgets::CreateDropdownMenu(const std::wstring& label, DArray<DropdownMenuEntry>& entries, uint32 selectedIndex)
 {
-    std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+    SharedObjectPtr<FlowBox> flowBox = NewObject<FlowBox>();
     if (!flowBox->Initialize())
     {
         return nullptr;
@@ -49,14 +46,14 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateDropdownMenu(const std::wstring
 
     flowBox->SetDirection(EFlowBoxDirection::Horizontal);
 
-    std::shared_ptr<TextBox> labelTextBox = flowBox->AddChild<TextBox>();
+    SharedObjectPtr<TextBox> labelTextBox = flowBox->AddChild<TextBox>();
     if (labelTextBox == nullptr)
     {
         return nullptr;
     }
     labelTextBox->SetText(label);
     
-    std::shared_ptr<DropdownMenu> dropdownMenu = flowBox->AddChild<DropdownMenu>();
+    SharedObjectPtr<DropdownMenu> dropdownMenu = flowBox->AddChild<DropdownMenu>();
     if (dropdownMenu == nullptr)
     {
         return nullptr;
@@ -66,7 +63,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateDropdownMenu(const std::wstring
     
     for (DropdownMenuEntry& entry : entries)
     {
-        std::shared_ptr<DropdownTextChoice> choice = std::make_shared<DropdownTextChoice>();
+        SharedObjectPtr<DropdownTextChoice> choice = NewObject<DropdownTextChoice>();
         if (!choice->Initialize())
         {
             return nullptr;
@@ -83,9 +80,9 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateDropdownMenu(const std::wstring
     return flowBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateVerticalBox(const DArray<std::shared_ptr<Widget>>& children)
+SharedObjectPtr<Widget> ReflectionWidgets::CreateVerticalBox(const DArray<SharedObjectPtr<Widget>>& children)
 {
-    std::shared_ptr<FlowBox> verticalBox = std::make_shared<FlowBox>();
+    SharedObjectPtr<FlowBox> verticalBox = NewObject<FlowBox>();
     if (!verticalBox->Initialize())
     {
         return nullptr;
@@ -93,7 +90,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateVerticalBox(const DArray<std::s
 
     verticalBox->SetDirection(EFlowBoxDirection::Vertical);
 
-    for (std::shared_ptr<Widget> child : children)
+    for (SharedObjectPtr<Widget> child : children)
     {
         verticalBox->AddChild(child);
     }
@@ -101,11 +98,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateVerticalBox(const DArray<std::s
     return verticalBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const std::wstring* value)
 {
-    std::shared_ptr<TextBox> textBox = std::make_shared<TextBox>();
+    SharedObjectPtr<TextBox> textBox = NewObject<TextBox>();
     if (!textBox->Initialize())
     {
         return nullptr;
@@ -142,11 +139,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return textBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    std::wstring* value)
 {
-    std::shared_ptr<EditableTextBox> textBox = std::make_shared<EditableTextBox>();
+    SharedObjectPtr<EditableTextBox> textBox = NewObject<EditableTextBox>();
     if (!textBox->Initialize())
     {
         return nullptr;
@@ -193,11 +190,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return textBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const std::string* value)
 {
-    std::shared_ptr<TextBox> textBox = std::make_shared<TextBox>();
+    SharedObjectPtr<TextBox> textBox = NewObject<TextBox>();
     if (!textBox->Initialize())
     {
         return nullptr;
@@ -234,11 +231,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return textBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    std::string* value)
 {
-    std::shared_ptr<EditableTextBox> textBox = std::make_shared<EditableTextBox>();
+    SharedObjectPtr<EditableTextBox> textBox = NewObject<EditableTextBox>();
     if (!textBox->Initialize())
     {
         return nullptr;
@@ -285,16 +282,16 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return textBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property, Name* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property, Name* value)
 {
-    std::shared_ptr<EditableTextBox> textBox = std::make_shared<EditableTextBox>();
+    SharedObjectPtr<EditableTextBox> textBox = NewObject<EditableTextBox>();
     if (!textBox->Initialize())
     {
         return nullptr;
@@ -341,11 +338,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return textBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const std::filesystem::path* value)
 {
-    std::shared_ptr<TextBox> textBox = std::make_shared<TextBox>();
+    SharedObjectPtr<TextBox> textBox = NewObject<TextBox>();
     if (!textBox->Initialize())
     {
         return nullptr;
@@ -382,18 +379,18 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return textBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    std::filesystem::path* value)
 {
-    const std::shared_ptr<FlowBox> horizontalBox = std::make_shared<FlowBox>();
+    const SharedObjectPtr<FlowBox> horizontalBox = NewObject<FlowBox>();
     if (!horizontalBox->Initialize())
     {
         return nullptr;
     }
     horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
 
-    std::shared_ptr<EditableTextBox> textBox = horizontalBox->AddChild<EditableTextBox>();
+    SharedObjectPtr<EditableTextBox> textBox = horizontalBox->AddChild<EditableTextBox>();
     if (textBox == nullptr)
     {
         return nullptr;
@@ -427,7 +424,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         }
     });
 
-    const std::shared_ptr<Button> button = horizontalBox->AddChild<Button>();
+    const SharedObjectPtr<Button> button = horizontalBox->AddChild<Button>();
     if (button == nullptr)
     {
         return nullptr;
@@ -467,11 +464,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return horizontalBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            bool* value)
 {
-    std::shared_ptr<Widget> checkbox = CreateEditableWidgetFor(object, property, value);
+    SharedObjectPtr<Widget> checkbox = CreateEditableWidgetFor(object, property, value);
     if (checkbox == nullptr)
     {
         return nullptr;
@@ -481,11 +478,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return checkbox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    bool* value)
 {
-    std::shared_ptr<Checkbox> checkbox = std::make_shared<Checkbox>();
+    SharedObjectPtr<Checkbox> checkbox = NewObject<Checkbox>();
     if (!checkbox->Initialize())
     {
         return nullptr;
@@ -532,11 +529,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return checkbox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            Vector2* value)
 {
-    std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, value);
+    SharedObjectPtr<Widget> widget = CreateEditableWidgetFor(object, property, value);
     if (widget == nullptr)
     {
         return nullptr;
@@ -546,11 +543,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return widget;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    Vector2* value)
 {
-    std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+    SharedObjectPtr<FlowBox> flowBox = NewObject<FlowBox>();
     if (!flowBox->Initialize())
     {
         return nullptr;
@@ -559,7 +556,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     flowBox->SetDirection(EFlowBoxDirection::Horizontal);
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->x));
         if (textBox == nullptr)
         {
@@ -569,7 +566,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->y));
         if (textBox == nullptr)
         {
@@ -581,10 +578,10 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return flowBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property, Vector3* value)
 {
-    std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, value);
+    SharedObjectPtr<Widget> widget = CreateEditableWidgetFor(object, property, value);
     if (widget == nullptr)
     {
         return nullptr;
@@ -594,11 +591,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return widget;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    Vector3* value)
 {
-    std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+    SharedObjectPtr<FlowBox> flowBox = NewObject<FlowBox>();
     if (!flowBox->Initialize())
     {
         return nullptr;
@@ -607,7 +604,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     flowBox->SetDirection(EFlowBoxDirection::Horizontal);
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->x));
         if (textBox == nullptr)
         {
@@ -617,7 +614,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->y));
         if (textBox == nullptr)
         {
@@ -627,7 +624,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->z));
         if (textBox == nullptr)
         {
@@ -639,10 +636,10 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return flowBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property, Vector4* value)
 {
-    std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, value);
+    SharedObjectPtr<Widget> widget = CreateEditableWidgetFor(object, property, value);
     if (widget == nullptr)
     {
         return nullptr;
@@ -652,11 +649,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return widget;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    Vector4* value)
 {
-    std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+    SharedObjectPtr<FlowBox> flowBox = NewObject<FlowBox>();
     if (!flowBox->Initialize())
     {
         return nullptr;
@@ -665,7 +662,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     flowBox->SetDirection(EFlowBoxDirection::Horizontal);
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->x));
         if (textBox == nullptr)
         {
@@ -675,7 +672,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->y));
         if (textBox == nullptr)
         {
@@ -685,7 +682,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->z));
         if (textBox == nullptr)
         {
@@ -695,7 +692,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const std::shared_ptr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
+        const SharedObjectPtr<EditableTextBox> textBox = std::dynamic_pointer_cast<EditableTextBox>(
             CreateEditableWidgetForNumber(object, property, &value->w));
         if (textBox == nullptr)
         {
@@ -707,18 +704,18 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return flowBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            Quaternion* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    Quaternion* value)
 {
-    std::shared_ptr<FlowBox> flowBox = std::make_shared<FlowBox>();
+    SharedObjectPtr<FlowBox> flowBox = NewObject<FlowBox>();
     if (!flowBox->Initialize())
     {
         return nullptr;
@@ -728,7 +725,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     const Vector3 eulerAngles = Math::ToDegrees(value->ToEuler());
 
     {
-        std::shared_ptr<EditableTextBox> textBox = std::make_shared<EditableTextBox>();
+        SharedObjectPtr<EditableTextBox> textBox = NewObject<EditableTextBox>();
         if (!textBox->Initialize())
         {
             return nullptr;
@@ -779,7 +776,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        std::shared_ptr<EditableTextBox> textBox = std::make_shared<EditableTextBox>();
+        SharedObjectPtr<EditableTextBox> textBox = NewObject<EditableTextBox>();
         if (!textBox->Initialize())
         {
             return nullptr;
@@ -830,7 +827,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        std::shared_ptr<EditableTextBox> textBox = std::make_shared<EditableTextBox>();
+        SharedObjectPtr<EditableTextBox> textBox = NewObject<EditableTextBox>();
         if (!textBox->Initialize())
         {
             return nullptr;
@@ -883,10 +880,10 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return flowBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property, Color* value)
 {
-    std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, value);
+    SharedObjectPtr<Widget> widget = CreateEditableWidgetFor(object, property, value);
     if (widget == nullptr)
     {
         return nullptr;
@@ -896,7 +893,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return widget;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    Color* value)
 {
@@ -904,186 +901,186 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return nullptr;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property, const float* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property, float* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const double* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    double* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const int8* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    int8* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const uint8* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    uint8* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const int16* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    int16* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const uint16* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    uint16* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const int32* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    int32* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const uint32* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    uint32* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const int64* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    int64* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            const uint64* value)
 {
     return CreateWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    uint64* value)
 {
     return CreateEditableWidgetForNumber(object, property, value);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            Transform* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    Transform* value)
 {
-    const SharedObjectPtr<TableWidget> table = std::make_shared<TableWidget>();
+    const SharedObjectPtr<TableWidget> table = NewObject<TableWidget>();
     if (!table->Initialize())
     {
         return nullptr;
     }
 
     {
-        const SharedObjectPtr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        const SharedObjectPtr<TableRowWidget> row = NewObject<TableRowWidget>();
         if (!row->Initialize())
         {
             return nullptr;
         }
 
-        const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+        const SharedObjectPtr<TextBox> label = row->AddChild<TextBox>();
         if (label == nullptr)
         {
             return nullptr;
         }
         label->SetText(L"Location:");
 
-        const std::shared_ptr<Widget> widget =
+        const SharedObjectPtr<Widget> widget =
             CreateEditableWidgetFor(object, property, const_cast<Vector3*>(&value->GetRelativeLocation()));
         if (widget == nullptr)
         {
             return nullptr;
         }
 
-        const std::vector<std::shared_ptr<Widget>>& children = widget->GetChildren();
-        for (int32 i = static_cast<int32>(children.size() - 1); i >= 0; --i)
+        const DArray<SharedObjectPtr<Widget>>& children = widget->GetChildren();
+        for (int32 i = static_cast<int32>(children.Count() - 1); i >= 0; --i)
         {
-            std::shared_ptr<Widget> child = children[i];
+            SharedObjectPtr<Widget> child = children[i];
             
             child->RemoveFromParent();
             row->InsertChild(child, 1);
@@ -1093,30 +1090,30 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const SharedObjectPtr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        const SharedObjectPtr<TableRowWidget> row = NewObject<TableRowWidget>();
         if (!row->Initialize())
         {
             return nullptr;
         }
 
-        const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+        const SharedObjectPtr<TextBox> label = row->AddChild<TextBox>();
         if (label == nullptr)
         {
             return nullptr;
         }
         label->SetText(L"Rotation:");
 
-        const std::shared_ptr<Widget> widget =
+        const SharedObjectPtr<Widget> widget =
             CreateEditableWidgetFor(object, property, const_cast<Quaternion*>(&value->GetRelativeRotation()));
         if (widget == nullptr)
         {
             return nullptr;
         }
 
-        const std::vector<std::shared_ptr<Widget>>& children = widget->GetChildren();
-        for (int32 i = static_cast<int32>(children.size() - 1); i >= 0; --i)
+        const DArray<SharedObjectPtr<Widget>>& children = widget->GetChildren();
+        for (int32 i = static_cast<int32>(children.Count() - 1); i >= 0; --i)
         {
-            std::shared_ptr<Widget> child = children[i];
+            SharedObjectPtr<Widget> child = children[i];
             
             child->RemoveFromParent();
             row->InsertChild(child, 1);
@@ -1126,30 +1123,30 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const SharedObjectPtr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        const SharedObjectPtr<TableRowWidget> row = NewObject<TableRowWidget>();
         if (!row->Initialize())
         {
             return nullptr;
         }
 
-        const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+        const SharedObjectPtr<TextBox> label = row->AddChild<TextBox>();
         if (label == nullptr)
         {
             return nullptr;
         }
         label->SetText(L"Scale:");
 
-        const std::shared_ptr<Widget> widget =
+        const SharedObjectPtr<Widget> widget =
             CreateEditableWidgetFor(object, property, const_cast<Vector3*>(&value->GetRelativeScale()));
         if (widget == nullptr)
         {
             return nullptr;
         }
 
-        const std::vector<std::shared_ptr<Widget>>& children = widget->GetChildren();
-        for (int32 i = static_cast<int32>(children.size() - 1); i >= 0; --i)
+        const DArray<SharedObjectPtr<Widget>>& children = widget->GetChildren();
+        for (int32 i = static_cast<int32>(children.Count() - 1); i >= 0; --i)
         {
-            std::shared_ptr<Widget> child = children[i];
+            SharedObjectPtr<Widget> child = children[i];
             
             child->RemoveFromParent();
             row->InsertChild(child, 1);
@@ -1161,11 +1158,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return table;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetForEnum(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetForEnum(const SharedObjectPtr<Object>& object,
                                                                const Enum* enumType,
                                                                PropertyBase& property, uint32* value)
 {
-    std::shared_ptr<Widget> widget = CreateEditableWidgetForEnum(object, enumType, property, value);
+    SharedObjectPtr<Widget> widget = CreateEditableWidgetForEnum(object, enumType, property, value);
     if (widget == nullptr)
     {
         return nullptr;
@@ -1175,7 +1172,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetForEnum(const std::shared
     return widget;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetForEnum(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetForEnum(const SharedObjectPtr<Object>& object,
                                                                        const Enum* enumType,
                                                                        PropertyBase& property,
                                                                        uint32* value)
@@ -1186,7 +1183,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetForEnum(const std
         return nullptr;
     }
 
-    std::shared_ptr<EnumDropdown> enumDropdown = EnumDropdown::CreateForEnum(enumType);
+    SharedObjectPtr<EnumDropdown> enumDropdown = EnumDropdown::CreateForEnum(enumType);
     if (enumDropdown == nullptr)
     {
         return nullptr;
@@ -1195,7 +1192,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetForEnum(const std
     PropertyBase* propertyPtr = &property;
     std::weak_ptr weakObject = object;
     std::ignore = enumDropdown->OnSelectionChanged.Add(
-        [weakObject, value, enumDropdown, propertyPtr](const std::shared_ptr<Widget>& widget)
+        [weakObject, value, enumDropdown, propertyPtr](const SharedObjectPtr<Widget>& widget)
         {
             if (weakObject.expired())
             {
@@ -1232,11 +1229,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetForEnum(const std
     return enumDropdown;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property,
                                                            AssetPtrBase* value)
 {
-    std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, value);
+    SharedObjectPtr<Widget> widget = CreateEditableWidgetFor(object, property, value);
     if (widget == nullptr)
     {
         return nullptr;
@@ -1246,11 +1243,11 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     return widget;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property,
                                                                    AssetPtrBase* value)
 {
-    std::shared_ptr<AssetPicker> assetPicker = AssetPicker::CreateForType(property.GetType());
+    SharedObjectPtr<AssetPicker> assetPicker = AssetPicker::CreateForType(property.GetType());
     if (assetPicker == nullptr)
     {
         return nullptr;
@@ -1261,14 +1258,14 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     PropertyBase* propertyPtr = &property;
     std::weak_ptr weakObject = object;
     std::ignore = assetPicker->OnSelectionChanged.Add(
-        [weakObject, value, assetPicker, propertyPtr](const std::shared_ptr<Widget>& widget)
+        [weakObject, value, assetPicker, propertyPtr](const SharedObjectPtr<Widget>& widget)
         {
             if (weakObject.expired())
             {
                 return;
             }
 
-            const std::shared_ptr<Asset> asset = assetPicker->GetSelectedAsset();
+            const SharedObjectPtr<Asset> asset = assetPicker->GetSelectedAsset();
             if (asset == nullptr)
             {
                 return;
@@ -1306,16 +1303,16 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return assetPicker;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property, ObjectEntryBase* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property, ObjectEntryBase* value)
 {
-    std::shared_ptr<FlowBox> verticalBox = std::make_shared<FlowBox>();
+    SharedObjectPtr<FlowBox> verticalBox = NewObject<FlowBox>();
     if (!verticalBox->Initialize())
     {
         return nullptr;
@@ -1324,14 +1321,14 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     verticalBox->SetDirection(EFlowBoxDirection::Vertical);
 
 
-    const std::shared_ptr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
+    const SharedObjectPtr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();
     if (horizontalBox == nullptr)
     {
         return nullptr;
     }
     horizontalBox->SetDirection(EFlowBoxDirection::Horizontal);
 
-    const std::shared_ptr<TextBox> label = horizontalBox->AddChild<TextBox>();
+    const SharedObjectPtr<TextBox> label = horizontalBox->AddChild<TextBox>();
     if (label == nullptr)
     {
         return nullptr;
@@ -1339,7 +1336,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
 
     label->SetText(L"Type:");
 
-    std::shared_ptr<TypePicker> typePicker = TypePicker::CreateForType(value->GetType());
+    SharedObjectPtr<TypePicker> typePicker = TypePicker::CreateForType(value->GetType());
     if (typePicker == nullptr)
     {
         return nullptr;
@@ -1358,7 +1355,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     PropertyBase* propertyPtr = &property;
     std::weak_ptr weakObject = object;
     std::ignore = typePicker->OnSelectionChanged.Add(
-        [weakObject, value, typePicker, propertyPtr, verticalBox](const std::shared_ptr<Widget>& widget)
+        [weakObject, value, typePicker, propertyPtr, verticalBox](const SharedObjectPtr<Widget>& widget)
         {
             if (weakObject.expired())
             {
@@ -1368,7 +1365,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             value->SetType(typePicker->GetSelectedType());
             weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
 
-            const std::shared_ptr<Widget> propertiesWidget = verticalBox->GetChildren().back();
+            const SharedObjectPtr<Widget> propertiesWidget = verticalBox->GetChildren().Back();
             if (propertiesWidget != nullptr)
             {
                 propertiesWidget->DestroyWidget();
@@ -1386,23 +1383,23 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return verticalBox;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
                                                            PropertyBase& property, SubtypeOfBase* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object,
                                                                    PropertyBase& property, SubtypeOfBase* value)
 {
-    std::shared_ptr<TypePicker> typePicker = TypePicker::CreateForType(*value);
+    SharedObjectPtr<TypePicker> typePicker = TypePicker::CreateForType(*value);
     if (typePicker == nullptr)
     {
         return nullptr;
     }
 
     std::weak_ptr weakObject = object;
-    std::ignore = typePicker->OnSelectionChanged.Add([weakObject, value, typePicker](const std::shared_ptr<Widget>& widget)
+    std::ignore = typePicker->OnSelectionChanged.Add([weakObject, value, typePicker](const SharedObjectPtr<Widget>& widget)
     {
         if (weakObject.expired())
         {
@@ -1446,24 +1443,24 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return typePicker;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, Archetype* value)
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, Archetype* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, Archetype* value)
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, Archetype* value)
 {
     return nullptr;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, BoundingBox* value)
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, BoundingBox* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, BoundingBox* value)
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, BoundingBox* value)
 {
-    const std::shared_ptr<TableWidget> table = std::make_shared<TableWidget>();
+    const SharedObjectPtr<TableWidget> table = NewObject<TableWidget>();
     if (!table->Initialize())
     {
         return nullptr;
@@ -1471,20 +1468,20 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     table->SetFillMode(EWidgetFillMode::FillX);
     
     {
-        const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        const SharedObjectPtr<TableRowWidget> row = NewObject<TableRowWidget>();
         if (!row->Initialize())
         {
             return nullptr;
         }
         
-        const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+        const SharedObjectPtr<TextBox> label = row->AddChild<TextBox>();
         if (label == nullptr)
         {
             return nullptr;
         }
         label->SetText(L"Min:");
 
-        std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, const_cast<Vector3*>(&value->GetMin()));
+        SharedObjectPtr<Widget> widget = CreateEditableWidgetFor(object, property, const_cast<Vector3*>(&value->GetMin()));
         if (widget == nullptr)
         {
             return nullptr;
@@ -1495,20 +1492,20 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     {
-        const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        const SharedObjectPtr<TableRowWidget> row = NewObject<TableRowWidget>();
         if (!row->Initialize())
         {
             return nullptr;
         }
         
-        const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+        const SharedObjectPtr<TextBox> label = row->AddChild<TextBox>();
         if (label == nullptr)
         {
             return nullptr;
         }
         label->SetText(L"Max:");
 
-        std::shared_ptr<Widget> widget = CreateEditableWidgetFor(object, property, const_cast<Vector3*>(&value->GetMax()));
+        SharedObjectPtr<Widget> widget = CreateEditableWidgetFor(object, property, const_cast<Vector3*>(&value->GetMax()));
         if (widget == nullptr)
         {
             return nullptr;
@@ -1521,34 +1518,34 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return table;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, MeshCollision* value)
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, MeshCollision* value)
 {
     return DisableWidget(CreateEditableWidgetFor(object, property, value));
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::shared_ptr<Object>& object, PropertyBase& property, MeshCollision* value)
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, MeshCollision* value)
 {
-    const std::shared_ptr<TableWidget> table = std::make_shared<TableWidget>();
+    const SharedObjectPtr<TableWidget> table = NewObject<TableWidget>();
     if (!table->Initialize())
     {
         return nullptr;
     }
     table->SetFillMode(EWidgetFillMode::FillX);
     
-    const std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+    const SharedObjectPtr<TableRowWidget> row = NewObject<TableRowWidget>();
     if (!row->Initialize())
     {
         return nullptr;
     }
 
-    const std::shared_ptr<TextBox> label = row->AddChild<TextBox>();
+    const SharedObjectPtr<TextBox> label = row->AddChild<TextBox>();
     if (label == nullptr)
     {
         return nullptr;
     }
     label->SetText(L"Mesh:");
 
-    const std::shared_ptr<AssetPicker> assetPicker = AssetPicker::CreateForType(value->Mesh.GetType());
+    const SharedObjectPtr<AssetPicker> assetPicker = AssetPicker::CreateForType(value->Mesh.GetType());
     if (assetPicker == nullptr)
     {
         return nullptr;
@@ -1556,7 +1553,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     row->AddChild(assetPicker);
     assetPicker->SetSelectedAsset(value->Mesh);
 
-    std::ignore = assetPicker->OnSelectionChanged.Add([object, value, assetPicker, property](const std::shared_ptr<Widget>& widget)
+    std::ignore = assetPicker->OnSelectionChanged.Add([object, value, assetPicker, property](const SharedObjectPtr<Widget>& widget)
     {
         value->Mesh.SetAsset(assetPicker->GetSelectedAsset());
         object->OnPropertyChanged(property.GetDisplayName());
@@ -1567,7 +1564,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     return table;
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreatePropertiesWidgetFor(const std::shared_ptr<Object>& object)
+SharedObjectPtr<Widget> ReflectionWidgets::CreatePropertiesWidgetFor(const SharedObjectPtr<Object>& object)
 {
     if (object == nullptr)
     {
@@ -1577,19 +1574,19 @@ std::shared_ptr<Widget> ReflectionWidgets::CreatePropertiesWidgetFor(const std::
     return object->GetType()->CreatePropertiesWidget(object);
 }
 
-std::shared_ptr<Widget> ReflectionWidgets::CreateTableForContainer(
-    const std::shared_ptr<Object>& object,
+SharedObjectPtr<Widget> ReflectionWidgets::CreateTableForContainer(
+    const SharedObjectPtr<Object>& object,
     PropertyBase& property,
-    DArray<std::pair<std::shared_ptr<Widget>, std::function<std::shared_ptr<Widget>()>>>& children,
-    std::function<std::shared_ptr<Widget>()> onAdd)
+    DArray<std::pair<SharedObjectPtr<Widget>, std::function<SharedObjectPtr<Widget>()>>>& children,
+    std::function<SharedObjectPtr<Widget>()> onAdd)
 {
-    const std::shared_ptr<FlowBox> verticalBox = std::make_shared<FlowBox>();
+    const SharedObjectPtr<FlowBox> verticalBox = NewObject<FlowBox>();
     if (!verticalBox->Initialize())
     {
         return nullptr;
     }
 
-    const std::shared_ptr<TableWidget> table = verticalBox->AddChild<TableWidget>();
+    const SharedObjectPtr<TableWidget> table = verticalBox->AddChild<TableWidget>();
     if (table == nullptr)
     {
         return nullptr;
@@ -1598,27 +1595,27 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateTableForContainer(
 
     for (int32 i = 0; i < children.Count(); ++i)
     {
-        std::pair<std::shared_ptr<Widget>, std::function<std::shared_ptr<Widget>()>>& child = children[i];
+        std::pair<SharedObjectPtr<Widget>, std::function<SharedObjectPtr<Widget>()>>& child = children[i];
 
-        std::shared_ptr<TableRowWidget> row = std::make_shared<TableRowWidget>();
+        SharedObjectPtr<TableRowWidget> row = NewObject<TableRowWidget>();
         if (!row->Initialize())
         {
             return nullptr;
         }
 
-        const std::shared_ptr<TextBox> indexTextBox = row->AddChild<TextBox>();
+        const SharedObjectPtr<TextBox> indexTextBox = row->AddChild<TextBox>();
         indexTextBox->SetText(std::format(L"[{}]", i));
 
         child.first->SetFillMode(EWidgetFillMode::FillX);
         child.first->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
         row->AddChild(child.first);
 
-        const std::shared_ptr<Button> removeButton = row->AddChild<Button>();
+        const SharedObjectPtr<Button> removeButton = row->AddChild<Button>();
         removeButton->SetText(L"x");
-        std::function<std::shared_ptr<Widget>()>& onRemoved = child.second;
+        std::function<SharedObjectPtr<Widget>()>& onRemoved = child.second;
         std::ignore = removeButton->OnReleased.Add([onRemoved, verticalBox, object, property]()
         {
-            const std::shared_ptr<Widget> parent = verticalBox->GetParentWidget();
+            const SharedObjectPtr<Widget> parent = verticalBox->GetParentWidget();
             verticalBox->DestroyWidget();
             parent->AddChild(onRemoved());
             object->OnPropertyChanged(property.GetDisplayName());
@@ -1627,12 +1624,12 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateTableForContainer(
         table->AddRow(row);
     }
 
-    const std::shared_ptr<Button> button = verticalBox->AddChild<Button>();
+    const SharedObjectPtr<Button> button = verticalBox->AddChild<Button>();
     button->SetText(L"+");
     button->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
     std::ignore = button->OnReleased.Add([onAdd, verticalBox, object, property]()
     {
-        const std::shared_ptr<Widget> parent = verticalBox->GetParentWidget();
+        const SharedObjectPtr<Widget> parent = verticalBox->GetParentWidget();
         verticalBox->DestroyWidget();
         parent->AddChild(onAdd());
         object->OnPropertyChanged(property.GetDisplayName());

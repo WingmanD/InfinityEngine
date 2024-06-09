@@ -181,6 +181,8 @@ ReflectionGenerator::ReflectionResult ReflectionGenerator::GenerateReflectionHea
             }
         }
 
+        std::string deleterName = std::format("{}Deleter", typeInfo.Name);
+
         std::stringstream serialization;
         std::print(serialization, "\\");
         if (!usesCustomSerialization && !serializeDefinition.view().empty())
@@ -213,8 +215,11 @@ R"(
         std::print(reflectionHeader,
                    R"(
 #define GENERATED_{}_{}() \
+    using ClassType = {}; \
     template <typename Interface> \
     using Super = typename FindSuperOfType<Interface, {}>::type; \
+public: \
+    friend struct ObjectDeleter<ClassType>; \
 public: \
     static Type* StaticType() \
     {{ \
@@ -227,10 +232,20 @@ public: \
     {{ \
         return StaticType(); \
     }} \
+    template <typename... Args> \
+    static SharedObjectPtr<ClassType> New(Args&&... args) \
+    {{ \
+        return SharedObjectPtr<ClassType>(ClassBucketArray.Emplace(std::forward<Args>(args)...), ObjectDeleter<ClassType>()); \
+    }} \
     \
+    template <typename... Args> \
+    static SharedObjectPtr<ClassType> New(BucketArray<ClassType>& bucketArray, Args... args) \
+    {{ \
+        return SharedObjectPtr<ClassType>(bucketArray.Emplace(std::forward<Args>(args)...), ObjectDeleter<ClassType>()); \
+    }} \
     virtual std::shared_ptr<Object> Duplicate() const override \
     {{ \
-        auto newObject = std::shared_ptr<{}>(ClassBucketArray.Add(*this), ObjectDeleter()); \
+        auto newObject = std::shared_ptr<ClassType>(ClassBucketArray.Add(*this), ObjectDeleter<ClassType>()); \
         ConditionalCopyAssignUnchecked(*newObject.get(), *this); \
        \
         return newObject;\
@@ -238,44 +253,37 @@ public: \
     \
     virtual Object* DuplicateAt(void* ptr) const override \
     {{ \
-        return new(ptr) {}(*this); \
+        return new(ptr) ClassType(*this); \
     }} \
     virtual void Copy(const Object& other) override \
     {{ \
-        ConditionalCopyAssign(*this, dynamic_cast<const {}&>(other)); \
+        ConditionalCopyAssign(*this, dynamic_cast<const ClassType&>(other)); \
     }} \
     {}
-    std::shared_ptr<{}> SharedFromThis() \
+    std::shared_ptr<ClassType> SharedFromThis() \
     {{ \
-        return std::static_pointer_cast<{}>(shared_from_this()); \
+        return std::static_pointer_cast<ClassType>(shared_from_this()); \
     }} \
     \
-    std::shared_ptr<const {}> SharedFromThis() const \
+    std::shared_ptr<const ClassType> SharedFromThis() const \
     {{ \
-        return std::static_pointer_cast<const {}>(shared_from_this()); \
+        return std::static_pointer_cast<const ClassType>(shared_from_this()); \
     }} \
     \
 private: \
-    inline static BucketArray<{}> ClassBucketArray; \
+    inline static BucketArray<ClassType> ClassBucketArray; \
 private:
 )",
                    headerName,
                    typeInfo.GeneratedMacroLine,
+                   typeInfo.Name,
                    parentTypeNames.view(),
                    createTypeFunction,
                    dataOffsetDefinition,
                    propertyMapDefinition.view(),
-                   typeInfo.Name,
-                   typeInfo.Name,
-                   typeInfo.Name,
-                   serialization.view(),
-                   typeInfo.Name,
-                   typeInfo.Name,
-                   typeInfo.Name,
-                   typeInfo.Name,
-                   typeInfo.Name);
-
-
+                   serialization.view()
+        );
+        
         _reflectionInitializer.RegisterType(typeInfo.Name);
     }
 

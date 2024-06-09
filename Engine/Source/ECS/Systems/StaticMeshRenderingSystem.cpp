@@ -102,7 +102,7 @@ void StaticMeshRenderingSystem::Shutdown()
 }
 
 DynamicGPUBuffer<MaterialParameter>& StaticMeshRenderingSystem::GetOrCreateMaterialParameterBuffer(
-    uint32 materialID, const std::shared_ptr<Shader>& shader)
+    uint32 materialID, const SharedObjectPtr<Shader>& shader)
 {
     auto it = _materialIDToMaterialParameterBuffer.find(materialID);
     if (it != _materialIDToMaterialParameterBuffer.end())

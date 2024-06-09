@@ -40,7 +40,7 @@ class EnumDropdown : public DropdownMenu
 public:
     EnumDropdown() = default;
 
-    static std::shared_ptr<EnumDropdown> CreateForEnum(const Enum* enumType);
+    static SharedObjectPtr<EnumDropdown> CreateForEnum(const Enum* enumType);
 
     void InitializeFromEnum(const Enum* enumType);
 
