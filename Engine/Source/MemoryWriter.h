@@ -17,6 +17,7 @@ public:
     bool WriteToFile(std::ofstream& file) const;
 
     [[nodiscard]] const std::vector<std::byte>& GetBytes() const;
+    uint64 GetByteCount() const;
 
     MemoryWriter& operator<<(std::byte byte);
 

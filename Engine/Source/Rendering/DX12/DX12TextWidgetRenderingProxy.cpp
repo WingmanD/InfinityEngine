@@ -75,7 +75,7 @@ void DX12TextWidgetRenderingProxy::OnWindowChanged(const std::shared_ptr<Window>
         {
             _spriteBatch->SetViewport(viewport);
         });
-        GetOwningWidget().OnDestroyed.Add([newWindow, handle]()
+        std::ignore = GetOwningWidget().OnDestroyed.Add([newWindow, handle]()
         {
             if (newWindow != nullptr)
             {

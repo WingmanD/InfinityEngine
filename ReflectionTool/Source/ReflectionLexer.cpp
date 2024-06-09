@@ -126,6 +126,22 @@ bool Lexer::Tokenize(const std::filesystem::path& filePath)
                     continue;
                 }
 
+                if (c == '<')
+                {
+                    ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::TemplateOpen, "<", line});
+
+                    continue;
+                }
+
+                if (c == '>')
+                {
+                    ProcessCurrentToken(line);
+                    _tokens.push_back({TokenType::TemplateClose, ">", line});
+
+                    continue;
+                }
+
                 _ss << c;
 
                 break;

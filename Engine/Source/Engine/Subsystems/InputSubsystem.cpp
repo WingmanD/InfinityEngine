@@ -1,6 +1,5 @@
 ﻿#include "InputSubsystem.h"
 #include "Engine/Engine.h"
-#include "Math/Math.h"
 #include "Rendering/Window.h"
 
 InputSubsystem& InputSubsystem::Get()
@@ -53,6 +52,35 @@ const DirectX::Mouse::State& InputSubsystem::GetMouseState() const
 void InputSubsystem::SetMouseCaptured(bool value, PassKey<ViewportWidget>)
 {
     _isMouseCaptured = value;
+
+    std::shared_ptr<Window> window = GetFocusedWindow();
+
+    if (value)
+    {
+        _mousePosition = GetMousePosition();
+
+        if (std::shared_ptr<Widget> widget = window->GetFocusedWidget())
+        {
+            SetCapture(window->GetHandle());
+
+            POINT point;
+            GetCursorPos(&point);
+
+            RECT windowRect;
+            GetWindowRect(window->GetHandle(), &windowRect);
+        
+            RECT rect = widget->GetRect();
+            rect.left += windowRect.left;
+            rect.right += windowRect.left;
+            rect.top += windowRect.top;
+            rect.bottom += windowRect.top;
+            ClipCursor(&rect);
+        
+            const int32 setX = rect.left + (rect.right - rect.left) / 2;
+            const int32 setY = rect.top + (rect.bottom - rect.top) / 2;
+            SetCursorPos(setX, setY);
+        }
+    }
 }
 
 bool InputSubsystem::IsMouseCaptured() const
@@ -332,7 +360,7 @@ bool InputSubsystem::Initialize()
     _keyStates[EKey::Minus].IsDown = false;
     _keyStates[EKey::Equals].IsDown = false;
 
-    GetKey(EKey::CapsLock).OnKeyDown.Add([this]()
+    std::ignore = GetKey(EKey::CapsLock).OnKeyDown.Add([this]()
     {
         _isCapsLockToggled = !_isCapsLockToggled;
     });
@@ -343,24 +371,40 @@ bool InputSubsystem::Initialize()
 void InputSubsystem::Tick(double deltaTime)
 {
     _mouseButtonStateTracker.Update(_mouse->GetState());
-    
+
     if (_isMouseCaptured)
     {
         // todo cache
-        std::shared_ptr<Window> window = GetFocusedWindow();
-        const Vector2 ws = window->GetFocusedWidget()->GetTransformWS().GetPosition() * window->GetSize();
-        const Vector2 position = Math::FloorToInt(window->GetPosition() + Math::Abs(ws));
-
-        POINT point;
-        GetCursorPos(&point);
-        const Vector2 newMousePosition = {static_cast<float>(point.x), static_cast<float>(point.y)};
-        
-        if (position != newMousePosition)
+        if (std::shared_ptr<Window> window = GetFocusedWindow())
         {
-            OnMouseMoved.Broadcast(newMousePosition - position);
+            if (std::shared_ptr<Widget> widget = window->GetFocusedWidget())
+            {
+                POINT point;
+                GetCursorPos(&point);
+
+                RECT windowRect;
+                GetWindowRect(window->GetHandle(), &windowRect);
+
+                RECT rect = widget->GetRect();
+                rect.left += windowRect.left;
+                rect.right += windowRect.left;
+                rect.top += windowRect.top;
+                rect.bottom += windowRect.top;
+                ClipCursor(&rect);
+
+                const int32 setX = rect.left + (rect.right - rect.left) / 2;
+                const int32 setY = rect.top + (rect.bottom - rect.top) / 2;
+                SetCursorPos(setX, setY);
+
+                const int32 deltaX = static_cast<int32>(point.x) - setX;
+                const int32 deltaY = static_cast<int32>(point.y) - setY;
+
+                if (deltaX != 0 || deltaY != 0)
+                {
+                    OnMouseMoved.Broadcast({static_cast<float>(deltaX), static_cast<float>(deltaY)});
+                }
+            }
         }
-        
-        SetCursorPos(static_cast<int32>(position.x), static_cast<int32>(position.y));
     }
     else
     {

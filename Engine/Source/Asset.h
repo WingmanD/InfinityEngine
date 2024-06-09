@@ -46,6 +46,7 @@ public:
     const Type* GetImporterType() const;
 
     std::shared_ptr<Widget> CreateImportWidget() const;
+    virtual std::shared_ptr<Widget> CreateEditWidget();
 
     virtual DArray<std::shared_ptr<Asset>> Import(const std::shared_ptr<Importer>& importer) const;
 
@@ -54,7 +55,9 @@ public:
     void OnPropertyChanged(Name propertyName) override;
 
 protected:
+    virtual bool LoadInternal(std::ifstream& file);
     virtual void PostLoad();
+    virtual bool SaveInternal(std::ofstream& file) const;
     
     void SetIsLoaded(bool value);
     void MarkDirtyForAutosave() const;

@@ -416,7 +416,7 @@ public:
                 }
 
                 _data = _allocator.allocate(_capacity - SSO_SIZE);
-                for (auto i = 0; i < _capacity - SSO_SIZE; ++i)
+                for (auto i = 0; i < _count - SSO_SIZE; ++i)
                 {
                     std::construct_at(&_data[i], other._data[i]);
                 }

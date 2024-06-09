@@ -15,7 +15,7 @@ class DX12RenderingSubsystem;
 class DX12Window : public Window
 {
 public:
-    Delegate<const D3D12_VIEWPORT&> OnViewportChanged;
+    MulticastDelegate<const D3D12_VIEWPORT&> OnViewportChanged;
     
 public:
     DX12Window(uint32 width, uint32 height, const std::wstring& title);

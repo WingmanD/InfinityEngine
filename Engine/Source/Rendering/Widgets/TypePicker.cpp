@@ -1,5 +1,4 @@
 ﻿#include "TypePicker.h"
-#include "TextBox.h"
 
 DropdownTypeChoice::DropdownTypeChoice(const DropdownTypeChoice& other) : DropdownTextChoice(other)
 {

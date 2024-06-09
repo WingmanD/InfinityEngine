@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Core.h"
-#include "Delegate.h"
+#include "MulticastDelegate.h"
 #include "MaterialParameterTypes.h"
 #include "NonCopyable.h"
 #include "Containers/Spatialization/HitTestGrid.h"
@@ -73,7 +73,7 @@ public:
             return nullptr;
         }
 
-        popup->OnDestroyed.Add([this, weakLayer = std::weak_ptr(newLayer)]()
+        std::ignore = popup->OnDestroyed.Add([this, weakLayer = std::weak_ptr(newLayer)]()
         {
             auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
             {

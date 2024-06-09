@@ -11,8 +11,8 @@
 class AssetManager : public EngineSubsystem
 {
 public:
-    Delegate<std::shared_ptr<Asset>> OnAssetCreated;
-    Delegate<std::shared_ptr<Asset>> OnAssetDeleted;
+    MulticastDelegate<std::shared_ptr<Asset>> OnAssetCreated;
+    MulticastDelegate<std::shared_ptr<Asset>> OnAssetDeleted;
     
 public:
     static AssetManager& Get();

@@ -47,12 +47,9 @@ Entity& World::CreateEntity(const std::shared_ptr<EntityTemplate>& entityTemplat
 {
     assert(entityTemplate != nullptr);
 
-    const Archetype& archetype = entityTemplate->GetArchetype();
+    Entity& entity = CreateEntityInternal(entityTemplate);
     
-    Entity& entity = CreateEntityInternal(archetype);
-    entityTemplate->InitializeEntity(entity);
-    
-    OnEntityCreated(entity, archetype);
+    OnEntityCreated(entity, entityTemplate->GetArchetype());
 
     return entity;
 }
@@ -103,7 +100,7 @@ void World::DestroyEntity(Entity& entity)
     entityList.Remove(entity);
 }
 
-SharedObjectPtr<Component> World::AddComponent(Entity& entity, Type& componentType, Name name)
+World::AddComponentResult<Component> World::AddComponent(Entity& entity, Type& componentType, Name name)
 {
     Archetype archetypeBefore = Archetype(entity);
     const SharedObjectPtr<Component> newComponent = AddComponentInternal(entity, componentType, name);
@@ -112,10 +109,10 @@ SharedObjectPtr<Component> World::AddComponent(Entity& entity, Type& componentTy
     EntityList& entityListBefore = GetEntityList(archetypeBefore);
     EntityList& entityListAfter = GetEntityList(archetypeAfter);
 
-    entityListAfter.Add(entity);
+    Entity* newEntity = entityListAfter.Add(entity);
     entityListBefore.Remove(entity);
 
-    return newComponent;
+    return {newComponent, newEntity};
 }
 
 void World::RemoveComponent(Entity& entity, uint16 index)
@@ -140,7 +137,7 @@ void World::Initialize(PassKey<GameplaySubsystem>)
 {
     std::ignore = GetType()->ForEachProperty([this](PropertyBase* propertyBase)
     {
-        Property<World, EventBase>* property = static_cast<Property<World, EventBase>*>(propertyBase);
+        Property<World, EventBase>* property = dynamic_cast<Property<World, EventBase>*>(propertyBase);
         if (property == nullptr)
         {
             return true;
@@ -160,8 +157,6 @@ void World::Tick(double deltaTime, PassKey<GameplaySubsystem>)
     _systemScheduler.Tick(deltaTime);
 
     _eventQueue.ProcessEvents();
-    
-    OnTransformChanged.Clear();
 }
 
 void World::Shutdown(PassKey<GameplaySubsystem>)
@@ -197,6 +192,16 @@ Entity& World::CreateEntityInternal(const Archetype& archetype)
     return entity;
 }
 
+Entity& World::CreateEntityInternal(const std::shared_ptr<EntityTemplate>& entityTemplate)
+{
+    const Archetype& archetype = entityTemplate->GetArchetype();
+    
+    Entity& entity = CreateEntityInternal(archetype);
+    entityTemplate->InitializeEntity(entity);
+
+    return entity;
+}
+
 void World::OnEntityCreated(Entity& entity, const Archetype& archetype) const
 {
     for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
@@ -206,6 +211,11 @@ void World::OnEntityCreated(Entity& entity, const Archetype& archetype) const
             system->CallOnEntityCreated(archetype, entity, {});
         }
     }
+}
+
+void World::OnEntityCreated(Entity& entity, const std::shared_ptr<EntityTemplate>& archetype) const
+{
+    OnEntityCreated(entity, archetype->GetArchetype());
 }
 
 SharedObjectPtr<Component> World::AddComponentInternal(Entity& entity, Type& componentType, Name name)

@@ -8,11 +8,24 @@
 class FNV1a
 {
 public:
-    explicit FNV1a() = default;
-    explicit FNV1a(uint64 value);
+    constexpr explicit FNV1a() = default;
 
-    void Combine(uint64 value);
-    uint64 GetHash() const;
+    constexpr explicit FNV1a(uint64 value) : _hash(value)
+    {
+    }
+
+    constexpr void Combine(uint64 value)
+    {
+        for (int32 i = 0; i < 8; ++i)
+        {
+            const uint8 byte = (value >> (i * 8)) & 0xFF;
+
+            _hash ^= byte;
+            _hash *= Prime;
+        }
+    }
+
+    constexpr uint64 GetHash() const { return _hash; }
 
 private:
     static constexpr uint64 Prime = 1099511628211u;

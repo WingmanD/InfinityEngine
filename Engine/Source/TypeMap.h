@@ -38,7 +38,7 @@ private:
     template <typename T>
     constexpr size_t IndexOfConst() const
     {
-        return TypeIndex<std::remove_const_t<T>, Types...>::value;
+        return TypeIndex<std::remove_const_t<T>, std::remove_const_t<Types>...>::value;
     }
     
     template <typename T>

@@ -1,11 +1,10 @@
 ﻿#pragma once
 
 #include "Core.h"
+#include "IDGenerator.h"
 #include <functional>
 #include <map>
 #include <vector>
-
-#include "IDGenerator.h"
 
 struct DelegateHandle
 {
@@ -20,10 +19,10 @@ public:
 };
 
 template <typename... Args>
-class Delegate
+class MulticastDelegate
 {
 public:
-    DelegateHandle Add(std::function<void(Args...)>&& function)
+    [[nodiscard]] DelegateHandle Add(std::function<void(Args...)>&& function)
     {
         const uint64 id = _idGenerator.GenerateID();
         _functions.push_back({function, id});

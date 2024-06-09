@@ -19,6 +19,11 @@ public:
     void CaptureMouse();
     void ReleaseMouse();
 
+    Vector3 GetMouseDirectionWS() const;
+
+    void SetCaptureMouseOnClick(bool value);
+    bool ShouldCaptureMouseOnClick() const;
+
     // Widget
 public:
     virtual bool Initialize() override;
@@ -27,10 +32,12 @@ public:
 protected:
     virtual bool InitializeRenderingProxy() override;
     virtual void OnWidgetRectChanged() override;
-    
+
+    virtual bool OnReleasedInternal() override;
     virtual void OnFocusChangedInternal(bool focused) override;
 
 private:
     CCamera* _camera = nullptr;
-    bool _isMouseCaptured = false;
+    bool _isMouseCaptured:1 = false;
+    bool _shouldCaptureMouseOnClick:1 = true;
 };

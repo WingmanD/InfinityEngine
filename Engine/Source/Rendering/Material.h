@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Asset.h"
-#include "Delegate.h"
+#include "MulticastDelegate.h"
 #include "MaterialParameterMap.h"
 #include "MaterialRenderingData.h"
 #include "AssetPtr.h"

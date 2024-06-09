@@ -1,5 +1,6 @@
 ﻿#include "DX12ViewportWidgetRenderingProxy.h"
 #include "DX12RenderingSubsystem.h"
+#include "DX12Window.h"
 #include "Rendering/Widgets/ViewportWidget.h"
 #include "Rendering/Widgets/Widget.h"
 

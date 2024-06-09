@@ -15,7 +15,7 @@ class DropdownMenu : public Widget
     GENERATED()
 
 public:
-    Delegate<const std::shared_ptr<Widget>> OnSelectionChanged;
+    MulticastDelegate<const std::shared_ptr<Widget>> OnSelectionChanged;
 
 public:
     DropdownMenu() = default;

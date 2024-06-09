@@ -4,7 +4,7 @@
 #include "EngineSubsystem.h"
 #include "Mouse.h"
 #include "PassKey.h"
-#include "Delegate.h"
+#include "MulticastDelegate.h"
 
 class Window;
 class ViewportWidget;
@@ -131,8 +131,8 @@ struct KeyState
 {
     bool IsDown = false;
 
-    Delegate<> OnKeyDown;
-    Delegate<> OnKeyUp;
+    MulticastDelegate<> OnKeyDown;
+    MulticastDelegate<> OnKeyUp;
 };
 
 enum class ECursorIcon : uint8
@@ -154,21 +154,21 @@ enum class ECursorIcon : uint8
 class InputSubsystem : public EngineSubsystem
 {
 public:
-    Delegate<const Vector2> OnMouseMoved;
-    Delegate<> OnMouseLeftButtonDown;
-    Delegate<> OnMouseLeftButtonUp;
-    Delegate<> OnMouseRightButtonDown;
-    Delegate<> OnMouseRightButtonUp;
-    Delegate<> OnMouseMiddleButtonDown;
-    Delegate<> OnMouseMiddleButtonUp;
-    Delegate<> OnMouseXButton1Down;
-    Delegate<> OnMouseXButton1Up;
-    Delegate<> OnMouseXButton2Down;
-    Delegate<> OnMouseXButton2Up;
-    Delegate<int32> OnMouseWheelScroll;
+    MulticastDelegate<const Vector2> OnMouseMoved;
+    MulticastDelegate<> OnMouseLeftButtonDown;
+    MulticastDelegate<> OnMouseLeftButtonUp;
+    MulticastDelegate<> OnMouseRightButtonDown;
+    MulticastDelegate<> OnMouseRightButtonUp;
+    MulticastDelegate<> OnMouseMiddleButtonDown;
+    MulticastDelegate<> OnMouseMiddleButtonUp;
+    MulticastDelegate<> OnMouseXButton1Down;
+    MulticastDelegate<> OnMouseXButton1Up;
+    MulticastDelegate<> OnMouseXButton2Down;
+    MulticastDelegate<> OnMouseXButton2Up;
+    MulticastDelegate<int32> OnMouseWheelScroll;
 
-    Delegate<EKey> OnAnyKeyDown;
-    Delegate<EKey> OnAnyKeyUp;
+    MulticastDelegate<EKey> OnAnyKeyDown;
+    MulticastDelegate<EKey> OnAnyKeyUp;
 
 public:
     InputSubsystem() = default;

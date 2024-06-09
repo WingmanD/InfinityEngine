@@ -10,13 +10,19 @@ class GameplaySubsystem : public EngineSubsystem
 {
 public:
     static GameplaySubsystem& Get();
-    
+
     GameplaySubsystem() = default;
 
-    bool StartGame(const std::shared_ptr<ViewportWidget>& viewport);
+    bool StartGame(const std::shared_ptr<ViewportWidget>& viewport, const std::shared_ptr<Game>& game = nullptr);
     void StopGame();
 
     std::shared_ptr<Game> GetGame() const;
+
+    template <typename T> requires IsA<T, Game>
+    std::shared_ptr<T> GetGame() const
+    {
+        return std::dynamic_pointer_cast<T>(GetGame());
+    }
 
     // todo temporary
     BucketArray<World>& GetWorlds();

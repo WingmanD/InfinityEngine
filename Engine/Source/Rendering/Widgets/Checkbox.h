@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Widget.h"
-#include "Delegate.h"
+#include "MulticastDelegate.h"
 #include "Checkbox.reflection.h"
 
 REFLECTED()
@@ -10,7 +10,7 @@ class Checkbox : public Widget
     GENERATED()
 
 public:
-    Delegate<bool> OnCheckedChanged;
+    MulticastDelegate<bool> OnCheckedChanged;
 
 public:
     Checkbox();

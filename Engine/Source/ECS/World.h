@@ -24,9 +24,16 @@ class World : public Object
 
 public:
     PROPERTY()
-    Event<TypeSet<CTransform>> OnTransformChanged;
+    EventDispatcher<TypeSet<CTransform>> OnTransformChanged;
 
     static BoundingBox WorldBounds;
+
+    template <typename ComponentType> requires IsA<ComponentType, Component>
+    struct AddComponentResult
+    {
+        SharedObjectPtr<ComponentType> Component;
+        Entity* NewEntity = nullptr;
+    };
 
 public:
     explicit World();
@@ -83,6 +90,20 @@ public:
             onCreated(newEntity);
         });
     }
+
+    template <typename FuncInit, typename FuncOnCreated>
+    void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, FuncInit preInitialize, FuncOnCreated onCreated)
+    {
+        _eventQueue.Enqueue([entityTemplate, onCreated, preInitialize, this](World* world)
+        {
+            Entity& entity = world->CreateEntityInternal(entityTemplate);
+            preInitialize(entity);
+
+            OnEntityCreated(entity, entityTemplate);
+            
+            onCreated(entity);
+        });
+    }
     
     template <typename Func>
     void CreateEntityAsync(const std::shared_ptr<EntityTemplate>& entityTemplate, uint32 count, Func onCreated)
@@ -99,18 +120,34 @@ public:
     
     Entity& CreateEntity(const Archetype& archetype);
     void CreateEntities(const Archetype& archetype, uint32 count);
-    
+
     void DestroyEntity(Entity& entity);
 
-    SharedObjectPtr<Component> AddComponent(Entity& entity, Type& componentType, Name name);
+    AddComponentResult<Component> AddComponent(Entity& entity, Type& componentType, Name name);
 
     template <typename ComponentType> requires IsA<ComponentType, Component>
-    SharedObjectPtr<Component> AddComponent(Entity& entity, Name name)
+    AddComponentResult<ComponentType> AddComponent(Entity& entity, Name name)
     {
-        return AddComponent(entity, *ComponentType::StaticType(), name);
+        auto [component, newEntity] = AddComponent(entity, *ComponentType::StaticType(), name);
+        return {std::dynamic_pointer_cast<ComponentType>(component), newEntity};
     }
 
     void RemoveComponent(Entity& entity, uint16 index);
+
+    template <typename ComponentType> requires IsA<ComponentType, Component>
+    ComponentType& Get(Entity& entity, const Archetype& archetype)
+    {
+        uint16 index = archetype.GetComponentIndex<ComponentType>();
+        ComponentType& component = entity.Get<ComponentType>(index);
+        
+        if constexpr (RequiresOnChanged<ComponentType>)
+        {
+            EventDispatcher<TypeSet<ComponentType>>& event = this->*ComponentType::OnChanged;
+            event.Add(entity, archetype, {});
+        }
+        
+        return component;
+    }
 
     template <typename SystemType> requires IsA<SystemType, SystemBase>
     SystemType& AddSystem()
@@ -118,6 +155,7 @@ public:
         SystemType& newSystem = _systemScheduler.AddSystem<SystemType>();
         newSystem.SetWorld(this, {});
         newSystem.UpdateQuery({});
+        newSystem.CallInitialize({});
         return newSystem;
     }
 
@@ -192,7 +230,10 @@ private:
 
 private:
     Entity& CreateEntityInternal(const Archetype& archetype);
+    Entity& CreateEntityInternal(const std::shared_ptr<EntityTemplate>& entityTemplate);
+    
     void OnEntityCreated(Entity& entity, const Archetype& archetype) const;
+    void OnEntityCreated(Entity& entity, const std::shared_ptr<EntityTemplate>& archetype) const;
     SharedObjectPtr<Component> AddComponentInternal(Entity& entity, Type& componentType, Name name);
 
     EntityList& GetEntityList(const Archetype& archetype);

@@ -3,6 +3,10 @@
 #include "Math/Math.h"
 #include <queue>
 
+PhysicsSystem::PhysicsSystem(const PhysicsSystem& other) : System(other)
+{
+}
+
 PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& direction, float distance) const
 {
     const Vector3 end = start + direction * distance;
@@ -103,8 +107,13 @@ PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& e
             }
         }
         
-        const Cell& currentCell = GetCellAt(currentIndex);
-        for (const Body* body : currentCell.Bodies)
+        const Cell* currentCell = GetCellAtIfExistsImplementation(currentIndex);
+        if (currentCell == nullptr)
+        {
+            continue;
+        }
+        
+        for (const Body* body : currentCell->Bodies)
         {
             if (body->AABB.Overlap(line))
             {
@@ -118,6 +127,16 @@ PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& e
     }
 
     return {};
+}
+
+void PhysicsSystem::SetSimulationEnabled(bool value)
+{
+    _simulatePhysics = value;
+}
+
+bool PhysicsSystem::IsSimulationEnabled() const
+{
+    return _simulatePhysics;
 }
 
 void PhysicsSystem::Initialize()
@@ -171,7 +190,7 @@ void PhysicsSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
 void PhysicsSystem::Tick(double deltaTime)
 {
     // Update overlaps
-    for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : GetWorld().OnTransformChanged.GetEntityLists())
+    for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : _onTransformChanged.GetEntityLists())
     {
         const uint16 rigidBodyIndex = entityListStruct.EntityArchetype.GetComponentIndexChecked<CRigidBody>();
         if (rigidBodyIndex == std::numeric_limits<uint16>::max())
@@ -179,15 +198,14 @@ void PhysicsSystem::Tick(double deltaTime)
             continue;
         }
 
-        entityListStruct.Update();
-
-        for (const auto& eventData : entityListStruct.EntityListOutput)
+        Event<TypeSet<CTransform>>::EventData eventData;
+        while (entityListStruct.Queue.Dequeue(eventData))
         {
             if (!eventData.Entity->IsValid())
             {
                 continue;
             }
-            
+
             const CRigidBody& rigidBody = eventData.Entity->Get<CRigidBody>(rigidBodyIndex);
 
             // todo
@@ -221,6 +239,11 @@ void PhysicsSystem::ProcessEntityList(EntityList& entityList, double deltaTime)
 {
     System::ProcessEntityList(entityList, deltaTime);
 
+    if (!_simulatePhysics)
+    {
+        return;
+    }
+    
     entityList.ForEach([this, deltaTime](Entity& entity)
     {
         CRigidBody& rigidBody = Get<CRigidBody>(entity);
@@ -446,6 +469,16 @@ const PhysicsSystem::Cell& PhysicsSystem::GetCellAt(const CellIndex& index) cons
     return GetCellAtImplementation(index);
 }
 
+PhysicsSystem::Cell* PhysicsSystem::GetCellAtIfExists(const CellIndex& index)
+{
+    return const_cast<Cell*>(GetCellAtIfExistsImplementation(index));
+}
+
+const PhysicsSystem::Cell* PhysicsSystem::GetCellAtIfExists(const CellIndex& index) const
+{
+    return GetCellAtIfExistsImplementation(index);
+}
+
 uint32 PhysicsSystem::GetRelativeIndexOf(const Body& body, const Cell& cell) const
 {
     const CellIndex minIndex = GetCellIndex(body.AABB.GetMin());
@@ -490,6 +523,19 @@ const PhysicsSystem::Cell& PhysicsSystem::GetCellAtImplementation(const CellInde
     newCell.Index = index;  
     
     return newCell;
+}
+
+const PhysicsSystem::Cell* PhysicsSystem::GetCellAtIfExistsImplementation(const CellIndex& index) const
+{
+    const uint32 index1D = index.X + index.Y * _cellCountX + index.Z * _cellCountX * _cellCountX;
+
+    auto it = _cells.find(index1D);
+    if (it != _cells.end())
+    {
+        return &it->second;
+    }
+
+    return nullptr;
 }
 
 void PhysicsSystem::Move(CRigidBody& rigidBody, const Vector3& currentLocation, const Vector3& newLocation, double deltaTime)

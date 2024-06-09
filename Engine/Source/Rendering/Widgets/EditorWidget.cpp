@@ -64,7 +64,7 @@ bool EditorWidget::Initialize()
 
     viewport->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
-    playButton->OnReleased.Add([playButton, viewport]()
+    std::ignore = playButton->OnReleased.Add([playButton, viewport]()
     {
         GameplaySubsystem& gameplaySubsystem = Engine::Get().GetGameplaySubsystem();
 

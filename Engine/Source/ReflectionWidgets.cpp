@@ -73,7 +73,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateDropdownMenu(const std::wstring
         }
 
         choice->SetText(entry.Text);
-        choice->OnReleased.Add(std::move(entry.OnSelected));
+        std::ignore = choice->OnReleased.Add(std::move(entry.OnSelected));
 
         dropdownMenu->AddChoice(choice);
     }
@@ -126,7 +126,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -166,7 +166,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -179,7 +179,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         }
     });
 
-    textBox->OnValueChanged.Add([weakObject, propertyPtr, value](const std::wstring& text)
+    std::ignore = textBox->OnValueChanged.Add([weakObject, propertyPtr, value](const std::wstring& text)
     {
         if (weakObject.expired())
         {
@@ -218,7 +218,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -259,7 +259,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
 
     PropertyBase* propertyPtr = &property;
 
-    textBox->OnValueChanged.Add([weakObject, propertyPtr](const std::wstring& text)
+    std::ignore = textBox->OnValueChanged.Add([weakObject, propertyPtr](const std::wstring& text)
     {
         if (weakObject.expired())
         {
@@ -269,7 +269,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
     });
 
-    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -314,7 +314,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -327,7 +327,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         }
     });
 
-    textBox->OnValueChanged.Add([weakObject, propertyPtr, value](const std::wstring& text)
+    std::ignore = textBox->OnValueChanged.Add([weakObject, propertyPtr, value](const std::wstring& text)
     {
         if (weakObject.expired())
         {
@@ -366,7 +366,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateWidgetFor(const std::shared_ptr
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -414,7 +414,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -436,7 +436,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     button->SetText(L"Open");
     button->GetTextBox()->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
     button->SetFillMode(EWidgetFillMode::FillY);
-    button->OnReleased.Add([value, weakObject = std::weak_ptr(object), textBox, propertyPtr]()
+    std::ignore = button->OnReleased.Add([value, weakObject = std::weak_ptr(object), textBox, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -505,7 +505,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     });
 
     PropertyBase* propertyPtr = &property;
-    checkbox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = checkbox->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -518,7 +518,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         }
     });
 
-    checkbox->OnCheckedChanged.Add([weakObject, value, propertyPtr](bool checked)
+    std::ignore = checkbox->OnCheckedChanged.Add([weakObject, value, propertyPtr](bool checked)
     {
         if (weakObject.expired())
         {
@@ -747,7 +747,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         });
 
         PropertyBase* propertyPtr = &property;
-        textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+        std::ignore = textBox->OnDestroyed.Add([object, handle, propertyPtr]()
         {
             if (object == nullptr)
             {
@@ -760,7 +760,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             }
         });
 
-        textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
+        std::ignore = textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
         {
             if (object == nullptr)
             {
@@ -798,7 +798,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         });
 
         PropertyBase* propertyPtr = &property;
-        textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+        std::ignore = textBox->OnDestroyed.Add([object, handle, propertyPtr]()
         {
             if (object == nullptr)
             {
@@ -811,7 +811,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             }
         });
 
-        textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
+        std::ignore = textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
         {
             if (object == nullptr)
             {
@@ -849,7 +849,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         });
 
         PropertyBase* propertyPtr = &property;
-        textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+        std::ignore = textBox->OnDestroyed.Add([object, handle, propertyPtr]()
         {
             if (object == nullptr)
             {
@@ -862,7 +862,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
             }
         });
 
-        textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
+        std::ignore = textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
         {
             if (object == nullptr)
             {
@@ -1194,7 +1194,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetForEnum(const std
 
     PropertyBase* propertyPtr = &property;
     std::weak_ptr weakObject = object;
-    enumDropdown->OnSelectionChanged.Add(
+    std::ignore = enumDropdown->OnSelectionChanged.Add(
         [weakObject, value, enumDropdown, propertyPtr](const std::shared_ptr<Widget>& widget)
         {
             if (weakObject.expired())
@@ -1216,7 +1216,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetForEnum(const std
         enumDropdown->SetSelectedEnumValue(*value);
     });
 
-    enumDropdown->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = enumDropdown->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -1260,7 +1260,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
 
     PropertyBase* propertyPtr = &property;
     std::weak_ptr weakObject = object;
-    assetPicker->OnSelectionChanged.Add(
+    std::ignore = assetPicker->OnSelectionChanged.Add(
         [weakObject, value, assetPicker, propertyPtr](const std::shared_ptr<Widget>& widget)
         {
             if (weakObject.expired())
@@ -1290,7 +1290,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         assetPicker->SetSelectedAsset(*value);
     });
 
-    assetPicker->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = assetPicker->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -1357,7 +1357,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
 
     PropertyBase* propertyPtr = &property;
     std::weak_ptr weakObject = object;
-    typePicker->OnSelectionChanged.Add(
+    std::ignore = typePicker->OnSelectionChanged.Add(
         [weakObject, value, typePicker, propertyPtr, verticalBox](const std::shared_ptr<Widget>& widget)
         {
             if (weakObject.expired())
@@ -1402,7 +1402,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     }
 
     std::weak_ptr weakObject = object;
-    typePicker->OnSelectionChanged.Add([weakObject, value, typePicker](const std::shared_ptr<Widget>& widget)
+    std::ignore = typePicker->OnSelectionChanged.Add([weakObject, value, typePicker](const std::shared_ptr<Widget>& widget)
     {
         if (weakObject.expired())
         {
@@ -1430,7 +1430,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
         weakObject.lock()->OnPropertyChanged(propertyPtr->GetDisplayName());
     });
 
-    typePicker->OnDestroyed.Add([weakObject, handle, propertyPtr]()
+    std::ignore = typePicker->OnDestroyed.Add([weakObject, handle, propertyPtr]()
     {
         if (weakObject.expired())
         {
@@ -1556,7 +1556,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const std::sh
     row->AddChild(assetPicker);
     assetPicker->SetSelectedAsset(value->Mesh);
 
-    assetPicker->OnSelectionChanged.Add([object, value, assetPicker, property](const std::shared_ptr<Widget>& widget)
+    std::ignore = assetPicker->OnSelectionChanged.Add([object, value, assetPicker, property](const std::shared_ptr<Widget>& widget)
     {
         value->Mesh.SetAsset(assetPicker->GetSelectedAsset());
         object->OnPropertyChanged(property.GetDisplayName());
@@ -1616,7 +1616,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateTableForContainer(
         const std::shared_ptr<Button> removeButton = row->AddChild<Button>();
         removeButton->SetText(L"x");
         std::function<std::shared_ptr<Widget>()>& onRemoved = child.second;
-        removeButton->OnReleased.Add([onRemoved, verticalBox, object, property]()
+        std::ignore = removeButton->OnReleased.Add([onRemoved, verticalBox, object, property]()
         {
             const std::shared_ptr<Widget> parent = verticalBox->GetParentWidget();
             verticalBox->DestroyWidget();
@@ -1630,7 +1630,7 @@ std::shared_ptr<Widget> ReflectionWidgets::CreateTableForContainer(
     const std::shared_ptr<Button> button = verticalBox->AddChild<Button>();
     button->SetText(L"+");
     button->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
-    button->OnReleased.Add([onAdd, verticalBox, object, property]()
+    std::ignore = button->OnReleased.Add([onAdd, verticalBox, object, property]()
     {
         const std::shared_ptr<Widget> parent = verticalBox->GetParentWidget();
         verticalBox->DestroyWidget();

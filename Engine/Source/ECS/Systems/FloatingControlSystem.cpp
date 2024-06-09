@@ -1,5 +1,4 @@
 ﻿#include "FloatingControlSystem.h"
-
 #include "Engine/Subsystems/GameplaySubsystem.h"
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Math/Math.h"
@@ -27,10 +26,13 @@ void FloatingControlSystem::Initialize()
 
     _onMouseMovedHandle = InputSubsystem::Get().OnMouseMoved.Add([this](const Vector2& delta)
     {
-        Vector2 newDelta = delta;
-        newDelta.x = -newDelta.x;
-        
-        _mouseDelta += newDelta;
+        if (InputSubsystem::Get().IsMouseCaptured())
+        {
+            Vector2 newDelta = delta;
+            newDelta.x = -newDelta.x;
+            
+            _mouseDelta += newDelta;
+        }
     });
 }
 

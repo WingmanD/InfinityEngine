@@ -108,11 +108,6 @@ bool Window::Initialize()
 
     _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Add([this, &inputSubsystem]()
     {
-        if (inputSubsystem.IsMouseCaptured())
-        {
-            return;
-        }
-        
         if (const std::shared_ptr<Widget> interactedWidget = _pressedWidget.lock())
         {
             interactedWidget->CallReleased({});
@@ -338,7 +333,7 @@ std::shared_ptr<Window::Layer> Window::AddLayer()
                                                  Vector2(_aspectRatio, 1.0f));
     _layers.push_back(newLayer);
 
-    rootWidget->OnDestroyed.Add([this, weakLayer = std::weak_ptr(newLayer)]()
+    std::ignore = rootWidget->OnDestroyed.Add([this, weakLayer = std::weak_ptr(newLayer)]()
     {
         auto it = std::ranges::find_if(_layers, [weakLayer](const std::shared_ptr<Layer>& layer)
         {
@@ -379,9 +374,9 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
     };
 
     // todo unsubscribe from events
-    popup->OnCollapsed.Add(removeLayer);
+    std::ignore = popup->OnCollapsed.Add(removeLayer);
     Widget* rawPopup = popup.get();
-    popup->OnFocusChanged.Add([removeLayer, this, rawPopup](bool value)
+    std::ignore = popup->OnFocusChanged.Add([removeLayer, this, rawPopup](bool value)
     {
         if (!value)
         {
@@ -401,7 +396,7 @@ bool Window::AddPopup(const std::shared_ptr<Widget>& popup)
         }
     });
 
-    popup->OnDestroyed.Add(removeLayer);
+    std::ignore = popup->OnDestroyed.Add(removeLayer);
 
     popup->SetFocused(true);
 
@@ -440,9 +435,9 @@ bool Window::AddBorrowedPopup(const std::shared_ptr<Widget>& popup)
     };
 
     // todo unsubscribe from events
-    popup->OnCollapsed.Add(removeLayer);
+    std::ignore = popup->OnCollapsed.Add(removeLayer);
     Widget* rawPopup = popup.get();
-    popup->OnFocusChanged.Add([removeLayer, this, rawPopup](bool value)
+    std::ignore = popup->OnFocusChanged.Add([removeLayer, this, rawPopup](bool value)
     {
         if (!value)
         {
@@ -462,7 +457,7 @@ bool Window::AddBorrowedPopup(const std::shared_ptr<Widget>& popup)
         }
     });
 
-    popup->OnDestroyed.Add(removeLayer);
+    std::ignore = popup->OnDestroyed.Add(removeLayer);
 
     popup->SetFocused(true);
 

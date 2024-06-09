@@ -114,6 +114,48 @@ bool ReflectionParser::ProcessReflectedTag(TypeInfo* nestParent /*= nullptr*/)
             while (_lexer.HasNextToken() && _lexer.PeekNextToken().Type != TokenType::ScopeStart)
             {
                 const Token& parentTypeToken = _lexer.GetNextToken();
+
+                if (_lexer.PeekNextToken().Type == TokenType::TemplateOpen)
+                {
+                    int templateDepth = 1;
+                    std::stringstream ss;
+
+                    ss << parentTypeToken.Value;
+                    
+                    while (_lexer.HasNextToken() && templateDepth > 0)
+                    {
+                        const Token& templateToken = _lexer.GetNextToken();
+                        if (templateToken.Type == TokenType::TemplateOpen)
+                        {
+                            ss << templateToken.Value;
+                            ++templateDepth;
+                            
+                            continue;
+                        }
+                        else if (templateToken.Type == TokenType::TemplateClose)
+                        {
+                            --templateDepth;
+                        }
+
+                        ss << templateToken.Value;
+
+                        if (templateToken.Type == TokenType::TemplateClose)
+                        {
+                            break;
+                        }
+                        
+                        const Token& nextToken = _lexer.PeekNextToken();
+                        if (nextToken.Type != TokenType::TemplateClose && nextToken.Type != TokenType::TemplateOpen && nextToken.Type != TokenType::Comma)
+                        {
+                            ss << " ";
+                        }
+                    }
+
+                    typeInfo.ParentTypeNames.push_back(ss.str());
+                    
+                    continue;
+                }
+
                 if (parentTypeToken.Type == TokenType::Identifier)
                 {
                     typeInfo.ParentTypeNames.push_back(parentTypeToken.Value);

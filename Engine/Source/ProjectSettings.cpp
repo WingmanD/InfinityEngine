@@ -1,4 +1,5 @@
 ﻿#include "ProjectSettings.h"
+#include "LevelEditorGame.h"
 #include "Engine/Subsystems/AssetManager.h"
 
 std::shared_ptr<ProjectSettings> ProjectSettings::Get()
@@ -15,4 +16,9 @@ Type* ProjectSettings::GetGameType() const
 std::shared_ptr<Game> ProjectSettings::GetGame() const
 {
     return _game;
+}
+
+std::shared_ptr<Game> ProjectSettings::GetLevelEditorGame() const
+{
+    return _levelEditorGame;
 }

@@ -1,8 +1,9 @@
 ﻿#include "PointLightSystem.h"
 #include "ECS/Entity.h"
-#include "ECS/EntityList.h"
 
-class CStaticMesh;
+PointLightSystem::PointLightSystem(const PointLightSystem& other) : System(other)
+{
+}
 
 DynamicGPUBuffer2<PointLight>& PointLightSystem::GetPointLightBuffer()
 {
@@ -14,6 +15,8 @@ void PointLightSystem::Initialize()
     System::Initialize();
 
     _pointLightBuffer.Initialize();
+
+    _onTransformChangedHandle = GetWorld().OnTransformChanged.RegisterListener(_onTransformChanged);
 }
 
 void PointLightSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
@@ -37,20 +40,26 @@ void PointLightSystem::OnEntityCreated(const Archetype& archetype, Entity& entit
 
 void PointLightSystem::Tick(double deltaTime)
 {
-    System::Tick(deltaTime);
-
-    for (EntityList* entityList : GetQuery().GetEntityLists())
+    for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : _onTransformChanged.GetEntityLists())
     {
-        const Archetype& archetype = entityList->GetArchetype();
-        entityList->ForEach([&archetype, this](Entity& entity)
+        const uint16 index = entityListStruct.EntityArchetype.GetComponentIndexChecked<CPointLight>();
+        if (index == std::numeric_limits<uint16>::max())
         {
-            const CPointLight& pointLight = entity.Get<CPointLight>(archetype);
+            continue;
+        }
 
-            // todo optimize, this should be an event
+        Event<TypeSet<CTransform>>::EventData eventData;
+        while (entityListStruct.Queue.Dequeue(eventData))
+        {
+            if (!eventData.Entity->IsValid())
+            {
+                continue;
+            }
+
+            const CPointLight& pointLight = eventData.Entity->Get<CPointLight>(entityListStruct.EntityArchetype);
+            
             _pointLightBuffer[pointLight.LightID].Location = pointLight.LightTransform.GetWorldLocation();
-
-            return true;
-        });
+        }
     }
 }
 
@@ -70,4 +79,6 @@ void PointLightSystem::OnEntityDestroyed(const Archetype& archetype, Entity& ent
 void PointLightSystem::Shutdown()
 {
     System::Shutdown();
+
+    GetWorld().OnTransformChanged.UnregisterListener(_onTransformChangedHandle);
 }

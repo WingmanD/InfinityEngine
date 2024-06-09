@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "ReflectionShared.h"
-#include "Delegate.h"
+#include "MulticastDelegate.h"
 #include "EnumRegistry.h"
 #include "ReflectionWidgets.h"
 #include "Name.h"
@@ -18,7 +18,7 @@ class Object;
 struct PropertyBase
 {
 public:
-    Delegate<> OnChanged;
+    MulticastDelegate<> OnChanged;
 
     enum class EEditorVisibility : uint8
     {

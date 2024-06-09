@@ -9,9 +9,26 @@
 #include "Engine/Subsystems/AssetManager.h"
 #include "Rendering/Window.h"
 
-bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
+bool AssetBrowserEntryBase::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
 {
     if (!Initialize())
+    {
+        return false;
+    }
+
+    _asset = asset;
+
+    return true;
+}
+
+std::shared_ptr<Asset> AssetBrowserEntryBase::GetAsset() const
+{
+    return _asset.lock();
+}
+
+bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
+{
+    if (!AssetBrowserEntryBase::InitializeFromAsset(asset))
     {
         return false;
     }
@@ -34,7 +51,7 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
     }
     editButton->SetText(L"Edit");
     editButton->GetTextBox()->SetPadding(textPadding);
-    editButton->OnReleased.Add([asset, this]()
+    std::ignore = editButton->OnReleased.Add([asset, this]()
     {
         if (const std::shared_ptr<EditorWidget> editorWidget = std::dynamic_pointer_cast<EditorWidget>(
             GetRootWidget()->GetChildren()[0]))
@@ -44,17 +61,17 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
                 LOG(L"Failed to open asset for editing: {}", asset->GetName().ToString());
                 return;
             }
-            
-            const std::shared_ptr<Widget> propertiesWidget = asset->GetType()->CreatePropertiesWidget(asset);
-            if (propertiesWidget == nullptr)
+
+            const std::shared_ptr<Widget> editWidget = asset->CreateEditWidget();
+            if (editWidget == nullptr)
             {
                 DEBUG_BREAK();
                 return;
             }
 
-            propertiesWidget->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
+            editWidget->SetFillMode(EWidgetFillMode::FillX | EWidgetFillMode::FillY);
 
-            editorWidget->AddTab(asset->GetName().ToString(), propertiesWidget);
+            editorWidget->AddTab(asset->GetName().ToString(), editWidget);
             editorWidget->SetTabIndex(editorWidget->GetTabCount());
         }
     });
@@ -66,7 +83,7 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
     }
     deleteButton->SetText(L"Delete");
     deleteButton->GetTextBox()->SetPadding(textPadding);
-    deleteButton->OnReleased.Add([asset, this]()
+    std::ignore = deleteButton->OnReleased.Add([asset, this]()
     {
         if (asset != nullptr)
         {
@@ -74,14 +91,22 @@ bool AssetBrowserEntry::InitializeFromAsset(const std::shared_ptr<Asset>& asset)
         }
     });
 
-    _asset = asset;
-
     return true;
 }
 
-std::shared_ptr<Asset> AssetBrowserEntry::GetAsset() const
+void AssetBrowser::SetEntryType(const SubtypeOf<AssetBrowserEntryBase>& entryType)
 {
-    return _asset.lock();
+    _entryType = entryType;
+}
+
+Type& AssetBrowser::GetEntryType() const
+{
+    return *_entryType;
+}
+
+void AssetBrowser::SetFilter(std::function<bool(const Asset& asset)>&& filter)
+{
+    _filter = std::move(filter);
 }
 
 bool AssetBrowser::Initialize()
@@ -110,7 +135,7 @@ bool AssetBrowser::Initialize()
     auto newAssetButton = horizontalButtonBox->AddChild<Button>();
     newAssetButton->SetText(L"New Asset");
     newAssetButton->GetTextBox()->SetPadding(textPadding);
-    newAssetButton->OnReleased.Add([this, newAssetButton]()
+    std::ignore = newAssetButton->OnReleased.Add([this, newAssetButton]()
     {
         if (const std::shared_ptr<Window> window = GetParentWindow())
         {
@@ -120,7 +145,7 @@ bool AssetBrowser::Initialize()
                 newAssetButton->SetEnabled(false);
                 newAssetButton->SetCollisionEnabled(false);
 
-                assetCreator->OnDestroyed.Add([newAssetButton]()
+                std::ignore = assetCreator->OnDestroyed.Add([newAssetButton]()
                 {
                     if (newAssetButton != nullptr)
                     {
@@ -135,7 +160,7 @@ bool AssetBrowser::Initialize()
     const auto importAssetButton = horizontalButtonBox->AddChild<Button>();
     importAssetButton->SetText(L"Import");
     importAssetButton->GetTextBox()->SetPadding(textPadding);
-    importAssetButton->OnReleased.Add([this, importAssetButton]()
+    std::ignore = importAssetButton->OnReleased.Add([this, importAssetButton]()
     {
         if (const std::shared_ptr<Window> window = GetParentWindow())
         {
@@ -145,7 +170,7 @@ bool AssetBrowser::Initialize()
                 importAssetButton->SetEnabled(false);
                 importAssetButton->SetCollisionEnabled(false);
 
-                importer->OnDestroyed.Add([importAssetButton]()
+                std::ignore = importer->OnDestroyed.Add([importAssetButton]()
                 {
                     if (importAssetButton != nullptr)
                     {
@@ -172,15 +197,14 @@ bool AssetBrowser::Initialize()
         return true;
     });
 
-    assetManager.OnAssetCreated.Add([this](const std::shared_ptr<Asset>& asset)
+    std::ignore = assetManager.OnAssetCreated.Add([this](const std::shared_ptr<Asset>& asset)
     {
         AddEntry(asset);
     });
 
-    assetManager.OnAssetDeleted.Add([this](const std::shared_ptr<Asset>& asset)
+    std::ignore = assetManager.OnAssetDeleted.Add([this](const std::shared_ptr<Asset>& asset)
     {
-        const std::shared_ptr<TableWidget> table = _table.lock();
-        for (const std::shared_ptr<Widget>& widget : table->GetChildren()[0]->GetChildren())
+        for (const std::shared_ptr<Widget>& widget : GetTable()->GetChildren()[0]->GetChildren())
         {
             std::shared_ptr<AssetBrowserEntry> entry = std::dynamic_pointer_cast<AssetBrowserEntry>(widget);
             if (entry == nullptr)
@@ -201,8 +225,18 @@ bool AssetBrowser::Initialize()
 
 void AssetBrowser::AddEntry(const std::shared_ptr<Asset>& asset) const
 {
-    std::shared_ptr<AssetBrowserEntry> row = std::make_shared<AssetBrowserEntry>();
+    if (!_filter(*asset))
+    {
+        return;
+    }
+
+    const std::shared_ptr<AssetBrowserEntryBase> row = _entryType->NewObject<AssetBrowserEntryBase>();
     row->InitializeFromAsset(asset);
 
-    _table.lock()->AddRow(row);
+    GetTable()->AddRow(row);
+}
+
+std::shared_ptr<TableWidget> AssetBrowser::GetTable() const
+{
+    return _table.lock();
 }

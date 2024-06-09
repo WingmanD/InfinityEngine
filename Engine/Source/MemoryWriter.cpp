@@ -26,6 +26,11 @@ const std::vector<std::byte>& MemoryWriter::GetBytes() const
     return _bytes;
 }
 
+uint64 MemoryWriter::GetByteCount() const
+{
+    return _bytes.size();
+}
+
 MemoryWriter& MemoryWriter::operator<<(std::byte byte)
 {
     _bytes.push_back(byte);

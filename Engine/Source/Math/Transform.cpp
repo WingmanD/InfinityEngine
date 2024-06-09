@@ -327,6 +327,11 @@ Vector4 Transform::operator*(const Vector4& vector) const
     return Vector4::Transform(vector, GetWorldMatrix());
 }
 
+Matrix Transform::operator*(const Matrix& matrix) const
+{
+    return GetWorldMatrix() * matrix;
+}
+
 void Transform::MarkDirty()
 {
     _isWorldMatrixDirty = true;

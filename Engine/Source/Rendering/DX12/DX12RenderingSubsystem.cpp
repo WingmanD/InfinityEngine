@@ -214,26 +214,49 @@ void DX12RenderingSubsystem::DrawScene(const ViewportWidget& viewport)
 
         _forwardPlusCullingCS->InitializeBuffers(*commandListCull, proxy.GetViewport());
         _forwardPlusCullingCS->Clear(*commandListCull);
-        
+
+        bool empty = true;
         for (StaticMeshRenderingSystem* renderingSystem : _staticMeshRenderingSystems)
         {
             // todo check if system's world is visible - we need to know which world the camera belongs to
-        
+
+            InstanceBuffer& instanceBuffer = renderingSystem->GetInstanceBuffer();
+            if (instanceBuffer.Count() == 0)
+            {
+                continue;
+            }
+            empty = false;
+
             PointLightSystem* pointLightSystem = renderingSystem->GetWorld().FindSystem<PointLightSystem>();
             DynamicGPUBuffer2<PointLight>& pointLightsBuffer = pointLightSystem->GetPointLightBuffer();
             pointLightsBuffer.GetBuffer<DX12GPUBuffer>().Update(commandListCull, pointLightsBuffer.GetDirtyIndices());
             pointLightsBuffer.ClearDirtyIndices();
-            
-            _forwardPlusCullingCS->Run(*commandListCull, proxy.GetForwardPlusFrustumBuffer({}), pointLightsBuffer, proxy.GetViewport());
 
-            renderingSystem->GetInstanceBuffer().GetProxy<DynamicGPUBufferUploader<SMInstance>>()->Update(commandListCull);
+            _forwardPlusCullingCS->Run(
+                *commandListCull,
+                proxy.GetForwardPlusFrustumBuffer({}),
+                pointLightsBuffer,
+                proxy.GetViewport()
+            );
+
+            instanceBuffer.GetProxy<DynamicGPUBufferUploader<SMInstance>>()->Update(commandListCull);
 
             // todo multiple systems SMInstance needs to know which system it belongs to
             _cullingWorkGraph.SetInstanceBuffer(&renderingSystem->GetInstanceBuffer());
-            _cullingWorkGraph.Dispatch(commandListCull, renderingSystem->GetInstanceBuffer().GetData(),
-                                       renderingSystem->GetInstanceBuffer().Count());
+            _cullingWorkGraph.Dispatch(
+                commandListCull,
+                instanceBuffer.GetData(),
+                instanceBuffer.Count()
+            );
         }
 
+        if (empty)
+        {
+            window->CloseCommandList(commandListCullStruct);
+            window->ExecuteCommandLists();
+            return;
+        }
+        
         _cullingWorkGraph.GetVisibleInstances().ReadBackCounter(commandListCull);
 
         window->CloseCommandList(commandListCullStruct);

@@ -1,5 +1,4 @@
 ﻿#include "System.h"
-
 #include "ECS/Event.h"
 #include "ECS/World.h"
 
@@ -12,7 +11,7 @@ SystemBase::SystemBase(Archetype&& archetype) : SystemBase()
     _archetype = std::move(archetype);
 }
 
-void SystemBase::CallInitialize(PassKey<SystemScheduler>)
+void SystemBase::CallInitialize(PassKey<World>)
 {
     Initialize();
 }
@@ -66,7 +65,7 @@ void SystemBase::Initialize()
 {
     std::ignore = GetType()->ForEachProperty([this](PropertyBase* propertyBase)
     {
-        Property<SystemBase, EventBase>* property = dynamic_cast<Property<SystemBase, EventBase>*>(propertyBase);
+        Property<SystemBase, EventBase>* property = static_cast<Property<SystemBase, EventBase>*>(propertyBase);
         if (property == nullptr)
         {
             return true;

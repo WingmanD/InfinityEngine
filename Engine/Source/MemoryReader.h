@@ -2,11 +2,12 @@
 
 #include "Core.h"
 #include "ISerializeable.h"
+#include "TypeSet.h"
 #include <filesystem>
+#include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
-
-#include "TypeSet.h"
 
 class MemoryReader
 {
@@ -17,7 +18,7 @@ public:
     std::byte* GetCurrentPointer();
     void Skip(uint64 size);
 
-    bool ReadFromFile(std::ifstream& file, uint64 numBytesToRead = 0);
+    bool ReadFromFile(std::ifstream& file, uint64 offset = 0, uint64 numBytesToRead = 0);
 
     void ResetOffset();
     
@@ -60,8 +61,26 @@ MemoryReader& operator>>(MemoryReader& reader, T& value)
 
     for (uint64 i = 0; i < size; ++i)
     {
-        auto& newElement = value.emplace_back(); // todo this only works for std::vector
-        reader >> newElement;
+        if constexpr (IsSpecializationOf<T, std::vector>)
+        {
+            auto& newElement = value.emplace_back();
+            reader >> newElement;
+        }
+        else if constexpr (IsSpecializationOf<T, std::map> || IsSpecializationOf<T, std::unordered_map>)
+        {
+            typename T::key_type key;
+            reader >> key;
+
+            typename T::mapped_type mapped;
+            reader >> mapped;
+
+            value[key] = mapped;
+        }
+        else
+        {
+            LOG(L"MemoryReader::operator>> Unsupported container type");
+            DEBUG_BREAK();
+        }
     }
 
     return reader;
@@ -72,12 +91,6 @@ MemoryReader& operator>>(MemoryReader& reader, T& value)
 {
     uint64 count;
     reader >> count;
-
-    if (count * sizeof(T::type) > reader.GetNumRemainingBytes())
-    {
-        DEBUG_BREAK()
-        return reader;
-    }
 
     for (uint64 i = 0; i < count; ++i)
     {

@@ -1,18 +1,19 @@
 ﻿#pragma once
 
-#include "Widget.h"
+#include "SubtypeOf.h"
 #include "TableWidget.h"
+#include "Widget.h"
 #include "AssetBrowser.reflection.h"
 
 REFLECTED()
-class AssetBrowserEntry : public TableRowWidget
+class AssetBrowserEntryBase : public TableRowWidget
 {
     GENERATED()
 
 public:
-    AssetBrowserEntry() = default;
-    
-    bool InitializeFromAsset(const std::shared_ptr<Asset>& asset);
+    AssetBrowserEntryBase() = default;
+
+    virtual bool InitializeFromAsset(const std::shared_ptr<Asset>& asset);
 
     std::shared_ptr<Asset> GetAsset() const;
 
@@ -21,6 +22,20 @@ private:
 };
 
 REFLECTED()
+class AssetBrowserEntry : public AssetBrowserEntryBase
+{
+    GENERATED()
+
+public:
+    AssetBrowserEntry() = default;
+
+    // AssetBrowserEntryBase
+public:
+    virtual bool InitializeFromAsset(const std::shared_ptr<Asset>& asset) override;
+};
+
+REFLECTED()
+
 class AssetBrowser : public Widget
 {
     GENERATED()
@@ -28,13 +43,23 @@ class AssetBrowser : public Widget
 public:
     AssetBrowser() = default;
 
+    void SetEntryType(const SubtypeOf<AssetBrowserEntryBase>& entryType);
+    Type& GetEntryType() const;
+
+    void SetFilter(std::function<bool(const Asset& asset)>&& filter);
+
     // Widget
 public:
     bool Initialize() override;
-    
+
+protected:
+    virtual void AddEntry(const std::shared_ptr<Asset>& asset) const;
+
+    [[nodiscard]] std::shared_ptr<TableWidget> GetTable() const;
+
 private:
     std::weak_ptr<TableWidget> _table;
 
-private:
-    void AddEntry(const std::shared_ptr<Asset>& asset) const;
+    SubtypeOf<AssetBrowserEntryBase> _entryType = AssetBrowserEntry::StaticType();
+    std::function<bool(const Asset& asset)> _filter = [](const Asset&) { return true; };
 };

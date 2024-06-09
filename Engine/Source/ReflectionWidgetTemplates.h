@@ -27,7 +27,7 @@ std::shared_ptr<Widget> CreateWidgetForNumber(const std::shared_ptr<Object>& obj
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -67,7 +67,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForNumber(const std::shared_ptr<Obje
     });
 
     PropertyBase* propertyPtr = &property;
-    textBox->OnDestroyed.Add([object, handle, propertyPtr]()
+    std::ignore = textBox->OnDestroyed.Add([object, handle, propertyPtr]()
     {
         if (object == nullptr)
         {
@@ -80,7 +80,7 @@ std::shared_ptr<Widget> CreateEditableWidgetForNumber(const std::shared_ptr<Obje
         }
     });
 
-    textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
+    std::ignore = textBox->OnValueChanged.Add([object, value, propertyPtr](const std::wstring& newText)
     {
         if (object == nullptr)
         {

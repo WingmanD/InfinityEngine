@@ -220,13 +220,13 @@ void Widget::SetFocused(bool value)
 
     _desiredState = value ? _desiredState | EWidgetState::Focused : _desiredState & ~EWidgetState::Focused;
     _state = value ? _state | EWidgetState::Focused : _state & ~EWidgetState::Focused;
-
-    OnFocusChangedInternal(value);
-
+    
     if (const std::shared_ptr<Window> window = GetParentWindow())
     {
-        window->SetFocusedWidget(SharedFromThis());
+        window->SetFocusedWidget(value ? SharedFromThis() : nullptr);
     }
+    
+    OnFocusChangedInternal(value);
 
     OnFocusChanged.Broadcast(value);
 }

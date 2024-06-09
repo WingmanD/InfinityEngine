@@ -12,8 +12,11 @@ void ViewportWidget::SetCamera(CCamera* camera)
 {
     _camera = camera;
 
-    const Vector2 screenSpaceSize = GetScreenSize();
-    _camera->SetAspectRatio(screenSpaceSize.x / screenSpaceSize.y);
+    if (_camera != nullptr)
+    {
+        const Vector2 screenSpaceSize = GetScreenSize();
+        _camera->SetAspectRatio(screenSpaceSize.x / screenSpaceSize.y);
+    }
 }
 
 CCamera* ViewportWidget::GetCamera() const
@@ -29,9 +32,6 @@ void ViewportWidget::CaptureMouse()
     }
 
     _isMouseCaptured = true;
-
-    SetCapture(GetParentWindow()->GetHandle());
-    ClipCursor(&GetRect());
 
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     inputSubsystem.GetMouse().SetVisible(false);
@@ -55,6 +55,39 @@ void ViewportWidget::ReleaseMouse()
     inputSubsystem.SetMouseCaptured(false, {});
 }
 
+Vector3 ViewportWidget::GetMouseDirectionWS() const
+{
+    const Vector2 mousePosition = InputSubsystem::Get().GetMousePosition();
+    const RECT& screenSpaceSize = GetRect();
+
+    const Vector2 normalizedMousePosition = {
+        (mousePosition.x - screenSpaceSize.left) / (screenSpaceSize.right - screenSpaceSize.left),
+        (mousePosition.y - screenSpaceSize.top) / (screenSpaceSize.bottom - screenSpaceSize.top)
+    };
+
+    CCamera* camera = GetCamera();
+    const Matrix& mvp = camera->GetTransform() * camera->GetViewProjectionMatrix();
+    const Matrix invMvp = mvp.Invert();
+
+    Vector3 direction =  Vector3::Transform(
+        {normalizedMousePosition.x * 2.0f - 1.0f, 1.0f - normalizedMousePosition.y * 2.0f, 0.0f},
+        invMvp
+    );
+    direction.Normalize();
+
+    return direction;
+}
+
+void ViewportWidget::SetCaptureMouseOnClick(bool value)
+{
+    _shouldCaptureMouseOnClick = value;
+}
+
+bool ViewportWidget::ShouldCaptureMouseOnClick() const
+{
+    return _shouldCaptureMouseOnClick;
+}
+
 bool ViewportWidget::Initialize()
 {
     if (!CanvasPanel::Initialize())
@@ -63,7 +96,7 @@ bool ViewportWidget::Initialize()
     }
 
     SetCollisionEnabled(true);
-    
+
     return true;
 }
 
@@ -91,6 +124,18 @@ void ViewportWidget::OnWidgetRectChanged()
         const Vector2 screenSpaceSize = GetScreenSize();
         _camera->SetAspectRatio(screenSpaceSize.x / screenSpaceSize.y);
     }
+}
+
+bool ViewportWidget::OnReleasedInternal()
+{
+    CanvasPanel::OnReleasedInternal();
+
+    if (!ShouldCaptureMouseOnClick())
+    {
+        SetFocused(false);
+    }
+
+    return true;
 }
 
 void ViewportWidget::OnFocusChangedInternal(bool focused)

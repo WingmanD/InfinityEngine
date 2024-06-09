@@ -101,16 +101,9 @@ bool Asset::Load()
         return false;
     }
 
-    MemoryReader reader;
-    if (!reader.ReadFromFile(file))
+    if (!LoadInternal(file))
     {
-        LOG(L"Failed to read asset {} from file {}!", _name.ToString(), _assetPath.wstring());
-        return false;
-    }
-
-    if (!Deserialize(reader))
-    {
-        LOG(L"Failed to deserialize asset {} from file {}!", _name.ToString(), _assetPath.wstring());
+        LOG(L"Failed to load asset {}!", _name.ToString());
         return false;
     }
 
@@ -162,11 +155,9 @@ bool Asset::Save() const
         return false;
     }
 
-    MemoryWriter writer;
-    Serialize(writer);
-    if (!writer.WriteToFile(file))
+    if (!SaveInternal(file))
     {
-        LOG(L"Failed to write asset {} to file {}!", _name.ToString(), _assetPath.wstring());
+        LOG(L"Failed to save asset {}!", _name.ToString());
         return false;
     }
 
@@ -244,7 +235,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
         closeButton->SetText(L"x");
         closeButton->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
         closeButton->SetFillMode(EWidgetFillMode::FillY);
-        closeButton->OnReleased.Add([verticalBox]()
+        std::ignore = closeButton->OnReleased.Add([verticalBox]()
         {
             verticalBox->DestroyWidget();
         });
@@ -264,7 +255,7 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
     importButton->SetFillMode(EWidgetFillMode::FillX);
 
     const Type* assetType = GetType();
-    importButton->OnReleased.Add([assetType, importer, verticalBox]()
+    std::ignore = importButton->OnReleased.Add([assetType, importer, verticalBox]()
     {
         const DArray<std::shared_ptr<Asset>> importedAssets = assetType->GetCDO<Asset>()->Import(importer);
         // todo notification
@@ -280,6 +271,11 @@ std::shared_ptr<Widget> Asset::CreateImportWidget() const
     return verticalBox;
 }
 
+std::shared_ptr<Widget> Asset::CreateEditWidget()
+{
+    return GetType()->CreatePropertiesWidget(SharedFromThis());
+}
+
 DArray<std::shared_ptr<Asset>> Asset::Import(const std::shared_ptr<Importer>& importer) const
 {
     return {};
@@ -290,8 +286,39 @@ void Asset::OnPropertyChanged(Name propertyName)
     MarkDirtyForAutosave();
 }
 
+bool Asset::LoadInternal(std::ifstream& file)
+{
+    MemoryReader reader;
+    if (!reader.ReadFromFile(file))
+    {
+        LOG(L"Failed to read asset {} from file {}!", _name.ToString(), _assetPath.wstring());
+        return false;
+    }
+
+    if (!Deserialize(reader))
+    {
+        LOG(L"Failed to deserialize asset {} from file {}!", _name.ToString(), _assetPath.wstring());
+        return false;
+    }
+    
+    return true;
+}
+
 void Asset::PostLoad()
 {
+}
+
+bool Asset::SaveInternal(std::ofstream& file) const
+{
+    MemoryWriter writer;
+    Serialize(writer);
+    if (!writer.WriteToFile(file))
+    {
+        LOG(L"Failed to write asset {} to file {}!", _name.ToString(), _assetPath.wstring());
+        return false;
+    }
+
+    return true;
 }
 
 void Asset::SetIsLoaded(bool value)

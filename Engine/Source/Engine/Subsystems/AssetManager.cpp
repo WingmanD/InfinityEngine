@@ -108,7 +108,10 @@ bool AssetManager::ForEachAssetOfType(Type* type, const std::function<bool(const
     {
         for (Type* subtype : type->GetSubtypes())
         {
-            return ForEachAssetOfType(subtype, callback, true);
+            if (!ForEachAssetOfType(subtype, callback, true))
+            {
+                return false;
+            }
         }
     }
 

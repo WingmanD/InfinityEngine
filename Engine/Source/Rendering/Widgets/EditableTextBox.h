@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "TextBox.h"
-#include "Delegate.h"
+#include "MulticastDelegate.h"
 #include "EditableTextBox.reflection.h"
 
 class Caret;
@@ -13,7 +13,7 @@ class EditableTextBox : public TextBox
     GENERATED()
 
 public:
-    Delegate<const std::wstring&> OnValueChanged;
+    MulticastDelegate<const std::wstring&> OnValueChanged;
 
 public:
     EditableTextBox() = default;

@@ -5,10 +5,17 @@
 #include "ECS/Components/CPointLight.h"
 #include "ECS/Components/CTransform.h"
 #include "Rendering/PointLight.h"
+#include "PointLightSystem.reflection.h"
 
+REFLECTED()
 class PointLightSystem : public System<const CTransform, const CPointLight>
 {
+    GENERATED()
+    
 public:
+    PointLightSystem() = default;
+    PointLightSystem(const PointLightSystem& other);
+    
     DynamicGPUBuffer2<PointLight>& GetPointLightBuffer();
 
 protected:
@@ -27,4 +34,9 @@ private:
 
     CPointLight* _lastPointLightComponent = nullptr;
     DynamicGPUBuffer2<PointLight> _pointLightBuffer{};
+
+    PROPERTY()
+    Event<TypeSet<CTransform>> _onTransformChanged;
+    
+    EventHandle _onTransformChangedHandle;
 };

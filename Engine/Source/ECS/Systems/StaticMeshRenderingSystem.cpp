@@ -2,7 +2,10 @@
 #include "MaterialParameterTypes.h"
 #include "ECS/Entity.h"
 #include "Engine/Subsystems/RenderingSubsystem.h"
-#include <DirectXColors.h>
+
+StaticMeshRenderingSystem::StaticMeshRenderingSystem(const StaticMeshRenderingSystem& other) : System(other)
+{
+}
 
 InstanceBuffer& StaticMeshRenderingSystem::GetInstanceBuffer()
 {
@@ -19,6 +22,8 @@ void StaticMeshRenderingSystem::Initialize()
     System::Initialize();
 
     RenderingSubsystem::Get().RegisterStaticMeshRenderingSystem(this);
+
+    _onTransformChangedHandle = GetWorld().OnTransformChanged.RegisterListener(_onTransformChanged);
 }
 
 void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
@@ -45,29 +50,16 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
         staticMesh.MaterialOverride->GetShader());
     instanceData.MaterialIndex = materialInstanceBuffer.AddDefault();
 
-    // todo temporary
-    // todo alignment issue with material parameters
-    DefaultMaterialParameter& materialInstance = static_cast<DefaultMaterialParameter&>(materialInstanceBuffer[instanceData.MaterialIndex]);
-
     _instanceBuffer.Reserve(_instanceBuffer.Count() + 1);
     const uint32 instanceID = _instanceBuffer.Emplace(std::move(instanceData));
     staticMesh.InstanceID = instanceID;
-
-    if (instanceID % 2 == 0)
-    {
-        materialInstance.BaseColor = DirectX::Colors::Green;
-    }
-    else
-    {
-        materialInstance.BaseColor = DirectX::Colors::Red;
-    }
 
     _registeredMeshComponents.Add(&staticMesh);
 }
 
 void StaticMeshRenderingSystem::Tick(double deltaTime)
 {
-    for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : GetWorld().OnTransformChanged.GetEntityLists())
+    for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : _onTransformChanged.GetEntityLists())
     {
         const uint16 index = entityListStruct.EntityArchetype.GetComponentIndexChecked<CStaticMesh>();
         if (index == std::numeric_limits<uint16>::max())
@@ -75,15 +67,14 @@ void StaticMeshRenderingSystem::Tick(double deltaTime)
             continue;
         }
 
-        entityListStruct.Update();
-
-        for (const auto& eventData : entityListStruct.EntityListOutput)
+        Event<TypeSet<CTransform>>::EventData eventData;
+        while (entityListStruct.Queue.Dequeue(eventData))
         {
             if (!eventData.Entity->IsValid())
             {
                 continue;
             }
-            
+
             const CStaticMesh& staticMesh = eventData.Entity->Get<CStaticMesh>(index);
             _instanceBuffer[staticMesh.InstanceID].World = staticMesh.MeshTransform.GetWorldMatrix().Transpose();
         }
@@ -105,6 +96,8 @@ void StaticMeshRenderingSystem::Shutdown()
 {
     System::Shutdown();
 
+    GetWorld().OnTransformChanged.UnregisterListener(_onTransformChangedHandle);
+    
     RenderingSubsystem::Get().UnregisterStaticMeshRenderingSystem(this);
 }
 
@@ -118,8 +111,7 @@ DynamicGPUBuffer<MaterialParameter>& StaticMeshRenderingSystem::GetOrCreateMater
     }
 
     const auto result = _materialIDToMaterialParameterBuffer.emplace(materialID, DynamicGPUBuffer<MaterialParameter>());
-    RenderingSubsystem::Get().InitializeMaterialInstanceBuffer(result.first->second,
-                                                               shader->GetMaterialInstanceDataType());
+    RenderingSubsystem::Get().InitializeMaterialInstanceBuffer(result.first->second, shader->GetMaterialInstanceDataType());
 
     return result.first->second;
 }

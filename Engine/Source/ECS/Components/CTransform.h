@@ -13,8 +13,6 @@ class CTransform : public Component
 public:
     static constexpr auto OnChanged = &World::OnTransformChanged;
 
-    bool Dirty = false;
-    
     PROPERTY(Edit, Serialize, DisplayName = "Transform")
     Transform ComponentTransform;
     

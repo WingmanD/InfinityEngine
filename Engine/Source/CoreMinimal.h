@@ -23,7 +23,7 @@ using TrueType = std::true_type;
 template <typename Derived, typename Base>
 concept IsA = std::derived_from<Derived, Base>;
 
-template <typename T, template<typename...> class Template>
+template <typename T, template<typename...> typename Template>
 struct IsSpecializationOfImpl : std::false_type
 {
 };

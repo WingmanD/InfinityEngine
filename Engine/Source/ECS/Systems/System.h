@@ -1,14 +1,14 @@
 ﻿#pragma once
 
+#include "Object.h"
 #include "TypeMap.h"
 #include "TypeSet.h"
+#include "Containers/EventQueue.h"
 #include "ECS/Archetype.h"
 #include "ECS/DirtyTracker.h"
 #include "ECS/ECSQuery.h"
 #include "ECS/EntityList.h"
-#include "Object.h"
 #include "ECS/Event.h"
-#include "Containers/EventQueue.h"
 #include "ECS/Systems/System.reflection.h"
 
 class SystemScheduler;
@@ -29,7 +29,7 @@ public:
     SystemBase();
     explicit SystemBase(Archetype&& archetype);
 
-    void CallInitialize(PassKey<SystemScheduler>);
+    void CallInitialize(PassKey<World>);
     void CallOnEntityCreated(const Archetype& archetype, Entity& entity, PassKey<World>);
     void CallTick(double deltaTime, PassKey<SystemScheduler>);
     void CallOnEntityDestroyed(const Archetype& archetype, Entity& entity, PassKey<World>);
@@ -77,26 +77,21 @@ public:
     }
 
 protected:
-    template <typename ComponentType> requires IsA<ComponentType, Component> && (IsA<ComponentType, ComponentTypes> || ...) && !std::is_const_v<ComponentType>
+    template <typename ComponentType> requires !std::is_const_v<ComponentType> && (std::is_same_v<ComponentType, ComponentTypes> || ...)
     ComponentType& Get(Entity& entity) const
     {
         ComponentType& component = entity.Get<ComponentType>(IndexOf<ComponentType>());
         
         if constexpr (RequiresOnChanged<ComponentType>)
         {
-            if (!component.Dirty)
-            {
-                component.Dirty = true;
-                
-                Event<TypeSet<ComponentType>>& event = GetWorld().*ComponentType::OnChanged;
-                event.Add(&entity, *GetBinding<ComponentType>().ListArchetype, PassKey<System>());
-            }
+            EventDispatcher<TypeSet<ComponentType>>& event = GetWorld().*ComponentType::OnChanged;
+            event.Add(entity, *GetBinding<ComponentType>().ListArchetype, PassKey<System>());
         }
         
         return component;
     }
 
-    template <typename ComponentType> requires IsA<ComponentType, Component> && (IsA<ComponentType, ComponentTypes> || ...) && std::is_const_v<ComponentType>
+    template <typename ComponentType> requires std::is_const_v<ComponentType> && (IsA<ComponentType, ComponentTypes> || ...)
     const ComponentType& Get(Entity& entity) const
     {
         return entity.Get<ComponentType>(IndexOf<ComponentType>());

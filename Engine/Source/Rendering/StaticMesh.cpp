@@ -1,11 +1,12 @@
 #include "StaticMesh.h"
+#include "AssetPtr.h"
+#include "MaterialParameterTypes.h"
 #include "StaticMeshRenderingData.h"
 #include "Util.h"
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 #include "Engine/Engine.h"
-#include "AssetPtr.h"
 #include "Math/Math.h"
 
 IDGenerator<uint32> StaticMesh::_meshIDGenerator = IDGenerator<uint32>(0);

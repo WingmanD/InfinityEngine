@@ -35,7 +35,7 @@ void MemoryReader::Skip(uint64 size)
     _index += static_cast<int64>(size);
 }
 
-bool MemoryReader::ReadFromFile(std::ifstream& file, uint64 numBytesToRead)
+bool MemoryReader::ReadFromFile(std::ifstream& file, uint64 offset /*= 0*/, uint64 numBytesToRead /*= 0*/)
 {
     if (file.fail())
     {
@@ -44,6 +44,17 @@ bool MemoryReader::ReadFromFile(std::ifstream& file, uint64 numBytesToRead)
         return false;
     }
 
+    if (offset > 0)
+    {
+        file.seekg(offset);
+        if (file.fail())
+        {
+            LOG(L"MemoryReader::ReadFromFile File error");
+            DEBUG_BREAK();
+            return false;
+        }
+    }
+    
     uint64 numBytes = numBytesToRead;
     if (numBytes == 0ull)
     {

@@ -4,12 +4,19 @@
 #include "ECS/Components/CStaticMesh.h"
 #include "ECS/Components/CTransform.h"
 #include "Rendering/InstanceBuffer.h"
+#include "StaticMeshRenderingSystem.reflection.h"
 
 struct MaterialParameter;
 
+REFLECTED()
 class StaticMeshRenderingSystem : public System<const CTransform, const CStaticMesh>
 {
+    GENERATED()
+    
 public:
+    StaticMeshRenderingSystem() = default;
+    StaticMeshRenderingSystem(const StaticMeshRenderingSystem& other);
+    
     InstanceBuffer& GetInstanceBuffer();
     DynamicGPUBuffer<MaterialParameter>& GetMaterialParameterBuffer(uint32 materialID);
 
@@ -31,6 +38,11 @@ private:
     InstanceBuffer _instanceBuffer{};
     std::unordered_map<uint32, DynamicGPUBuffer<MaterialParameter>> _materialIDToMaterialParameterBuffer;
 
+    PROPERTY()
+    Event<TypeSet<CTransform>> _onTransformChanged;
+    
+    EventHandle _onTransformChangedHandle;
+    
 private:
     DynamicGPUBuffer<MaterialParameter>& GetOrCreateMaterialParameterBuffer(uint32 materialID, const std::shared_ptr<Shader>& shader);
 };

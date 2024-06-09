@@ -15,6 +15,7 @@ public:
 
     Type* GetGameType() const;
     std::shared_ptr<Game> GetGame() const;
+    std::shared_ptr<Game> GetLevelEditorGame() const;
     
 private:
     PROPERTY(Edit, Serialize, DisplayName = "Game Type")
@@ -22,4 +23,7 @@ private:
 
     PROPERTY(Edit, Serialize, DisplayName = "Game")
     AssetPtr<Game> _game;
+
+    PROPERTY(Edit, Serialize, DisplayName = "Level Editor Game")
+    AssetPtr<Game> _levelEditorGame;
 };

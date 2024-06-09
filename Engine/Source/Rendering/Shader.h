@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Asset.h"
-#include "Delegate.h"
+#include "MulticastDelegate.h"
 #include "MaterialParameterMap.h"
 #include "Shader.reflection.h"
 
@@ -11,7 +11,7 @@ class Shader : public Asset
     GENERATED()
 
 public:
-    Delegate<const Shader*> OnRecompiled;
+    MulticastDelegate<const Shader*> OnRecompiled;
 
 public:
     Shader() = default;

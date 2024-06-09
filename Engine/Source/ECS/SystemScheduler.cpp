@@ -92,8 +92,6 @@ SystemBase& SystemScheduler::AddSystem(std::unique_ptr<SystemBase>&& system)
         bestTask->LinkDependentChildTask(newTask);
     }
 
-    newTask->System->CallInitialize({});
-
     return *newTask->System;
 }
 

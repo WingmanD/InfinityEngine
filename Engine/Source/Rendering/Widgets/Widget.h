@@ -5,7 +5,7 @@
 #include "BoundingBox2D.h"
 #include "Math/Transform2D.h"
 #include "WidgetRenderingProxy.h"
-#include "Delegate.h"
+#include "MulticastDelegate.h"
 #include "AssetPtr.h"
 #include "Rendering/Material.h"
 #include <memory>
@@ -71,26 +71,26 @@ class Widget : public Asset
     GENERATED()
 
 public:
-    Delegate<> OnPressed;
-    Delegate<> OnReleased;
+    MulticastDelegate<> OnPressed;
+    MulticastDelegate<> OnReleased;
 
-    Delegate<> OnHoverStarted;
-    Delegate<> OnHoverEnded;
+    MulticastDelegate<> OnHoverStarted;
+    MulticastDelegate<> OnHoverEnded;
 
-    Delegate<> OnDragStarted;
-    Delegate<> OnDragEnded;
+    MulticastDelegate<> OnDragStarted;
+    MulticastDelegate<> OnDragEnded;
 
-    Delegate<> OnRightClickPressed;
-    Delegate<> OnRightClickReleased;
+    MulticastDelegate<> OnRightClickPressed;
+    MulticastDelegate<> OnRightClickReleased;
 
-    Delegate<> OnMiddleClickPressed;
-    Delegate<> OnMiddleClickReleased;
+    MulticastDelegate<> OnMiddleClickPressed;
+    MulticastDelegate<> OnMiddleClickReleased;
     
-    Delegate<int8> OnScrolled;
+    MulticastDelegate<int8> OnScrolled;
 
-    Delegate<> OnDestroyed;
-    Delegate<> OnCollapsed;
-    Delegate<bool> OnFocusChanged;
+    MulticastDelegate<> OnDestroyed;
+    MulticastDelegate<> OnCollapsed;
+    MulticastDelegate<bool> OnFocusChanged;
 
 public:
     explicit Widget();

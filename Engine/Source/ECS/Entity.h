@@ -39,14 +39,14 @@ public:
     template <typename ComponentType> requires IsA<ComponentType, Component>
     ComponentType& Get(const Archetype& archetype)
     {
-        uint16 index = archetype.GetComponentIndex<ComponentType>();
+        const uint16 index = archetype.GetComponentIndex<ComponentType>();
         return Get<ComponentType>(index);
     }
 
     template <typename ComponentType> requires IsA<ComponentType, Component>
     ComponentType* GetChecked(const Archetype& archetype)
     {
-        uint16 index = archetype.GetComponentIndexChecked<ComponentType>();
+        const uint16 index = archetype.GetComponentIndexChecked<ComponentType>();
         if (index == std::numeric_limits<uint16>::max())
         {
             return nullptr;

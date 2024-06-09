@@ -14,26 +14,25 @@ class Game : public Asset
     
 public:
     bool Startup(PassKey<GameplaySubsystem>);
+    void InitializeWorld(World& world, PassKey<GameplaySubsystem>);
     void Shutdown(PassKey<GameplaySubsystem>);
 
     bool IsRunning() const;
 
+    std::shared_ptr<EntityTemplate> GetPlayerTemplate() const;
+
 protected:
+    virtual void OnInitializeWorld(World& world);
     virtual bool OnStartup();
     virtual void OnShutdown();
 
+    void SetShouldAutoFocusViewportOnStartup(bool value);
+    bool ShouldAutoFocusViewportOnStartup() const;
+
 private:
     bool _isRunning = false;
+    bool _autoFocusViewport = true;
 
     PROPERTY(Edit, Serialize, DisplayName = "Player Template")
     AssetPtr<EntityTemplate> _playerTemplate;
-    
-    PROPERTY(Edit, Serialize, DisplayName = "Enemy Template")
-    AssetPtr<EntityTemplate> _enemyTemplate;
-
-    PROPERTY(Edit, Serialize, DisplayName = "Cube Template")
-    AssetPtr<EntityTemplate> _cubeTemplate;
-
-    PROPERTY(Edit, Serialize, DisplayName = "Floor Template")
-    AssetPtr<EntityTemplate> _floorTemplate;
 };

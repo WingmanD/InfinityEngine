@@ -23,8 +23,14 @@ public:
     };
 
 public:
+    PhysicsSystem() = default;
+    PhysicsSystem(const PhysicsSystem& other);
+    
     Hit Raycast(const Vector3& start, const Vector3& direction, float distance) const;
     Hit Raycast(const Vector3& start, const Vector3& end) const;
+
+    void SetSimulationEnabled(bool value);
+    bool IsSimulationEnabled() const;
     
     // System
 public:
@@ -35,6 +41,13 @@ public:
     virtual void OnEntityDestroyed(const Archetype& archetype, Entity& entity) override;
 
 private:
+    PROPERTY()
+    Event<TypeSet<CTransform>> _onTransformChanged;
+    
+    EventHandle _onTransformChangedHandle;
+    
+    bool _simulatePhysics = true;
+    
     // todo entities that generate force fields
     const Vector3 _gravity = Vector3(0.0f, 0.0f, -9.81f);
     
@@ -141,12 +154,15 @@ private:
     const Cell& GetCellAt(const Vector3& location) const;
     Cell& GetCellAt(const CellIndex& index);
     const Cell& GetCellAt(const CellIndex& index) const;
+    Cell* GetCellAtIfExists(const CellIndex& index);
+    const Cell* GetCellAtIfExists(const CellIndex& index) const;
 
     uint32 GetRelativeIndexOf(const Body& body, const Cell& cell) const;
 
     void ForEachCellAt(const BoundingBox& aabb, const std::function<void(Cell& cell, uint32 index)>& func);
 
     const Cell& GetCellAtImplementation(const CellIndex& index) const;
+    const Cell* GetCellAtIfExistsImplementation(const CellIndex& index) const;
     
     void Move(CRigidBody& rigidBody, const Vector3& currentLocation, const Vector3& newLocation, double deltaTime);
     void Move(CRigidBody& rigidBody, const BoundingBox& current, const BoundingBox& next);

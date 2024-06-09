@@ -47,7 +47,7 @@ bool AssetCreatorMenu::Initialize()
         closeButton->SetText(L"x");
         closeButton->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
         closeButton->SetFillMode(EWidgetFillMode::FillY);
-        closeButton->OnReleased.Add([this]()
+        std::ignore = closeButton->OnReleased.Add([this]()
         {
             DestroyWidget();
         });
@@ -113,7 +113,7 @@ bool AssetCreatorMenu::Initialize()
     createButton->SetEnabled(false);
     createButton->SetFillMode(EWidgetFillMode::FillX);
 
-    createButton->OnReleased.Add([this]()
+    std::ignore = createButton->OnReleased.Add([this]()
     {
         const std::wstring name = _nameInput.lock()->GetText();
         const Type* type = _typePicker.lock()->GetSelectedType();
@@ -128,7 +128,7 @@ bool AssetCreatorMenu::Initialize()
         DestroyWidget();
     });
 
-    nameInput->OnValueChanged.Add([createButton](const std::wstring& text)
+    std::ignore = nameInput->OnValueChanged.Add([createButton](const std::wstring& text)
     {
         if (text.empty())
         {

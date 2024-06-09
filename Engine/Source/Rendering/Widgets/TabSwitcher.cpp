@@ -33,14 +33,14 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
     tabButton->SetFillMode(EWidgetFillMode::FillY);
     tabButton->SetText(name);
     tabButton->GetTextBox()->SetPadding(textPadding);
-    tabButton->OnReleased.Add([this, name]()
+    std::ignore = tabButton->OnReleased.Add([this, name]()
     {
         SetTabIndex(GetTabIndex(name));
     });
 
     if (closeable)
     {
-        tabButton->OnMiddleClickReleased.Add([this, name]()
+        std::ignore = tabButton->OnMiddleClickReleased.Add([this, name]()
         {
             RemoveTab(name);
         });
@@ -53,11 +53,11 @@ void TabSwitcher::AddTab(const std::wstring& name, const std::shared_ptr<Widget>
         closeButton->SetFillMode(EWidgetFillMode::FillY);
         closeButton->SetText(L"x");
         closeButton->GetTextBox()->SetPadding(textPadding);
-        closeButton->OnReleased.Add([this, name]()
+        std::ignore = closeButton->OnReleased.Add([this, name]()
         {
             RemoveTab(name);
         });
-        closeButton->OnMiddleClickReleased.Add([this, name]()
+        std::ignore = closeButton->OnMiddleClickReleased.Add([this, name]()
         {
             RemoveTab(name);
         });

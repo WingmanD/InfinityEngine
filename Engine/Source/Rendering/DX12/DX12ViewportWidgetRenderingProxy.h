@@ -1,7 +1,10 @@
 ﻿#pragma once
 
+#include "StructuredBuffer.h"
 #include "Rendering/DX12/DX12WidgetRenderingProxy.h"
 #include "Rendering/ForwardPlusCore.h"
+
+class DX12RenderingSubsystem;
 
 class DX12ViewportWidgetRenderingProxy : public DX12WidgetRenderingProxy
 {

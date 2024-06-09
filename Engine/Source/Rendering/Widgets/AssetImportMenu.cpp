@@ -45,7 +45,7 @@ bool AssetImportMenu::Initialize()
         closeButton->SetText(L"x");
         closeButton->SetPadding({5.0f, 5.0f, 0.0f, 0.0f});
         closeButton->SetFillMode(EWidgetFillMode::FillY);
-        closeButton->OnReleased.Add([this]()
+        std::ignore = closeButton->OnReleased.Add([this]()
         {
             DestroyWidget();
         });
@@ -87,7 +87,7 @@ bool AssetImportMenu::Initialize()
 
     button->SetText(L"Next");
     button->SetFillMode(EWidgetFillMode::FillX);
-    button->OnReleased.Add([this, typePicker]()
+    std::ignore = button->OnReleased.Add([this, typePicker]()
     {
         const Type* type = typePicker->GetSelectedType();
         if (type == nullptr)

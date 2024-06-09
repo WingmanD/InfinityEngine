@@ -4,7 +4,6 @@
 
 class MemoryWriter;
 class MemoryReader;
-
 class BoundingBox;
 
 class Transform
@@ -13,8 +12,8 @@ public:
     explicit Transform() = default;
     explicit Transform(const Vector3& location, const Quaternion& rotation, const Vector3& scale);
 
-    explicit Transform(const Transform& other);
-    explicit Transform(Transform&& other) noexcept;
+    Transform(const Transform& other);
+    Transform(Transform&& other) noexcept;
 
     Transform& operator=(const Transform& other);
     Transform& operator=(Transform&& other) noexcept;
@@ -62,6 +61,8 @@ public:
 
     Vector3 operator*(const Vector3& vector) const;
     Vector4 operator*(const Vector4& vector) const;
+
+    Matrix operator*(const Matrix& matrix) const;
 
     friend MemoryWriter& operator<<(MemoryWriter& writer, const Transform& transform);
     friend MemoryReader& operator>>(MemoryReader& reader, Transform& transform);
