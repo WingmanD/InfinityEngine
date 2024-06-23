@@ -59,11 +59,12 @@ public:
 
     // Object
 public:
-    void OnPropertyChanged(Name propertyName) override;
+    virtual void OnPropertyChanged(Name propertyName) override;
 
     // Asset
 protected:
     virtual void PostLoad() override;
+    virtual SharedObjectPtr<Widget> CreateEditWidget() override;
     
 private:
     static IDGenerator<uint32> _materialIDGenerator;
@@ -82,4 +83,5 @@ private:
 
 private:
     void OnShaderChanged(const SharedObjectPtr<Shader>& oldShader = nullptr);
+    void SubscribeToShaderEvents();
 };

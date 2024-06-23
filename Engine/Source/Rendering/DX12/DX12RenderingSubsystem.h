@@ -24,7 +24,7 @@ class DX12RenderingSubsystem : public RenderingSubsystem, public std::enable_sha
 public:
     static DX12RenderingSubsystem& Get();
 
-    explicit DX12RenderingSubsystem() = default;
+    DX12RenderingSubsystem() = default;
 
     DX12RenderingSubsystem(const DX12RenderingSubsystem&) = delete;
     DX12RenderingSubsystem(DX12RenderingSubsystem&&) = delete;

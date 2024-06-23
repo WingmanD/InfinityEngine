@@ -6,8 +6,8 @@
 #include "Importer.h"
 #include "Material.h"
 #include "StaticMeshRenderingData.h"
-#include "StaticMesh.reflection.h"
 #include "Containers/DynamicGPUBuffer2.h"
+#include "StaticMesh.reflection.h"
 
 struct aiMesh;
 

@@ -112,6 +112,8 @@ World::AddComponentResult<Component> World::AddComponent(Entity& entity, Type& c
     Entity* newEntity = entityListAfter.Add(entity);
     entityListBefore.Remove(entity);
 
+    OnArchetypeChanged.Add(entity, archetypeBefore, newEntity, archetypeAfter, {});
+
     return {newComponent, newEntity};
 }
 
@@ -172,11 +174,6 @@ EventQueue<World>& World::GetEventQueue()
 EventManager& World::GetEventManager()
 {
     return _eventManager;
-}
-
-DirtyTracker& World::GetDirtyTracker(Type& componentType)
-{
-    return _dirtyTrackers[&componentType];
 }
 
 Entity& World::CreateEntityInternal(const Archetype& archetype)

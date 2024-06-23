@@ -24,12 +24,6 @@ Component& Entity::Get(uint16 index)
     return *_components[index].get();
 }
 
-void Entity::Destroy()
-{
-    _id = 0;
-    _components.Clear();
-}
-
 void Entity::SetValidImplementation(bool value)
 {
     _id = value;

@@ -55,8 +55,6 @@ public:
         return &Get<ComponentType>(index);
     }
 
-    void Destroy();
-
 private:
     uint64_t _id = 0;
 

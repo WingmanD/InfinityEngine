@@ -18,41 +18,6 @@ PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& e
     const int32 stepX = Math::Sign(end.x - start.x);
     const int32 stepY = Math::Sign(end.y - start.y);
     const int32 stepZ = Math::Sign(end.z - start.z);
-
-    float tMaxX;
-    if (stepX > 0)
-    {
-        tMaxX = (1.0f + start.x / _cellSize.x) * _cellSize.x - start.x;
-    }
-    else
-    {
-        tMaxX = start.x - (start.x / _cellSize.x) * _cellSize.x;
-    }
-
-    float tMaxY;
-    if (stepY > 0)
-    {
-        tMaxY = (1.0f + start.y / _cellSize.y) * _cellSize.y - start.y;
-    }
-    else
-    {
-        tMaxY = start.y - (start.y / _cellSize.y) * _cellSize.y;
-    }
-
-    float tMaxZ;
-    if (stepZ > 0)
-    {
-        tMaxZ = (1.0f + start.z / _cellSize.z) * _cellSize.z - start.z;
-    }
-    else
-    {
-        tMaxZ = start.z - (start.z / _cellSize.z) * _cellSize.z;
-    }
-
-    Vector3 direction = end - start;
-    direction.Normalize();
-    
-    Vector3 delta = direction * _cellSize;
     
     CellIndex currentIndex = GetCellIndex(start);
     auto [justOutX, justOutY, justOutZ] = GetCellIndex(end);
@@ -60,7 +25,26 @@ PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& e
     justOutY += stepY;
     justOutZ += stepZ;
 
-    Line line = {start, end};
+    Vector3 direction = end - start;
+    direction.Normalize();
+    
+    Vector3 delta;
+    const Vector3 projX = (Vector3::UnitX * _cellSize.x).Dot(direction) * direction;
+    delta.x = projX.x;
+
+    const Vector3 projY = (Vector3::UnitY * _cellSize.y).Dot(direction) * direction;
+    delta.y = projY.y;
+
+    const Vector3 projZ = (Vector3::UnitZ * _cellSize.z).Dot(direction) * direction;
+    delta.z = projZ.z;
+    
+    delta = Math::Abs(_cellSize * _cellSize / delta);
+
+    float tMaxX = Math::RoundToNearest(start.x, delta.x) - start.x;
+    float tMaxY = Math::RoundToNearest(start.y, delta.y) - start.y;
+    float tMaxZ = Math::RoundToNearest(start.z, delta.z) - start.z;
+    
+    const Line line = {start, end};
     
     while (true)
     {
@@ -73,7 +57,7 @@ PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& e
                 {
                     break;
                 }
-                tMaxX = tMaxX + delta.x;
+                tMaxX += delta.x;
             }
             else
             {
@@ -82,7 +66,7 @@ PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& e
                 {
                     break;
                 }
-                tMaxZ = tMaxZ + delta.z;
+                tMaxZ += delta.z;
             }
         }
         else
@@ -94,7 +78,7 @@ PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& e
                 {
                     break;
                 }
-                tMaxY = tMaxY + delta.y;
+                tMaxY += delta.y;
             }
             else
             {
@@ -103,7 +87,7 @@ PhysicsSystem::Hit PhysicsSystem::Raycast(const Vector3& start, const Vector3& e
                 {
                     break;
                 }
-                tMaxZ = tMaxZ + delta.z;
+                tMaxZ += delta.z;
             }
         }
         
@@ -142,8 +126,11 @@ bool PhysicsSystem::IsSimulationEnabled() const
 void PhysicsSystem::Initialize()
 {
     System::Initialize();
-
+    
     _cellSize = (GetWorld().WorldBounds.GetExtent() * 2.0f / _cellCountX);
+    
+    _onTransformChangedHandle = GetWorld().OnTransformChanged.RegisterListener(_onTransformChanged);
+    _onArchetypeChangedHandle = GetWorld().OnArchetypeChanged.RegisterListener(_onArchetypeChanged);
 }
 
 void PhysicsSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
@@ -158,7 +145,6 @@ void PhysicsSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
     CTransform& transform = entity.Get<CTransform>(transformIndex);
     CRigidBody& rigidBody = entity.Get<CRigidBody>(rigidBodyIndex);
     CCollider& collider = entity.Get<CCollider>(colliderIndex);
-
     
     collider.ColliderTransform.SetParent(&transform.ComponentTransform);
     collider.Bounds = staticMesh->Mesh->GetBoundingBox();
@@ -184,13 +170,43 @@ void PhysicsSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
     {
         const uint32 indexInCell = cell.AddBody(body, state);
         body.IndicesInCells.Add(indexInCell);
+
+        return true;
     });
 }
 
 void PhysicsSystem::Tick(double deltaTime)
 {
+    for (auto& entityListStruct : _onArchetypeChanged.GetEntityLists())
+    {
+        const uint16 rigidBodyIndex = entityListStruct.EntityArchetype.GetComponentIndexChecked<CRigidBody>();
+        if (rigidBodyIndex == std::numeric_limits<uint16>::max())
+        {
+            continue;
+        }
+
+        EventArchetypeChanged::EventData eventData;
+        while (entityListStruct.Queue.Dequeue(eventData))
+        {
+            CRigidBody& oldRigidBody = eventData.Entity->Get<CRigidBody>(rigidBodyIndex);
+            Body& body = oldRigidBody.PhysicsBody;
+
+            ForEachCellAt(body.AABB, [&body, &eventData](Cell& cell, uint32 index)
+            {
+                Entity* newEntity = std::get<Entity*>(eventData.Arguments);
+
+                Body& newBody = newEntity->Get<CRigidBody>(std::get<Archetype>(eventData.Arguments)).PhysicsBody;
+                newBody.Entity = newEntity;
+
+                cell.Bodies[body.IndicesInCells[index]] = &newBody;
+
+                return true;
+            });
+        }
+    }
+    
     // Update overlaps
-    for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : _onTransformChanged.GetEntityLists())
+    for (auto& entityListStruct : _onTransformChanged.GetEntityLists())
     {
         const uint16 rigidBodyIndex = entityListStruct.EntityArchetype.GetComponentIndexChecked<CRigidBody>();
         if (rigidBodyIndex == std::numeric_limits<uint16>::max())
@@ -201,12 +217,17 @@ void PhysicsSystem::Tick(double deltaTime)
         Event<TypeSet<CTransform>>::EventData eventData;
         while (entityListStruct.Queue.Dequeue(eventData))
         {
-            if (!eventData.Entity->IsValid())
+            if (!eventData.Entity->IsValid() || eventData.Entity->GetID() != eventData.ID)
             {
                 continue;
             }
 
-            const CRigidBody& rigidBody = eventData.Entity->Get<CRigidBody>(rigidBodyIndex);
+            CRigidBody& rigidBody = eventData.Entity->Get<CRigidBody>(rigidBodyIndex);
+
+            BoundingBox nextAABB = rigidBody.PhysicsBody.AABB;
+            nextAABB.Move(nextAABB.GetCenter() - eventData.Entity->Get<CTransform>(rigidBody.PhysicsBody.TransformIndex).ComponentTransform.GetWorldLocation());
+            
+            Move(rigidBody, rigidBody.PhysicsBody.AABB, nextAABB);
 
             // todo
             // BroadPhase()
@@ -227,12 +248,6 @@ void PhysicsSystem::Tick(double deltaTime)
 
         _narrowPhaseInputPairs.Clear();
     }
-
-    // Hit hit = Raycast({0.0f, 0.0f, 6.0f}, {0.0f, 0.0f, -1.0f});
-    // if (hit.IsValid)
-    // {
-    //     LOG(L"Raycast location: {}, normal: {}", hit.Location, hit.ImpactNormal);
-    // }
 }
 
 void PhysicsSystem::ProcessEntityList(EntityList& entityList, double deltaTime)
@@ -290,11 +305,22 @@ void PhysicsSystem::OnEntityDestroyed(const Archetype& archetype, Entity& entity
     {
         if (!rigidBody.PhysicsBody.IndicesInCells.IsValidIndex(index))
         {
-            return;
+            return true;
         }
         
         cell.RemoveBody(*this, rigidBody.PhysicsBody.IndicesInCells[index]);
+
+        return true;
     });
+}
+
+void PhysicsSystem::Shutdown()
+{
+    System::Shutdown();
+
+    World& world = GetWorld();
+    world.OnTransformChanged.UnregisterListener(_onTransformChangedHandle);
+    world.OnArchetypeChanged.UnregisterListener(_onArchetypeChangedHandle);
 }
 
 uint32 PhysicsSystem::Cell::AddBody(Body& body, ERigidBodyState bodyType)
@@ -488,7 +514,7 @@ uint32 PhysicsSystem::GetRelativeIndexOf(const Body& body, const Cell& cell) con
         (cell.Index.X - minIndex.X) * _cellCountX * _cellCountX;
 }
 
-void PhysicsSystem::ForEachCellAt(const BoundingBox& aabb, const std::function<void(Cell& cell, uint32 index)>& func)
+void PhysicsSystem::ForEachCellAt(const BoundingBox& aabb, const std::function<bool(Cell& cell, uint32 index)>& func)
 {
     const CellIndex minIndex = GetCellIndex(aabb.GetMin());
     const CellIndex maxIndex = GetCellIndex(aabb.GetMax());
@@ -501,7 +527,34 @@ void PhysicsSystem::ForEachCellAt(const BoundingBox& aabb, const std::function<v
             for (uint32 z = minIndex.Z; z <= maxIndex.Z; ++z)
             {
                 CellIndex index = {x, y, z};
-                func(GetCellAt(index), i);
+                if (!func(GetCellAt(index), i))
+                {
+                    return;
+                }
+
+                ++i;
+            }
+        }
+    }
+}
+
+void PhysicsSystem::ForEachCellAt(const BoundingBox& aabb, const std::function<bool(const Cell& cell, uint32 index)>& func) const
+{
+    const CellIndex minIndex = GetCellIndex(aabb.GetMin());
+    const CellIndex maxIndex = GetCellIndex(aabb.GetMax());
+
+    uint32 i = 0;
+    for (uint32 x = minIndex.X; x <= maxIndex.X; ++x)
+    {
+        for (uint32 y = minIndex.Y; y <= maxIndex.Y; ++y)
+        {
+            for (uint32 z = minIndex.Z; z <= maxIndex.Z; ++z)
+            {
+                CellIndex index = {x, y, z};
+                if (!func(GetCellAt(index), i))
+                {
+                    return;
+                }
 
                 ++i;
             }
@@ -637,7 +690,6 @@ void PhysicsSystem::Move(CRigidBody& rigidBody, const BoundingBox& current, cons
     const CellIndex newMin = GetCellIndex(next.GetMin());
     const CellIndex newMax = GetCellIndex(next.GetMax());
 
-
     CellIndex intersectMin;
     intersectMin.X = Math::Max(currentMin.X, newMin.X);
     intersectMin.Y = Math::Max(currentMin.Y, newMin.Y);
@@ -648,17 +700,15 @@ void PhysicsSystem::Move(CRigidBody& rigidBody, const BoundingBox& current, cons
     intersectMax.Y = Math::Min(currentMax.Y, newMax.Y);
     intersectMax.Z = Math::Min(currentMax.Z, newMax.Z);
 
-    uint32 index;
+    uint32 index = 0;
     for (uint32 x = currentMin.X; x < intersectMin.X; ++x)
     {
         for (uint32 y = currentMin.Y; y < intersectMin.Y; ++y)
         {
-            index = x * _cellCountX * _cellCountX + currentMin.Y * _cellCountX + currentMin.Z;
-            
             for (uint32 z = currentMin.Z; z < intersectMin.Z; ++z)
             {
                 Cell& cell = GetCellAt(CellIndex(x, y, z));
-                cell.RemoveBody(*this, index);
+                cell.RemoveBody(*this, body.IndicesInCells[index]);
 
                 ++index;
             }
@@ -669,14 +719,10 @@ void PhysicsSystem::Move(CRigidBody& rigidBody, const BoundingBox& current, cons
     {
         for (uint32 y = intersectMax.Y + 1; y <= currentMax.Y; ++y)
         {
-            index = x * _cellCountX * _cellCountX + currentMin.Y * _cellCountX + intersectMax.Z + 1;
-            
             for (uint32 z = intersectMax.Z + 1; z <= currentMax.Z; ++z)
             {
                 Cell& cell = GetCellAt(CellIndex(x, y, z));
                 cell.AddBody(body, rigidBody.State);
-
-                ++index;
             }
         }
     }
@@ -776,13 +822,14 @@ Vector3 PhysicsSystem::Support(const Line& line, const Vector3& directionNormali
     Vector3 rayDirection = line.End - line.Start;
     rayDirection.Normalize();
 
-    const float projection = directionNormalized.Dot(rayDirection);
-    if (projection > 0.0f)
+    Vector3 point = line.Start;
+    if (directionNormalized.Dot(rayDirection) > 0.0f)
     {
-        return line.End;
+        point = line.End;
     }
-    
-    return line.Start;
+
+    constexpr float lineThickness = 0.01f;
+    return point + directionNormalized * lineThickness;
 }
 
 Vector3 PhysicsSystem::MinkowskiDifference(const Body& bodyA, const Body& bodyB, const Vector3& direction) const
@@ -1349,4 +1396,25 @@ void PhysicsSystem::EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const V
     {
         EPASilhouette(*adjTriangle, adjTriangle->IndexOfAdjacent(triangle), w, silhouetteSet);
     }
+}
+
+void PhysicsSystem::ForEachOverlappingEntityInternal(Entity& entity, const std::function<bool(const Entity& overlapped)>& func) const
+{
+}
+
+void PhysicsSystem::ForEachEntityInSphereInternal(const Vector3& location, float radius, const std::function<bool(const Entity& overlapped)>& func) const
+{
+    BoundingBox aabb(location - Vector3(radius), location + Vector3(radius));
+    ForEachCellAt(aabb, [this, &func](const Cell& cell, uint32 index)
+    {
+        for (const Body* body : cell.Bodies)
+        {
+            if (!func(*body->Entity))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    });
 }

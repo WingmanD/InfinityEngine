@@ -73,8 +73,14 @@ bool DropdownMenu::Initialize()
 
     scrollBox->SetCollapsed(true);
 
-    std::ignore = scrollBox->OnFocusChanged.Add([scrollBox, this](bool value)
+    std::weak_ptr weakThis = SharedFromThis();
+    std::ignore = scrollBox->OnFocusChanged.Add([scrollBox, this, weakThis](bool value)
     {
+        if (weakThis.expired())
+        {
+            return;
+        }
+        
         if (!value && scrollBox->GetParentWidget() != SharedFromThis())
         {
             scrollBox->RemoveFromParent();

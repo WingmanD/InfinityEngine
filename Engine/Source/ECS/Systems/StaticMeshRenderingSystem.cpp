@@ -24,6 +24,7 @@ void StaticMeshRenderingSystem::Initialize()
     RenderingSubsystem::Get().RegisterStaticMeshRenderingSystem(this);
 
     _onTransformChangedHandle = GetWorld().OnTransformChanged.RegisterListener(_onTransformChanged);
+    _onArchetypeChangedHandle = GetWorld().OnArchetypeChanged.RegisterListener(_onArchetypeChanged);
 }
 
 void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
@@ -49,6 +50,13 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
         instanceData.MaterialID,
         staticMesh.MaterialOverride->GetShader());
     instanceData.MaterialIndex = materialInstanceBuffer.AddDefault();
+    
+    staticMesh.MaterialOverride->GetParameterMap()->GetDefaultParameters()[0].Parameter->DuplicateAt(&materialInstanceBuffer[instanceData.MaterialIndex]);
+
+    // SharedObjectPtr<MaterialParameter> param = staticMesh.MaterialOverride->GetParameterMap()->GetDefaultParameters()[0].Parameter;
+    // Type* type = param->GetType();
+    // const std::byte* byteData = reinterpret_cast<std::byte*>(param.get()) + type->GetDataOffset();
+    // memcpy(&materialInstanceBuffer[instanceData.MaterialIndex], byteData, type->GetSize() - type->GetDataOffset());
 
     _instanceBuffer.Reserve(_instanceBuffer.Count() + 1);
     const uint32 instanceID = _instanceBuffer.Emplace(std::move(instanceData));
@@ -59,6 +67,25 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
 
 void StaticMeshRenderingSystem::Tick(double deltaTime)
 {
+    GetEventQueue().ProcessEvents();
+    
+    for (auto& entityListStruct : _onArchetypeChanged.GetEntityLists())
+    {
+        const uint16 staticMeshIndex = entityListStruct.EntityArchetype.GetComponentIndexChecked<CStaticMesh>();
+        if (staticMeshIndex == std::numeric_limits<uint16>::max())
+        {
+            continue;
+        }
+
+        EventArchetypeChanged::EventData eventData;
+        while (entityListStruct.Queue.Dequeue(eventData))
+        {
+            CStaticMesh& oldStaticMesh = eventData.Entity->Get<CStaticMesh>(staticMeshIndex);
+            CStaticMesh& newStaticMesh = eventData.Entity->Get<CStaticMesh>(std::get<Archetype>(eventData.Arguments));
+            _registeredMeshComponents[oldStaticMesh.InstanceID] = &newStaticMesh;
+        }
+    }
+    
     for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : _onTransformChanged.GetEntityLists())
     {
         const uint16 index = entityListStruct.EntityArchetype.GetComponentIndexChecked<CStaticMesh>();
@@ -67,10 +94,10 @@ void StaticMeshRenderingSystem::Tick(double deltaTime)
             continue;
         }
 
-        Event<TypeSet<CTransform>>::EventData eventData;
+        EventTransformChanged::EventData eventData;
         while (entityListStruct.Queue.Dequeue(eventData))
         {
-            if (!eventData.Entity->IsValid())
+            if (!eventData.Entity->IsValid() || eventData.Entity->GetID() != eventData.ID)
             {
                 continue;
             }
@@ -79,6 +106,8 @@ void StaticMeshRenderingSystem::Tick(double deltaTime)
             _instanceBuffer[staticMesh.InstanceID].World = staticMesh.MeshTransform.GetWorldMatrix().Transpose();
         }
     }
+     
+    GetEventQueue().ProcessEvents();
 }
 
 void StaticMeshRenderingSystem::OnEntityDestroyed(const Archetype& archetype, Entity& entity)
@@ -96,7 +125,9 @@ void StaticMeshRenderingSystem::Shutdown()
 {
     System::Shutdown();
 
-    GetWorld().OnTransformChanged.UnregisterListener(_onTransformChangedHandle);
+    World& world = GetWorld();
+    world.OnTransformChanged.UnregisterListener(_onTransformChangedHandle);
+    world.OnArchetypeChanged.UnregisterListener(_onArchetypeChangedHandle);
     
     RenderingSubsystem::Get().UnregisterStaticMeshRenderingSystem(this);
 }

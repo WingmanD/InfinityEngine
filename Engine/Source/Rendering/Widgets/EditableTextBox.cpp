@@ -4,6 +4,11 @@
 #include "Engine/Subsystems/InputSubsystem.h"
 #include "Rendering/Window.h"
 
+EditableTextBox::EditableTextBox() : TextBox()
+{
+    EnableInputCompatibility(EWidgetInputCompatibility::LeftClick);
+}
+
 void EditableTextBox::SetMinLength(int32 length)
 {
     _minLength = std::max(0, length);
@@ -137,6 +142,11 @@ void EditableTextBox::OnFocusChangedInternal(bool focused)
     TextBox::OnFocusChangedInternal(focused);
 
     const SharedObjectPtr<Caret> caret = _caret.lock();
+    if (caret == nullptr)
+    {
+        return;
+    }
+    
     InputSubsystem& inputSubsystem = InputSubsystem::Get();
     if (focused)
     {
@@ -261,9 +271,29 @@ void EditableTextBox::OnFocusChangedInternal(bool focused)
     }
 }
 
+bool EditableTextBox::OnPressedInternal()
+{
+    if (!TextBox::OnPressedInternal())
+    {
+        return false;
+    }
+
+    // todo this is a horrible hack, we need to refactor widget focus handling,
+    // popup must not lose focus if next focused widget is a child of the popup,
+    // also when child loses focus, parent should be focused but only if parent was focused before?
+    OnFocusChangedInternal(!IsFocused());
+    
+    return true;
+}
+
 void EditableTextBox::OnCursorPositionChanged() const
 {
     const SharedObjectPtr<Caret> caret = _caret.lock();
+    if (caret == nullptr)
+    {
+        return;
+    }
+    
     const std::wstring& text = GetText();
     if (text.empty())
     {

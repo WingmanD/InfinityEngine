@@ -89,8 +89,8 @@ public:
         return popup;
     }
 
-    Widget* GetWidgetAt(const Vector2& positionWS) const;
-    Widget* GetWidgetUnderCursor();
+    SharedObjectPtr<Widget> GetWidgetAt(const Vector2& positionWS) const;
+    SharedObjectPtr<Widget> GetWidgetUnderCursor();
 
     bool IsFocused() const;
     void SetFocusedWidget(const SharedObjectPtr<Widget>& widget);

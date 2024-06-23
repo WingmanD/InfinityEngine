@@ -40,7 +40,18 @@ public:
     static Archetype CreateFrom(const Container& componentTypes)
     {
         Archetype archetype;
-        archetype._componentTypeList.Reserve(componentTypes.size());
+
+        size_t count;
+        if constexpr (IsIEContainer<Container>)
+        {
+            count = componentTypes.Count();
+        }
+        else
+        {
+            count = componentTypes.size();
+        }
+        
+        archetype._componentTypeList.Reserve(count);
 
         FNV1a fnv;
         for (const QualifiedComponentType& qualifiedType : componentTypes)
@@ -65,10 +76,10 @@ public:
     template <typename ComponentTypes> requires IsA<ComponentTypes, TypeSetBase>
     static Archetype Create()
     {
-        std::vector<QualifiedComponentType> componentTypes;
+        DArray<QualifiedComponentType> componentTypes;
         ComponentTypes::ForEach([&]<typename T>()
         {
-            componentTypes.push_back(TypeChecker<T>::CheckConst());
+            componentTypes.Add(TypeChecker<T>::CheckConst());
         });
 
         return CreateFrom(componentTypes);

@@ -27,8 +27,8 @@ void LevelEditorGame::OnInitializeWorld(World& world)
 {
     FloatingControlSystem& controlSystem = world.AddSystem<FloatingControlSystem>();
     world.AddSystem<LevelEditorSystem>();
-    world.AddSystem<CameraSystem>();
     world.AddSystem<PhysicsSystem>().SetSimulationEnabled(false);
+    world.AddSystem<CameraSystem>();
     world.AddSystem<StaticMeshRenderingSystem>();
     world.AddSystem<PointLightSystem>();
 

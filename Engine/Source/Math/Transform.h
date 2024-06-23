@@ -20,8 +20,8 @@ public:
 
     ~Transform() = default;
 
-    void SetParent(Transform* parent);
-    Transform* GetParent() const;
+    void SetParent(const Transform* parent);
+    const Transform* GetParent() const;
 
     void SetRelativeLocation(const Vector3& location);
     const Vector3& GetRelativeLocation() const;
@@ -68,7 +68,7 @@ public:
     friend MemoryReader& operator>>(MemoryReader& reader, Transform& transform);
     
 private:
-    Transform* _parent = nullptr;
+    const Transform* _parent = nullptr;
 
     Vector3 _location;
     Quaternion _rotation;

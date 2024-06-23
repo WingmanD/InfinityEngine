@@ -16,7 +16,7 @@ public:
     MulticastDelegate<const std::wstring&> OnValueChanged;
 
 public:
-    EditableTextBox() = default;
+    EditableTextBox();
 
     EditableTextBox(const EditableTextBox& other) = default;
     EditableTextBox& operator=(const EditableTextBox& other) = default;
@@ -44,6 +44,8 @@ protected:
     void RebuildLayoutInternal() override;
     
     virtual void OnFocusChangedInternal(bool focused) override;
+
+    virtual bool OnPressedInternal() override;
 
 private:
     PROPERTY(Edit, DisplayName = "Min Lenght")

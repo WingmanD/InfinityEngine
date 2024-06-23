@@ -36,7 +36,10 @@ private:
     DynamicGPUBuffer2<PointLight> _pointLightBuffer{};
 
     PROPERTY()
-    Event<TypeSet<CTransform>> _onTransformChanged;
-    
+    EventTransformChanged _onTransformChanged;
     EventHandle _onTransformChangedHandle;
+
+    PROPERTY()
+    EventArchetypeChanged _onArchetypeChanged;
+    EventHandle _onArchetypeChangedHandle;
 };

@@ -13,6 +13,9 @@ class LevelEditorSystem : public System<CTransform>
     GENERATED()
 
 public:
+    LevelEditorSystem() = default;
+    LevelEditorSystem(const LevelEditorSystem& other);
+    
     void SetLevel(const SharedObjectPtr<Level>& level);
     SharedObjectPtr<Level> GetLevel() const;
 
@@ -22,10 +25,8 @@ public:
     // System
 public:
     virtual void Initialize() override;
-    
     virtual void Tick(double deltaTime) override;
     virtual void OnEntityDestroyed(const Archetype& archetype, Entity& entity) override;
-
     virtual void Shutdown() override;
 
 private:
@@ -43,6 +44,10 @@ private:
     DelegateHandle _onRotateSelectedHandle;
     DelegateHandle _onScaleSelectedHandle;
     DelegateHandle _onCoordinateSpaceChangedHandle;
+
+    PROPERTY()
+    EventArchetypeChanged _onArchetypeChanged;
+    EventHandle _onArchetypeChangedHandle;
     
     SharedObjectPtr<Level> _level;
     Entity* _selectedEntity = nullptr;
@@ -50,5 +55,6 @@ private:
 
 private:
     void ProcessMouseClick(const Vector3 direction);
-    CCamera* GetCamera() const;
+    const CCamera* GetCamera() const;
+    void SelectEntity(Entity& entity);
 };

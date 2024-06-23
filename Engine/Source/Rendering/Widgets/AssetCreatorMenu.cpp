@@ -8,6 +8,11 @@
 #include "TextBox.h"
 #include "Engine/Subsystems/AssetManager.h"
 
+AssetCreatorMenu::AssetCreatorMenu()
+{
+    EnableInputCompatibility(EWidgetInputCompatibility::Focus);
+}
+
 bool AssetCreatorMenu::Initialize()
 {
     if (!Widget::Initialize())

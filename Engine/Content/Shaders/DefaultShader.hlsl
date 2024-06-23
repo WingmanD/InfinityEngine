@@ -1,5 +1,5 @@
-#include "ShaderCore.hlsl"
 #include "ForwardPlusCore.hlsl"
+#include "ShaderCore.hlsl"
 
 struct DefaultMaterialParameter
 {

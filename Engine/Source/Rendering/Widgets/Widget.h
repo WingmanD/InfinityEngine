@@ -61,7 +61,8 @@ enum class EWidgetInputCompatibility : uint8
     MiddleClick= 1 << 2,
     Hover = 1 << 3,
     Drag = 1 << 4,
-    Scroll = 1 << 5
+    Scroll = 1 << 5,
+    Focus = 1 << 6
 };
 ENABLE_ENUM_OPS(EWidgetInputCompatibility)
 
@@ -97,7 +98,7 @@ public:
 
     Widget(const Widget& other);
     Widget& operator=(const Widget& other);
-    ~Widget() override;
+    virtual ~Widget() override;
 
     bool operator==(const Widget& other) const;
 
@@ -117,6 +118,7 @@ public:
 
     void SetFocused(bool value);
     bool IsFocused() const;
+    bool IsFocusable() const;
 
     bool IsRootWidget() const;
 

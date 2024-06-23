@@ -4,7 +4,6 @@
 #include "ECS/Components/CRigidBody.h"
 #include "ECS/Components/CTransform.h"
 #include "ECS/Systems/System.h"
-#include "Math/Math.h"
 #include "ECS/Systems/PhysicsSystem.reflection.h"
 
 REFLECTED()
@@ -22,12 +21,27 @@ public:
         Vector3 Location = Vector3::Zero;
     };
 
+    using EventHit = Event<TypeSet<CRigidBody>, Hit>;
+    EventDispatcher<TypeSet<CRigidBody>, Hit> OnHit;
+    
 public:
     PhysicsSystem() = default;
     PhysicsSystem(const PhysicsSystem& other);
     
     Hit Raycast(const Vector3& start, const Vector3& direction, float distance) const;
     Hit Raycast(const Vector3& start, const Vector3& end) const;
+
+    template <TSystem SystemType> // todo check compatibility between systems, SystemType must not be compatible with PhysicsSystem (must not be executed in parallel)
+    void ForEachOverlappingEntity(Entity& entity, const std::function<bool(const Entity& overlapped)>& func, PassKey<SystemType>) const
+    {
+        ForEachOverlappingEntityInternal(entity, func);
+    }
+
+    template <TSystem SystemType> // todo check compatibility between systems, SystemType must not be compatible with PhysicsSystem (must not be executed in parallel)
+    void ForEachEntityInSphere(const Vector3& location, float radius, const std::function<bool(const Entity& overlapped)>& func, PassKey<SystemType>) const
+    {
+        ForEachEntityInSphereInternal(location, radius, func);
+    }
 
     void SetSimulationEnabled(bool value);
     bool IsSimulationEnabled() const;
@@ -39,13 +53,17 @@ public:
     virtual void Tick(double deltaTime) override;
     virtual void ProcessEntityList(EntityList& entityList, double deltaTime) override;
     virtual void OnEntityDestroyed(const Archetype& archetype, Entity& entity) override;
+    virtual void Shutdown() override;
 
 private:
     PROPERTY()
-    Event<TypeSet<CTransform>> _onTransformChanged;
-    
+    EventTransformChanged _onTransformChanged;
     EventHandle _onTransformChangedHandle;
-    
+
+    PROPERTY()
+    EventArchetypeChanged _onArchetypeChanged;
+    EventHandle _onArchetypeChangedHandle;
+
     bool _simulatePhysics = true;
     
     // todo entities that generate force fields
@@ -159,7 +177,8 @@ private:
 
     uint32 GetRelativeIndexOf(const Body& body, const Cell& cell) const;
 
-    void ForEachCellAt(const BoundingBox& aabb, const std::function<void(Cell& cell, uint32 index)>& func);
+    void ForEachCellAt(const BoundingBox& aabb, const std::function<bool(Cell& cell, uint32 index)>& func);
+    void ForEachCellAt(const BoundingBox& aabb, const std::function<bool(const Cell& cell, uint32 index)>& func) const;
 
     const Cell& GetCellAtImplementation(const CellIndex& index) const;
     const Cell* GetCellAtIfExistsImplementation(const CellIndex& index) const;
@@ -193,4 +212,7 @@ private:
     Hit CollisionCheck(const ShapeProxyType& shape, const Body& bodyB) const;
 
     void EPASilhouette(EPATriangle& triangle, uint8 adjIndex, const Vector3& w, EPASilhouetteArray& silhouetteSet) const;
+
+    void ForEachOverlappingEntityInternal(Entity& entity, const std::function<bool(const Entity& overlapped)>& func) const;
+    void ForEachEntityInSphereInternal(const Vector3& location, float radius, const std::function<bool(const Entity& overlapped)>& func) const;
 };

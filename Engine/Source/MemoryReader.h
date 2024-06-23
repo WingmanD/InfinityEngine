@@ -7,6 +7,7 @@
 #include <map>
 #include <unordered_map>
 #include <string>
+#include <variant>
 #include <vector>
 
 class MemoryReader

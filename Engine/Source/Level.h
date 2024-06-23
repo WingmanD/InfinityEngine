@@ -53,6 +53,8 @@ public:
     uint64 AddEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, const Transform& transform);
     void RemoveEntity(uint64 elementID);
 
+    uint64 MoveEntity(uint64 elementID, const Transform& transform);
+
     void Stream(const Vector3& location, float radius, const std::function<void(const Chunk& chunk)>& callback, bool includeLoaded = false);
     void LoadAllChunks();
 

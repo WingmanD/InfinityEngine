@@ -897,8 +897,7 @@ SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedO
                                                                    PropertyBase& property,
                                                                    Color* value)
 {
-    // todo
-    return nullptr;
+    return CreateEditableWidgetFor(object, property, reinterpret_cast<Vector4*>(value));
 }
 
 SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object,
@@ -1560,6 +1559,44 @@ SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedO
     });
 
     table->AddRow(row);
+
+    return table;
+}
+
+SharedObjectPtr<Widget> ReflectionWidgets::CreateWidgetFor(const SharedObjectPtr<Object>& object, MaterialParameterMap* value)
+{
+    return DisableWidget(CreateEditableWidgetFor(object, value));
+}
+
+SharedObjectPtr<Widget> ReflectionWidgets::CreateEditableWidgetFor(const SharedObjectPtr<Object>& object, MaterialParameterMap* value)
+{
+    SharedObjectPtr<TableWidget> table = NewObject<TableWidget>();
+    if (!table->Initialize())
+    {
+        return nullptr;
+    }
+
+    table->SetFillMode(EWidgetFillMode::FillX);
+
+    // todo mark dirty using editor-only "outer"
+    for (const MaterialParameterMap::DefaultParameter& defaultParameter : value->GetDefaultParameters()) 
+    {
+        const SharedObjectPtr<TableRowWidget> row = NewObject<TableRowWidget>();
+        if (!row->Initialize())
+        {
+            return nullptr;
+        }
+
+        const SharedObjectPtr<TextBox> label = row->AddChild<TextBox>();
+        if (label == nullptr)
+        {
+            return nullptr;
+        }
+        label->SetText(defaultParameter.ParameterName.ToString());
+
+        row->AddChild(defaultParameter.Parameter->GetType()->CreatePropertiesWidget(defaultParameter.Parameter->SharedFromThis()));
+        table->AddRow(row);
+    }
 
     return table;
 }

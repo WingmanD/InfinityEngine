@@ -67,11 +67,11 @@ void LevelStreamingSystem::OnChunkLoaded(const Level::Chunk& chunk) const
 
         world.CreateEntityAsync(
             entityTemplate,
-            [entityTemplate, entityTransform](Entity& entity)
+            [entityTransform](Entity& entity, const Archetype& archetype)
             {
-                entity.Get<CTransform>(entityTemplate->GetArchetype()).ComponentTransform = entityTransform;
+                entity.Get<CTransform>(archetype).ComponentTransform = entityTransform;
             },
-            [](Entity& entity)
+            [](Entity& entity, const Archetype& archetype)
             {
             }
         );

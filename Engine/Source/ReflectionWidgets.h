@@ -10,6 +10,7 @@
 #include <string>
 #include <variant>
 
+class MaterialParameterMap;
 class BoundingBox;
 class MeshCollision;
 class Archetype;
@@ -127,6 +128,10 @@ SharedObjectPtr<Widget> CreateEditableWidgetFor(const SharedObjectPtr<Object>& o
     
 SharedObjectPtr<Widget> CreateWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, MeshCollision* value);
 SharedObjectPtr<Widget> CreateEditableWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, MeshCollision* value);
+
+// todo replace with property widgets after struct reflection is implemented
+SharedObjectPtr<Widget> CreateWidgetFor(const SharedObjectPtr<Object>& object, MaterialParameterMap* value);
+SharedObjectPtr<Widget> CreateEditableWidgetFor(const SharedObjectPtr<Object>& object, MaterialParameterMap* value);
 
 template <typename... VariantTypes>    
 SharedObjectPtr<Widget> CreateWidgetFor(const SharedObjectPtr<Object>& object, PropertyBase& property, std::variant<VariantTypes...>* value)

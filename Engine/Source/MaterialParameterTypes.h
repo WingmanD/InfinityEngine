@@ -65,11 +65,20 @@ struct DefaultMaterialParameter : public MaterialParameter
 {
     GENERATED()
 
-public:   
+public:
+    PROPERTY(Edit, Serialize)
     Color BaseColor = {0.0f, 1.0f, 0.0f, 1.0f};
+
+    PROPERTY(Edit, Serialize)
     Color EmissiveColor = {0.0f, 0.0f, 0.0f, 1.0f};
+
+    PROPERTY(Edit, Serialize)
     Color SpecularColor = {1.0f, 1.0f, 1.0f, 1.0f};
+    
+    PROPERTY(Edit, Serialize)
     float SpecularPower = 32.0f;
+
+    PROPERTY(Edit, Serialize)
     float Metallic = 0.0f;
 };
 

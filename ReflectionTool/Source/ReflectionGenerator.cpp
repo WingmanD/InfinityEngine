@@ -239,7 +239,7 @@ public: \
     }} \
     \
     template <typename... Args> \
-    static SharedObjectPtr<ClassType> New(BucketArray<ClassType>& bucketArray, Args... args) \
+    static SharedObjectPtr<ClassType> New(BucketArray<ClassType>& bucketArray, Args&&... args) \
     {{ \
         return SharedObjectPtr<ClassType>(bucketArray.Emplace(std::forward<Args>(args)...), ObjectDeleter<ClassType>()); \
     }} \

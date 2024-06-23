@@ -16,12 +16,12 @@ MaterialParameterMap::MaterialParameterMap(const MaterialParameterMap& other)
     _data = new std::byte[_dataSize];
     std::memset(_data, 0, _dataSize);
 
-    _parameters.reserve(other._parameters.size());
+    _parameters.Reserve(other._parameters.Count());
 
     for (const MaterialParameterBinding& binding : other._parameters)
     {
-        _parameters.push_back(binding);
-        MaterialParameterBinding& newBinding = _parameters.back();
+        _parameters.Add(binding);
+        MaterialParameterBinding& newBinding = _parameters.Back();
         newBinding.Parameter = nullptr;
 
         _nameToParameter[binding.Name] = &newBinding;
@@ -40,6 +40,14 @@ MaterialParameterMap::MaterialParameterMap(const MaterialParameterMap& other)
 
             newBinding.Parameter = newParameter;
         }
+    }
+
+    for (const DefaultParameter& defaultParameter : other._defaultParameters)
+    {
+        _defaultParameters.Add({
+            std::dynamic_pointer_cast<MaterialParameter>(defaultParameter.Parameter->Duplicate()),
+            defaultParameter.ParameterName
+        });
     }
 }
 
@@ -61,7 +69,8 @@ std::unique_ptr<MaterialParameterMap> MaterialParameterMap::Duplicate() const
     return std::make_unique<MaterialParameterMap>(*this);
 }
 
-bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor>& parameterDescriptors)
+bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor>& parameterDescriptors,
+                    const DArray<DefaultMaterialParameterDescriptor, 4>& defaultParameterTypes)
 {
     _dataSize = std::ranges::fold_left(parameterDescriptors,
                                        0,
@@ -79,14 +88,14 @@ bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor
     std::memset(_data, 0, _dataSize);
     size_t offset = 0;
 
-    _parameters.reserve(parameterDescriptors.size());
+    _parameters.Reserve(parameterDescriptors.size());
 
     for (const MaterialParameterDescriptor& descriptor : parameterDescriptors)
     {
         if (descriptor.ParameterType->GetCDO<MaterialParameter>()->IsShared())
         {
-            _parameters.push_back({nullptr, descriptor.ParameterType, descriptor.Name, descriptor.SlotIndex});
-            _nameToParameter[descriptor.Name] = &_parameters.back();
+            _parameters.Add({nullptr, descriptor.ParameterType, descriptor.Name, descriptor.SlotIndex});
+            _nameToParameter[descriptor.Name] = &_parameters.Back();
             continue;
         }
 
@@ -97,13 +106,34 @@ bool MaterialParameterMap::Initialize(const std::set<MaterialParameterDescriptor
             return false;
         }
 
-        _parameters.push_back({newParameter, descriptor.ParameterType, descriptor.Name, descriptor.SlotIndex});
-        _nameToParameter[descriptor.Name] = &_parameters.back();
+        _parameters.Add({newParameter, descriptor.ParameterType, descriptor.Name, descriptor.SlotIndex});
+        _nameToParameter[descriptor.Name] = &_parameters.Back();
 
         offset += descriptor.ParameterType->GetSize();
     }
 
+    for (const DefaultMaterialParameterDescriptor& descriptor : defaultParameterTypes)
+    {
+        _defaultParameters.Add({descriptor.ParameterType->NewObject<MaterialParameter>(), Name(descriptor.Name)});
+    }
+
     return true;
+}
+
+void MaterialParameterMap::ForEachParameterBinding(const std::function<bool(MaterialParameterBinding&)>& func)
+{
+    for (MaterialParameterBinding& parameter : _parameters)
+    {
+        if (!func(parameter))
+        {
+            break;
+        }
+    }
+}
+
+const DArray<MaterialParameterMap::DefaultParameter, 4>& MaterialParameterMap::GetDefaultParameters() const
+{
+    return _defaultParameters;
 }
 
 void MaterialParameterMap::SetSharedParameter(const std::string& name, const SharedObjectPtr<MaterialParameter>& parameter, bool allowMissing /*= false*/)
@@ -142,6 +172,14 @@ bool MaterialParameterMap::Serialize(MemoryWriter& writer) const
         writer << materialParameterBinding.SlotIndex;
     }
 
+    writer << _defaultParameters.Count();
+    for (const DefaultParameter& defaultParameter : _defaultParameters)
+    {
+        writer << defaultParameter.Parameter->GetType()->GetID();
+        defaultParameter.Parameter->Serialize(writer);
+        writer << defaultParameter.ParameterName;
+    } 
+
     return true;
 }
 
@@ -173,7 +211,24 @@ bool MaterialParameterMap::Deserialize(MemoryReader& reader)
         parameters.insert({type, name, slotIndex});
     }
 
-    return Initialize(parameters);
+    uint64 defaultParameterCount;
+    reader >> defaultParameterCount;
+
+    for (uint64 i = 0; i < defaultParameterCount; ++i)
+    {
+        uint64 typeID;
+        reader >> typeID;
+
+        Type* type = TypeRegistry::Get().FindTypeForID(typeID);
+
+        DefaultParameter& defaultParameter = _defaultParameters.Emplace();
+        defaultParameter.Parameter = type->NewObject<MaterialParameter>();
+        defaultParameter.Parameter->Deserialize(reader);
+
+        reader >> defaultParameter.ParameterName;
+    }
+
+    return Initialize(parameters, {});
 }
 
 const std::unordered_map<std::string, MaterialParameterMap::MaterialParameterBinding*>& MaterialParameterMap::GetNameToParameterMap() const
@@ -181,7 +236,7 @@ const std::unordered_map<std::string, MaterialParameterMap::MaterialParameterBin
     return _nameToParameter;
 }
 
-const std::vector<MaterialParameterMap::MaterialParameterBinding>& MaterialParameterMap::GetParameters() const
+const DArray<MaterialParameterMap::MaterialParameterBinding, 4>& MaterialParameterMap::GetParameters() const
 {
     return _parameters;
 }

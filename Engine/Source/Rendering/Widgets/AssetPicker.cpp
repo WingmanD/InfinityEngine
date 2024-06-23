@@ -75,6 +75,8 @@ SharedObjectPtr<AssetPicker> AssetPicker::CreateForType(Type* assetType)
 
 void AssetPicker::InitializeFromAssetType(Type* assetType)
 {
+    auto picker = NewObject<AssetPicker>();
+    
     if (assetType == nullptr)
     {
         DEBUG_BREAK();

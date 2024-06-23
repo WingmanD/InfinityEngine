@@ -5,7 +5,7 @@
 
 ViewportWidget::ViewportWidget()
 {
-    EnableInputCompatibility(EWidgetInputCompatibility::LeftClick);
+    EnableInputCompatibility(EWidgetInputCompatibility::LeftClick | EWidgetInputCompatibility::Focus);
 }
 
 void ViewportWidget::SetCamera(CCamera* camera)
@@ -59,22 +59,22 @@ Vector3 ViewportWidget::GetMouseDirectionWS() const
 {
     const Vector2 mousePosition = InputSubsystem::Get().GetMousePosition();
     const RECT& screenSpaceSize = GetRect();
-
+    
     const Vector2 normalizedMousePosition = {
-        (mousePosition.x - screenSpaceSize.left) / (screenSpaceSize.right - screenSpaceSize.left),
-        (mousePosition.y - screenSpaceSize.top) / (screenSpaceSize.bottom - screenSpaceSize.top)
+        2.0f * (mousePosition.x - screenSpaceSize.left) / (screenSpaceSize.right - screenSpaceSize.left) - 1.0f,
+        1.0f - 2.0f * (mousePosition.y - screenSpaceSize.top) / (screenSpaceSize.bottom - screenSpaceSize.top)
     };
-
+    
     CCamera* camera = GetCamera();
-    const Matrix& mvp = camera->GetTransform() * camera->GetViewProjectionMatrix();
-    const Matrix invMvp = mvp.Invert();
-
-    Vector3 direction =  Vector3::Transform(
-        {normalizedMousePosition.x * 2.0f - 1.0f, 1.0f - normalizedMousePosition.y * 2.0f, 0.0f},
-        invMvp
-    );
+    const Matrix invProjView = camera->GetViewProjectionMatrix().Invert();
+    
+    const Vector3 nearPointNDC = {normalizedMousePosition.x, normalizedMousePosition.y, 0.0f};
+    
+    const Vector3 nearPointWS = Vector3::Transform(nearPointNDC, invProjView);
+    
+    Vector3 direction = nearPointWS - camera->GetTransform().GetWorldLocation();
     direction.Normalize();
-
+    
     return direction;
 }
 

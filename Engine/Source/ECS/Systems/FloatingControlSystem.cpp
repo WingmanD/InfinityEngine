@@ -4,6 +4,10 @@
 #include "Math/Math.h"
 #include "Rendering/Widgets/ViewportWidget.h"
 
+FloatingControlSystem::FloatingControlSystem(const FloatingControlSystem& other) : System(other)
+{
+}
+
 void FloatingControlSystem::TakeControlOf(Entity& entity)
 {
     GetEventQueue().Enqueue([this, &entity](SystemBase* system)
@@ -30,19 +34,37 @@ void FloatingControlSystem::Initialize()
         {
             Vector2 newDelta = delta;
             newDelta.x = -newDelta.x;
-            
+
             _mouseDelta += newDelta;
         }
     });
+
+    _onArchetypeChangedHandle = GetWorld().OnArchetypeChanged.RegisterListener(_onArchetypeChanged);
 }
 
 void FloatingControlSystem::Tick(double deltaTime)
 {
     GetEventQueue().ProcessEvents();
-    
+
     if (_controlledEntity == nullptr)
     {
         return;
+    }
+
+    if (!_controlledEntity->IsValid())
+    {
+        for (auto& entityListStruct : _onArchetypeChanged.GetEntityLists())
+        {
+            EventArchetypeChanged::EventData eventData;
+            while (entityListStruct.Queue.Dequeue(eventData))
+            {
+                if (_controlledEntity == eventData.Entity)
+                {
+                    TakeControlOf(*std::get<Entity*>(eventData.Arguments));
+                    break;
+                }
+            }
+        }
     }
 
     if (!GameplaySubsystem::Get().GetMainViewport()->IsFocused())
@@ -101,7 +123,7 @@ void FloatingControlSystem::Tick(double deltaTime)
     location += moveDirection * control.Speed * static_cast<float>(deltaTime);
 
     transform.ComponentTransform.SetWorldLocation(location);
-    
+
     GetEventQueue().ProcessEvents();
 }
 
@@ -110,6 +132,8 @@ void FloatingControlSystem::Shutdown()
     System::Shutdown();
 
     InputSubsystem::Get().OnMouseMoved.Remove(_onMouseMovedHandle);
+
+    GetWorld().OnArchetypeChanged.UnregisterListener(_onArchetypeChangedHandle);
 }
 
 void FloatingControlSystem::TakeControlOfInternal(Entity& entity)
@@ -117,7 +141,8 @@ void FloatingControlSystem::TakeControlOfInternal(Entity& entity)
     ReleaseControlInternal();
 
     _controlledEntity = &entity;
-    CacheArchetype(Archetype(entity));
+    _controlledEntityArchetype = Archetype(entity);
+    CacheArchetype(_controlledEntityArchetype);
 }
 
 void FloatingControlSystem::ReleaseControlInternal()

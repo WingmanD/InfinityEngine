@@ -17,6 +17,7 @@ void PointLightSystem::Initialize()
     _pointLightBuffer.Initialize();
 
     _onTransformChangedHandle = GetWorld().OnTransformChanged.RegisterListener(_onTransformChanged);
+    _onArchetypeChangedHandle = GetWorld().OnArchetypeChanged.RegisterListener(_onArchetypeChanged);
 }
 
 void PointLightSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
@@ -40,7 +41,25 @@ void PointLightSystem::OnEntityCreated(const Archetype& archetype, Entity& entit
 
 void PointLightSystem::Tick(double deltaTime)
 {
-    for (Event<TypeSet<CTransform>>::EntityListStruct& entityListStruct : _onTransformChanged.GetEntityLists())
+    for (auto& entityListStruct : _onArchetypeChanged.GetEntityLists())
+    {
+        const uint16 pointLightIndex = entityListStruct.EntityArchetype.GetComponentIndexChecked<CPointLight>();
+        if (pointLightIndex == std::numeric_limits<uint16>::max())
+        {
+            continue;
+        }
+
+        EventArchetypeChanged::EventData eventData;
+        while (entityListStruct.Queue.Dequeue(eventData))
+        {
+            CPointLight& oldPointLight = eventData.Entity->Get<CPointLight>(pointLightIndex);
+            CPointLight& newPointLight = eventData.Entity->Get<CPointLight>(std::get<Archetype>(eventData.Arguments));
+            
+            _registeredPointLightComponents[oldPointLight.LightID] = &newPointLight;
+        }
+    }
+    
+    for (auto& entityListStruct : _onTransformChanged.GetEntityLists())
     {
         const uint16 index = entityListStruct.EntityArchetype.GetComponentIndexChecked<CPointLight>();
         if (index == std::numeric_limits<uint16>::max())
@@ -48,15 +67,15 @@ void PointLightSystem::Tick(double deltaTime)
             continue;
         }
 
-        Event<TypeSet<CTransform>>::EventData eventData;
+        EventTransformChanged::EventData eventData;
         while (entityListStruct.Queue.Dequeue(eventData))
         {
-            if (!eventData.Entity->IsValid())
+            if (!eventData.Entity->IsValid() || eventData.Entity->GetID() != eventData.ID)
             {
                 continue;
             }
 
-            const CPointLight& pointLight = eventData.Entity->Get<CPointLight>(entityListStruct.EntityArchetype);
+            const CPointLight& pointLight = eventData.Entity->Get<CPointLight>(index);
             
             _pointLightBuffer[pointLight.LightID].Location = pointLight.LightTransform.GetWorldLocation();
         }
@@ -80,5 +99,7 @@ void PointLightSystem::Shutdown()
 {
     System::Shutdown();
 
-    GetWorld().OnTransformChanged.UnregisterListener(_onTransformChangedHandle);
+    World& world = GetWorld();
+    world.OnTransformChanged.UnregisterListener(_onTransformChangedHandle);
+    world.OnArchetypeChanged.UnregisterListener(_onArchetypeChangedHandle);
 }

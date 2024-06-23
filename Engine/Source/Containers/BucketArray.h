@@ -243,6 +243,7 @@ private:
         size_t _index = 0;
 
         DArray<size_t, BucketSize / 2> _freeIndices{};
+        // todo we need to keep track of size for ForEach optimization
     };
 
     DArray<std::unique_ptr<Bucket>, 16> _buckets{};

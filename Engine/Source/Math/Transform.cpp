@@ -64,14 +64,14 @@ Transform& Transform::operator=(Transform&& other) noexcept
     return *this;
 }
 
-void Transform::SetParent(Transform* parent)
+void Transform::SetParent(const Transform* parent)
 {
     _parent = parent;
 
     MarkDirty();
 }
 
-Transform* Transform::GetParent() const
+const Transform* Transform::GetParent() const
 {
     return _parent;
 }

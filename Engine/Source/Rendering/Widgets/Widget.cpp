@@ -236,6 +236,11 @@ bool Widget::IsFocused() const
     return (_state & EWidgetState::Focused) != EWidgetState::None;
 }
 
+bool Widget::IsFocusable() const
+{
+    return IsEnabled() && HasFlags(_inputCompatibility, EWidgetInputCompatibility::Focus);
+}
+
 bool Widget::IsRootWidget() const
 {
     return GetParentWidget() == nullptr;

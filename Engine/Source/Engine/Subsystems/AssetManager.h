@@ -17,7 +17,7 @@ public:
 public:
     static AssetManager& Get();
 
-    ~AssetManager() override;
+    virtual ~AssetManager() override;
 
     SharedObjectPtr<Asset> NewAsset(const Type& type, Name name);
 

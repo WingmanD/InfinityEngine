@@ -42,8 +42,6 @@ bool Asset::Deserialize(MemoryReader& reader)
 void Asset::SetAssetPath(const std::filesystem::path& path)
 {
     _assetPath = path;
-
-    MarkDirtyForAutosave();
 }
 
 const std::filesystem::path& Asset::GetAssetPath() const
@@ -107,10 +105,15 @@ bool Asset::Load()
         return false;
     }
 
-    GetType()->ForEachPropertyWithTag("Load", [this](PropertyBase* property)
+    GetType()->ForEachProperty([this](PropertyBase* property)
     {
-        // todo this should be dynamic cast
-        const SharedObjectPtr<Asset> valueRef = static_cast<Property<Asset, AssetPtrBase>*>(property)->GetRef(this);
+        Property<Asset, AssetPtrBase>* prop = dynamic_cast<Property<Asset, AssetPtrBase>*>(property);
+        if (prop == nullptr)
+        {
+            return true;
+        }
+        
+        const SharedObjectPtr<Asset> valueRef = prop->GetRef(this);
         if (valueRef == nullptr)
         {
             return true;
@@ -207,6 +210,7 @@ SharedObjectPtr<Widget> Asset::CreateImportWidget() const
     }
 
     verticalBox->SetDirection(EFlowBoxDirection::Vertical);
+    verticalBox->EnableInputCompatibility(EWidgetInputCompatibility::Focus);
 
     {
         const SharedObjectPtr<FlowBox> horizontalBox = verticalBox->AddChild<FlowBox>();

@@ -3,7 +3,6 @@
 #include "Asset.h"
 #include "StaticMesh.h"
 #include "Math/Transform.h"
-#include "d3dx12/d3dx12.h"
 #include "StaticMeshInstance.reflection.h"
 
 REFLECTED(InstancedOnly)

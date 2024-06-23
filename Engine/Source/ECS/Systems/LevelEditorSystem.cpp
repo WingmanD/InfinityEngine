@@ -10,14 +10,21 @@
 #include "Engine/Subsystems/GameplaySubsystem.h"
 #include "Rendering/Widgets/ViewportWidget.h"
 
+LevelEditorSystem::LevelEditorSystem(const LevelEditorSystem& other) : System(other)
+{
+}
+
 void LevelEditorSystem::SetLevel(const SharedObjectPtr<Level>& level)
 {
     _level = level;
 
     _level->LoadAllChunks();
+    _level->InitializeEdit();
 
     const AssetManager& assetManager = AssetManager::Get();
-    _level->ForEachChunk([&](const Level::Chunk& chunk)
+
+    const Level& constLevel = *_level;
+    constLevel.ForEachChunk([&](const Level::Chunk& chunk)
     {
         for (const Level::EntityElement& element : chunk.EntityElements)
         {
@@ -37,32 +44,35 @@ SharedObjectPtr<Level> LevelEditorSystem::GetLevel() const
 
 void LevelEditorSystem::SpawnEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate) const
 {
-    Transform transform = GetCamera()->GetTransform();
-    transform.SetWorldLocation(transform.GetWorldLocation() + transform.GetForwardVector() * 5.0f);
+    const Transform& cameraTransform = GetCamera()->GetTransform();
+
+    Transform transform;
+    transform.SetWorldLocation(cameraTransform.GetWorldLocation() + cameraTransform.GetForwardVector() * 5.0f);
     transform.SetParent(nullptr);
 
     SpawnEntity(entityTemplate, transform);
 }
 
-void LevelEditorSystem::SpawnEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, const Transform& transform, uint64 id /*= 0*/) const
+void LevelEditorSystem::SpawnEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, const Transform& transform,
+                                    uint64 id /*= 0*/) const
 {
     if (!entityTemplate->Load())
     {
         LOG(L"ERROR: Failed to load entity template {}.", entityTemplate->GetName());
         return;
     }
-    
+
     if (id == 0)
     {
         id = _level->AddEntity(entityTemplate, transform);
     }
 
+    // todo this breaks ptrs in physics body - we really need to implement event EntityArchetypeChanged
     GetWorld().CreateEntityAsync(
         entityTemplate,
-        [id, entityTemplate, transform, this](Entity& entity)
+        [id, transform, this](Entity& entity, const Archetype& archetype)
         {
             World& world = GetWorld();
-            const Archetype& archetype = entityTemplate->GetArchetype();
 
             Entity* entityPtr = &entity;
             if (!archetype.HasComponent<CRigidBody>())
@@ -93,9 +103,9 @@ void LevelEditorSystem::SpawnEntity(const SharedObjectPtr<EntityTemplate>& entit
             entityPtr = result.NewEntity;
             result.Component->LevelElementID = id;
 
-            world.Get<CTransform>(*entityPtr, entityTemplate->GetArchetype()).ComponentTransform = transform;
+            world.Get<CTransform>(*entityPtr, archetype).ComponentTransform = transform;
         },
-        [](Entity& entity)
+        [](Entity& entity, const Archetype& archetype)
         {
         }
     );
@@ -107,7 +117,7 @@ void LevelEditorSystem::Initialize()
 
     GameplaySubsystem& gameplaySubsystem = GameplaySubsystem::Get();
     SetLevel(gameplaySubsystem.GetGame<LevelEditorGame>()->GetLevel());
-    
+
     SharedObjectPtr<ViewportWidget> viewport = gameplaySubsystem.GetMainViewport();
     std::ignore = viewport->OnPressed.Add([this, viewport]
     {
@@ -138,15 +148,29 @@ void LevelEditorSystem::Initialize()
     {
         _worldSpaceControls = !_worldSpaceControls;
     });
+
+    _onArchetypeChangedHandle = GetWorld().OnArchetypeChanged.RegisterListener(_onArchetypeChanged);
 }
 
 void LevelEditorSystem::Tick(double deltaTime)
 {
-    System::Tick(deltaTime);
+    GetEventQueue().ProcessEvents();
 
     if (_selectedEntity == nullptr)
     {
         return;
+    }
+
+    for (auto& entityListStruct : _onArchetypeChanged.GetEntityLists())
+    {
+        EventArchetypeChanged::EventData eventData;
+        while (entityListStruct.Queue.Dequeue(eventData))
+        {
+            if (_selectedEntity == eventData.Entity)
+            {
+                SelectEntity(*std::get<Entity*>(eventData.Arguments));
+            }
+        }
     }
 
     CTransform& transform = Get<CTransform>(*_selectedEntity);
@@ -184,12 +208,71 @@ void LevelEditorSystem::Tick(double deltaTime)
         moveDirection -= up;
     }
 
-    location += moveDirection * static_cast<float>(deltaTime);
+    if (moveDirection.LengthSquared() < 0.001f)
+    {
+        return;
+    }
 
-    transform.ComponentTransform.SetWorldLocation(location);
-    
+
+    switch (_controlMode)
+    {
+        case EControlMode::Move:
+        {
+            if (_worldSpaceControls)
+            {
+                location += moveDirection * static_cast<float>(deltaTime);
+                transform.ComponentTransform.SetWorldLocation(location);
+            }
+            else
+            {
+                location += transform.ComponentTransform * moveDirection * static_cast<float>(deltaTime);
+                transform.ComponentTransform.SetWorldLocation(location);
+            }
+
+            break;
+        }
+        case EControlMode::Rotate:
+        {
+            constexpr float rotationSpeed = 5.0f;
+
+            if (_worldSpaceControls)
+            {
+                const Vector3 newRotation = transform.ComponentTransform.GetWorldRotationEuler() +
+                    moveDirection * rotationSpeed * static_cast<float>(deltaTime);
+                transform.ComponentTransform.SetWorldRotation(newRotation);
+            }
+            else
+            {
+                const Vector3 newRotation = transform.ComponentTransform.GetRelativeRotation() +
+                    moveDirection * rotationSpeed * static_cast<float>(deltaTime);
+                transform.ComponentTransform.SetRelativeRotation(newRotation);
+            }
+
+            break;
+        }
+        case EControlMode::Scale:
+        {
+            constexpr float scaleSpeed = 1.0f;
+
+            if (_worldSpaceControls)
+            {
+                const Vector3 newScale = transform.ComponentTransform.GetWorldScale() +
+                    moveDirection * scaleSpeed * static_cast<float>(deltaTime);
+                transform.ComponentTransform.SetWorldScale(newScale);
+            }
+            else
+            {
+                const Vector3 newScale = transform.ComponentTransform.GetRelativeScale() +
+                    moveDirection * scaleSpeed * static_cast<float>(deltaTime);
+                transform.ComponentTransform.SetRelativeScale(newScale);
+            }
+
+            break;
+        }
+    }
+
     CLevelEdit& levelEdit = _selectedEntity->Get<CLevelEdit>(_selectedEntityArchetype);
-    _level->RemoveEntity(levelEdit.LevelElementID);
+    levelEdit.LevelElementID = _level->MoveEntity(levelEdit.LevelElementID, transform.ComponentTransform);
 }
 
 void LevelEditorSystem::OnEntityDestroyed(const Archetype& archetype, Entity& entity)
@@ -214,6 +297,8 @@ void LevelEditorSystem::Shutdown()
     inputSubsystem.GetKey(EKey::Two).OnKeyUp.Remove(_onRotateSelectedHandle);
     inputSubsystem.GetKey(EKey::Three).OnKeyUp.Remove(_onScaleSelectedHandle);
     inputSubsystem.GetKey(EKey::Four).OnKeyUp.Remove(_onCoordinateSpaceChangedHandle);
+
+    GetWorld().OnArchetypeChanged.UnregisterListener(_onArchetypeChangedHandle);
 }
 
 void LevelEditorSystem::ProcessMouseClick(const Vector3 direction)
@@ -224,9 +309,7 @@ void LevelEditorSystem::ProcessMouseClick(const Vector3 direction)
     PhysicsSystem::Hit hit = GetWorld().FindSystem<PhysicsSystem>()->Raycast(start, end);
     if (hit.IsValid)
     {
-        _selectedEntity = hit.OtherBody->Entity;
-        _selectedEntityArchetype = Archetype(*_selectedEntity);
-        CacheArchetype(_selectedEntityArchetype);
+        SelectEntity(*hit.OtherBody->Entity);
     }
     else
     {
@@ -234,7 +317,14 @@ void LevelEditorSystem::ProcessMouseClick(const Vector3 direction)
     }
 }
 
-CCamera* LevelEditorSystem::GetCamera() const
+const CCamera* LevelEditorSystem::GetCamera() const
 {
     return GameplaySubsystem::Get().GetMainViewport()->GetCamera();
+}
+
+void LevelEditorSystem::SelectEntity(Entity& entity)
+{
+    _selectedEntity = &entity;
+    _selectedEntityArchetype = Archetype(*_selectedEntity);
+    CacheArchetype(_selectedEntityArchetype);
 }

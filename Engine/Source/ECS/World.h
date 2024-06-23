@@ -1,17 +1,16 @@
 ﻿#pragma once
 
 #include "BoundingBox.h"
+#include "EntityTemplate.h"
 #include "Event.h"
 #include "EventManager.h"
 #include "Containers/EventQueue.h"
 #include "Containers/ObjectTypeMap.h"
-#include "ECS/DirtyTracker.h"
 #include "ECS/EntityListGraph.h"
 #include "ECS/SystemScheduler.h"
 #include "ECS/World.reflection.h"
 #include "ECS/Components/Component.h"
 
-class EntityTemplate;
 class GameplaySubsystem;
 class Type;
 class Entity;
@@ -25,6 +24,10 @@ class World : public Object
 public:
     PROPERTY()
     EventDispatcher<TypeSet<CTransform>> OnTransformChanged;
+
+    // todo we need either archetype registry (hard to sync) or minimal archetype cheap enough to be copied
+    PROPERTY()
+    EventDispatcher<TypeSet<>, Entity*, Archetype> OnArchetypeChanged;
 
     static BoundingBox WorldBounds;
 
@@ -97,11 +100,12 @@ public:
         _eventQueue.Enqueue([entityTemplate, onCreated, preInitialize, this](World* world)
         {
             Entity& entity = world->CreateEntityInternal(entityTemplate);
-            preInitialize(entity);
+            const Archetype& archetype = entityTemplate->GetArchetype();
+            preInitialize(entity, archetype);
 
             OnEntityCreated(entity, entityTemplate);
             
-            onCreated(entity);
+            onCreated(entity, archetype);
         });
     }
     
@@ -209,14 +213,6 @@ public:
 
     EventManager& GetEventManager();
 
-    DirtyTracker& GetDirtyTracker(Type& componentType);
-
-    template <typename ComponentType> requires IsA<ComponentType, Component>
-    DirtyTracker& GetDirtyTracker()
-    {
-        return GetDirtyTracker(*ComponentType::StaticType());
-    }
-
 private:
     ObjectTypeMap _componentTypeMap;
     EntityListGraph _entityListGraph;
@@ -225,8 +221,6 @@ private:
     EventQueue<World> _eventQueue;
 
     EventManager _eventManager;
-
-    std::unordered_map<Type*, DirtyTracker> _dirtyTrackers;
 
 private:
     Entity& CreateEntityInternal(const Archetype& archetype);

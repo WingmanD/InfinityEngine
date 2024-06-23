@@ -39,9 +39,12 @@ private:
     std::unordered_map<uint32, DynamicGPUBuffer<MaterialParameter>> _materialIDToMaterialParameterBuffer;
 
     PROPERTY()
-    Event<TypeSet<CTransform>> _onTransformChanged;
-    
+    EventTransformChanged _onTransformChanged;
     EventHandle _onTransformChangedHandle;
+
+    PROPERTY()
+    EventArchetypeChanged _onArchetypeChanged;
+    EventHandle _onArchetypeChangedHandle;
     
 private:
     DynamicGPUBuffer<MaterialParameter>& GetOrCreateMaterialParameterBuffer(uint32 materialID, const SharedObjectPtr<Shader>& shader);

@@ -5,12 +5,12 @@
 #include "TypeSet.h"
 #include "Containers/EventQueue.h"
 #include "ECS/Archetype.h"
-#include "ECS/DirtyTracker.h"
 #include "ECS/ECSQuery.h"
 #include "ECS/EntityList.h"
 #include "ECS/Event.h"
 #include "ECS/Systems/System.reflection.h"
 
+class CTransform;
 class SystemScheduler;
 class World;
 
@@ -45,6 +45,10 @@ public:
     EventQueue<SystemBase>& GetEventQueue();
 
 protected:
+    using EventTransformChanged = Event<TypeSet<CTransform>>;
+    using EventArchetypeChanged = Event<TypeSet<>, Entity*, Archetype>;
+
+protected:
     virtual void Initialize();
     virtual void OnEntityCreated(const Archetype& archetype, Entity& entity);
     // todo refactor, this call should be scheduled
@@ -55,15 +59,17 @@ protected:
 
     const ECSQuery& GetQuery() const;
 
-    DirtyTracker& GetDirtyTracker(Type& componentType) const;
-
 private:
+    
     Archetype _archetype;
     ECSQuery _persistentQuery;
     World* _world = nullptr;
 
     EventQueue<SystemBase> _eventQueue;
 };
+
+template <typename T>
+concept TSystem = IsA<T, SystemBase>;
 
 template <typename... ComponentTypes> requires (IsA<ComponentTypes, Component> && ...)
 class System : public SystemBase
@@ -84,6 +90,11 @@ protected:
         
         if constexpr (RequiresOnChanged<ComponentType>)
         {
+            // todo expand this, return a ComponentRef which will signal this event in its destructor,
+            // after we apply all changes to the component. This will fix a data race when we get a component,
+            // signal the event, another system processes it's events, and then this system modifies the component
+            // in that case, the event will be lost. ComponentRef needs to know about this system and the entity,
+            // but only if the component requires on changed event, so we can save on performance. 
             EventDispatcher<TypeSet<ComponentType>>& event = GetWorld().*ComponentType::OnChanged;
             event.Add(entity, *GetBinding<ComponentType>().ListArchetype, PassKey<System>());
         }

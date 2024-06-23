@@ -42,13 +42,13 @@ public:
     virtual Type* GetType() const;
 
     template <typename... Args>
-    static SharedObjectPtr<Object> New(Args... args)
+    static SharedObjectPtr<Object> New(Args&&... args)
     {
         return SharedObjectPtr<Object>(ClassBucketArray.Emplace(std::forward<Args>(args)...), ObjectDeleter<ClassType>());
     }
 
     template <typename... Args>
-    static SharedObjectPtr<Object> New(BucketArray<Object>& bucketArray, Args... args)
+    static SharedObjectPtr<Object> New(BucketArray<Object>& bucketArray, Args&&... args)
     {
         return SharedObjectPtr<Object>(bucketArray.Emplace(std::forward<Args>(args)...), ObjectDeleter<ClassType>());
     }
@@ -75,7 +75,7 @@ public:
     
     virtual void Copy(const Object& other);
 
-    virtual bool Serialize(MemoryWriter& writer) const;
+    virtual bool Serialize(MemoryWriter& writer) const override;
     virtual bool Deserialize(MemoryReader& reader) override;
 
     virtual void OnPropertyChanged(Name propertyName);

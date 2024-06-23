@@ -75,7 +75,7 @@ public:
     {
         _owningBuffer = &static_cast<DynamicGPUBuffer<T>&>(buffer);
 
-        constexpr uint32 initialCapacity = 16;
+        constexpr uint32 initialCapacity = 2048;
 
         DX12RenderingSubsystem& renderingSubsystem = DX12RenderingSubsystem::Get();
         if (!_structuredBuffer.Initialize(initialCapacity,

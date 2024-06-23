@@ -19,10 +19,10 @@
 #define TRACE_LOG(message, ...) std::cout << __FUNCTION__ << ": " << std::format((message), __VA_ARGS__) << std::endl
 #define LOG(message, ...) Logger::GetInstance().Log(std::format((message), __VA_ARGS__))
 
-template <typename T>
-SharedObjectPtr<T> NewObject()
+template <typename T, typename... Args>
+SharedObjectPtr<T> NewObject(Args&&... args)
 {
-    return T::StaticType()->template NewObject<T>();
+    return T::New(std::forward<Args>(args)...);
 }
 
 inline double GetTimeInSeconds()

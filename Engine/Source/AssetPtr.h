@@ -25,6 +25,11 @@ public:
         SetAsset(other.GetAsset());
     }
 
+    SharedObjectPtr<T> Get() const
+    {
+        return std::static_pointer_cast<T>(GetAsset());
+    }
+
     AssetPtr& operator=(const AssetPtr& other)
     {
         SetAsset(other.GetAsset());
@@ -39,12 +44,12 @@ public:
 
     SharedObjectPtr<T> operator->() const
     {
-        return std::static_pointer_cast<T>(GetAsset());
+        return Get();
     }
 
     operator SharedObjectPtr<T>() const
     {
-        return std::static_pointer_cast<T>(GetAsset());
+        return Get();
     }
 };
 

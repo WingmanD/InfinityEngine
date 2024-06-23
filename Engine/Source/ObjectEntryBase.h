@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "Object.h"
 #include "SubtypeOf.h"
 
 class Type;

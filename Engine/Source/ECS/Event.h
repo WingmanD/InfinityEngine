@@ -52,6 +52,7 @@ public:
     struct EventData
     {
         Entity* Entity;
+        uint64 ID;
         std::tuple<Args...> Arguments;
     };
 
@@ -70,8 +71,9 @@ public:
 public:
     virtual void UpdateQuery(const EntityListGraph& entityListGraph) override
     {
+        // todo we need to be careful here not to lose unprocessed entities
         ECSQuery query;
-        entityListGraph.Query(query, GetArchetype());
+        entityListGraph.Query(query, GetArchetype());                                                                                                                                                                                                                                                                                                                                                   
 
         _archetypeToEntityListIndex.clear();
         _entityListsArray.Clear();
@@ -85,15 +87,15 @@ public:
         }
     }
 
-    template <typename SystemType> requires IsA<SystemType, SystemBase> && IsCompatible<ComponentList, SystemType>
+    template <typename SystemType> requires IsA<SystemType, SystemBase>
     void Add(Entity& entity, const Archetype& archetype, Args... args, PassKey<SystemType>)
     {
-        Add(entity, archetype, args..., {});
+        Add(entity, archetype, args...);
     }
 
     void Add(Entity& entity, const Archetype& archetype, Args... args, PassKey<World>)
     {
-        Add(entity, archetype, args..., {});
+        Add(entity, archetype, args...);
     }
 
     DArray<EntityListStruct>& GetEntityLists()
@@ -115,7 +117,7 @@ private:
     void Add(Entity& entity, const Archetype& archetype, Args... args)
     {
         EntityListStruct& entityList = GetEntityList(archetype);
-        EventData eventData = {&entity, std::forward_as_tuple(args...)};
+        EventData eventData = {&entity, entity.GetID(), std::forward_as_tuple(args...)};
         entityList.Queue.Enqueue(std::move(eventData));
     }
 };

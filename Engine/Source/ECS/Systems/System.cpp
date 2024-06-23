@@ -102,8 +102,3 @@ const ECSQuery& SystemBase::GetQuery() const
 {
     return _persistentQuery;
 }
-
-DirtyTracker& SystemBase::GetDirtyTracker(Type& componentType) const
-{
-    return GetWorld().GetDirtyTracker(componentType);
-}

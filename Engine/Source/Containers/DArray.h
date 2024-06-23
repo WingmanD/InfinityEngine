@@ -454,6 +454,8 @@ public:
 
         _count = other._count;
         _capacity = other._capacity;
+
+        other._count = 0;
     }
 
     ~DArray()
@@ -467,9 +469,12 @@ public:
 
             if (_capacity > SSO_SIZE && _data != nullptr)
             {
-                for (auto i = 0; i < _count - SSO_SIZE; ++i)
+                if (_count > SSO_SIZE)
                 {
-                    _data[i].~T();
+                    for (auto i = 0; i < _count - SSO_SIZE; ++i)
+                    {
+                        _data[i].~T();
+                    }
                 }
 
                 _allocator.deallocate(_data, _capacity - SSO_SIZE);
@@ -877,31 +882,27 @@ public:
     {
         if constexpr (SSO_SIZE > 0)
         {
-            if (_capacity > SSO_SIZE)
+            for (auto i = 0; i < std::min(_count, SSO_SIZE); ++i)
             {
-                for (auto i = 0; i < SSO_SIZE; ++i)
-                {
-                    GetSSOData()[i].~T();
-                }
+                GetSSOData()[i].~T();
+            }
 
-                for (auto i = 0; i < _capacity - SSO_SIZE; ++i)
+            if (_capacity > SSO_SIZE && _data != nullptr)
+            {
+                for (auto i = 0; i < _count - SSO_SIZE; ++i)
                 {
                     _data[i].~T();
-                }
-            }
-            else
-            {
-                for (auto i = 0; i < _count; ++i)
-                {
-                    GetSSOData()[i].~T();
                 }
             }
         }
         else
         {
-            for (SizeType i = 0; i < _count; ++i)
+            if (_data != nullptr)
             {
-                _data[i].~T();
+                for (SizeType i = 0; i < _count; ++i)
+                {
+                    _data[i].~T();
+                }
             }
         }
 
@@ -1329,9 +1330,9 @@ public:
 private:
     AllocatorType _allocator;
 
-    using SSOBufferType = std::conditional_t<SSO_SIZE == 0, std::monostate, std::byte[sizeof(T) * SSO_SIZE]>;
+    using SSOBufferType = std::conditional_t<SSO_SIZE == 0, std::monostate, std::byte[sizeof(ValueType) * SSO_SIZE]>;
 
-    alignas(T) SSOBufferType _ssoBuffer{};
+    alignas(ValueType) SSOBufferType _ssoBuffer{};
     Pointer _data = nullptr;
 
     SizeType _count = 0;

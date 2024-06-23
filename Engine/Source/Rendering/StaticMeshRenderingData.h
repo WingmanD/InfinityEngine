@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "NonCopyable.h"
+#include "ObjectShared.h"
 #include "PassKey.h"
 
 class StaticMesh;

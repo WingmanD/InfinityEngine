@@ -9,5 +9,6 @@ class CLevelStreamingInvoker : public Component
     GENERATED()
 
 public:
+    PROPERTY(Edit, Serialize)
     float StreamingDistance = 15.0f;
 };

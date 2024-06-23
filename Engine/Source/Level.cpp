@@ -61,6 +61,8 @@ uint64 Level::AddEntity(const SharedObjectPtr<EntityTemplate>& entityTemplate, c
 
     _entityElementRefs[id] = {&chunk, chunk.EntityElements.Count() - 1};
 
+    MarkDirtyForAutosave();
+
     return id; 
 }
 
@@ -69,12 +71,25 @@ void Level::RemoveEntity(uint64 elementID)
     EntityElementRef& elementRef = _entityElementRefs[elementID];
     
     elementRef.Chunk->EntityElements.RemoveAtSwap(elementRef.EntityIndex);
-    _entityElementRefs.erase(elementRef.Chunk->EntityElements[elementRef.EntityIndex].ID);
     
-    if (!elementRef.Chunk->EntityElements.IsEmpty())
+    if (!elementRef.Chunk->EntityElements.IsEmpty() && elementRef.EntityIndex < elementRef.Chunk->EntityElements.Count())
     {
         _entityElementRefs[elementRef.Chunk->EntityElements[elementRef.EntityIndex].ID].EntityIndex = elementRef.EntityIndex;
+        _entityElementRefs.erase(elementRef.Chunk->EntityElements[elementRef.EntityIndex].ID);
     }
+
+    MarkDirtyForAutosave();
+}
+
+uint64 Level::MoveEntity(uint64 elementID, const Transform& transform)
+{
+    EntityElementRef& elementRef = _entityElementRefs.at(elementID);
+    const uint64 entityTemplateID = elementRef.Chunk->EntityElements[elementRef.EntityIndex].EntityTemplateID;
+    SharedObjectPtr<EntityTemplate> entityTemplate = AssetManager::Get().FindAsset<EntityTemplate>(entityTemplateID);
+    
+    RemoveEntity(elementID);
+    _entityElementRefs.erase(elementID);
+    return AddEntity(entityTemplate, transform);
 }
 
 void Level::Stream(const Vector3& location, float radius, const std::function<void(const Chunk& chunk)>& callback, bool includeLoaded /*= false*/)
@@ -157,6 +172,8 @@ void Level::ForEachChunk(const std::function<void(Chunk& chunk)>& callback)
     {
         callback(chunk);
     }
+
+    MarkDirtyForAutosave();
 }
 
 void Level::ForEachChunk(const std::function<void(const Chunk& chunk)>& callback) const

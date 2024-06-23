@@ -215,7 +215,23 @@ bool DX12Shader::Recompile(bool immediate)
     }
 
     recompiledData->ParameterMap = std::make_unique<DX12MaterialParameterMap>();
-    if (!recompiledData->ParameterMap->Initialize(recompiledData->Reflection.ConstantBufferParameterTypes))
+
+    DArray<DefaultMaterialParameterDescriptor, 4> defaultParameterTypes;
+    TypeRegistry& typeRegistry = TypeRegistry::Get();
+    for (const StructuredBufferParameter& param : recompiledData->Reflection.StructuredBufferParameterTypes)
+    {
+        std::wstring name = param.BufferName.ToString();
+        if (name.starts_with(L"GMP_") || name.starts_with(L"MP_"))
+        {
+            Type* type = typeRegistry.FindTypeByName(Util::ToString(name.substr(name.find_first_of(L"_") + 1)));
+            if (type != nullptr)
+            {
+                defaultParameterTypes.Add({type, name});
+            }
+        }
+    }
+    
+    if (!recompiledData->ParameterMap->Initialize(recompiledData->Reflection.ConstantBufferParameterTypes, defaultParameterTypes))
     {
         _beingRecompiled = false;
         return false;
@@ -334,16 +350,6 @@ bool DX12Shader::Serialize(MemoryWriter& writer) const
         writer << 0ull;
     }
 
-    if (ParameterMap != nullptr)
-    {
-        writer << true;
-        ParameterMap->Serialize(writer);
-    }
-    else
-    {
-        writer << false;
-    }
-
     return true;
 }
 
@@ -351,12 +357,12 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
 {
     if (!Shader::Deserialize(reader))
     {
-        return false;
+        return Recompile(true);
     }
 
     if (!DeserializeBase(reader))
     {
-        return false;
+        return Recompile(true);
     }
     
     if (GetLastCompileTime() < last_write_time(GetImportPath()))
@@ -408,18 +414,9 @@ bool DX12Shader::Deserialize(MemoryReader& reader)
         reader.Skip(pixelShaderSize);
     }
 
-    ParameterMap = std::make_unique<DX12MaterialParameterMap>();
-
-    bool hasParameterMap;
-    reader >> hasParameterMap;
-    
-    if (hasParameterMap)
+    if (ParameterMap == nullptr)
     {
-        if (!ParameterMap->Deserialize(reader))
-        {
-            success = false;
-            ParameterMap = nullptr;
-        }
+        ParameterMap = std::make_unique<DX12MaterialParameterMap>();
     }
 
     if (success)

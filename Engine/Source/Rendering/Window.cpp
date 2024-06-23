@@ -89,24 +89,32 @@ bool Window::Initialize()
             return;
         }
 
-        Widget* hitWidget = GetWidgetUnderCursor();
-        if (const SharedObjectPtr<Widget> focusedWidget = GetFocusedWidget())
+        const SharedObjectPtr<Widget> hitWidget = GetWidgetUnderCursor();
+        if (hitWidget == nullptr || hitWidget->IsFocusable())
         {
-            if (focusedWidget.get() != hitWidget)
+            if (const SharedObjectPtr<Widget> focusedWidget = GetFocusedWidget())
             {
-                focusedWidget->SetFocused(false);
+                if (focusedWidget != hitWidget)
+                {
+                    focusedWidget->SetFocused(false);
+                }
+            }
+
+            if (hitWidget != nullptr)
+            {
+                hitWidget->SetFocused(true);
             }
         }
 
         if (hitWidget != nullptr)
         {
             _pressedWidget = hitWidget->SharedFromThis();
-            hitWidget->SetFocused(true);
+            
             hitWidget->CallPressed({});
         }
     });
 
-    _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Add([this, &inputSubsystem]()
+    _onLMBUpHandle = inputSubsystem.OnMouseLeftButtonUp.Add([this]()
     {
         if (const SharedObjectPtr<Widget> interactedWidget = _pressedWidget.lock())
         {
@@ -116,7 +124,7 @@ bool Window::Initialize()
             return;
         }
 
-        if (Widget* hitWidget = GetWidgetUnderCursor())
+        if (const SharedObjectPtr<Widget> hitWidget = GetWidgetUnderCursor())
         {
             hitWidget->CallReleased({});
         }
@@ -128,9 +136,8 @@ bool Window::Initialize()
         {
             return;
         }
-        
-        Widget* hitWidget = GetWidgetUnderCursor();
-        if (hitWidget != nullptr)
+
+        if (const SharedObjectPtr<Widget> hitWidget = GetWidgetUnderCursor())
         {
             hitWidget->CallMiddleClickPressed({});
         }
@@ -143,7 +150,7 @@ bool Window::Initialize()
             return;
         }
         
-        if (Widget* hitWidget = GetWidgetUnderCursor())
+        if (const SharedObjectPtr<Widget> hitWidget = GetWidgetUnderCursor())
         {
             hitWidget->CallMiddleClickReleased({});
         }
@@ -156,7 +163,7 @@ bool Window::Initialize()
             return;
         }
         
-        if (Widget* hitWidget = GetWidgetUnderCursor())
+        if (const SharedObjectPtr<Widget> hitWidget = GetWidgetUnderCursor())
         {
             hitWidget->CallScrolled(value, {});
         }
@@ -171,15 +178,16 @@ bool Window::Initialize()
         
         const SharedObjectPtr<Widget> previousHoveredWidget = _hoveredWidget.lock();
 
-        Widget* hitWidget = GetWidgetUnderCursor();
-        if (previousHoveredWidget != nullptr && hitWidget != previousHoveredWidget.get() || hitWidget == nullptr &&
+        const SharedObjectPtr<Widget> hitWidget = GetWidgetUnderCursor();
+        
+        if (previousHoveredWidget != nullptr && hitWidget != previousHoveredWidget || hitWidget == nullptr &&
             previousHoveredWidget != nullptr)
         {
             previousHoveredWidget->CallHoverEnded({});
             _hoveredWidget.reset();
         }
 
-        if (hitWidget != nullptr && hitWidget != _hoveredWidget.lock().get())
+        if (hitWidget != nullptr && hitWidget != _hoveredWidget.lock())
         {
             _hoveredWidget = hitWidget->SharedFromThis();
             hitWidget->CallHoverStarted({});
@@ -464,7 +472,7 @@ bool Window::AddBorrowedPopup(const SharedObjectPtr<Widget>& popup)
     return true;
 }
 
-Widget* Window::GetWidgetAt(const Vector2& positionWS) const
+SharedObjectPtr<Widget> Window::GetWidgetAt(const Vector2& positionWS) const
 {
     if (positionWS.x < -static_cast<float>(_width) / 2.0f || positionWS.x > static_cast<float>(_width) / 2.0f ||
         positionWS.y < -static_cast<float>(_height) / 2.0f || positionWS.y > static_cast<float>(_height) / 2.0f)
@@ -484,13 +492,13 @@ Widget* Window::GetWidgetAt(const Vector2& positionWS) const
     });
     if (hitWidgetPtr != nullptr)
     {
-        return hitWidgetPtr->lock().get();
+        return hitWidgetPtr->lock();
     }
 
     return nullptr;
 }
 
-Widget* Window::GetWidgetUnderCursor()
+SharedObjectPtr<Widget> Window::GetWidgetUnderCursor()
 {
     return GetWidgetAt(UIStatics::ToWidgetSpace(InputSubsystem::Get().GetMousePosition(), shared_from_this()));
 }

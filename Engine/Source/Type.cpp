@@ -141,11 +141,6 @@ bool Type::ForEachSubtype(const std::function<bool(Type*)>& callback, bool recur
 
 bool Type::ForEachProperty(const std::function<bool(PropertyBase*)>& callback) const
 {
-    if (!_propertyMap.ForEachProperty(callback))
-    {
-        return false;
-    }
-
     for (const Type* parentType : _parentTypes)
     {
         if (!parentType->ForEachProperty(callback))
@@ -154,17 +149,17 @@ bool Type::ForEachProperty(const std::function<bool(PropertyBase*)>& callback) c
         }
     }
 
+    if (!_propertyMap.ForEachProperty(callback))
+    {
+        return false;
+    }
+
     return true;
 }
 
 bool Type::ForEachPropertyWithTag(const std::string& tag,
                                   const std::function<bool(PropertyBase*)>& callback) const
 {
-    if (!_propertyMap.ForEachPropertyWithTag(tag, callback))
-    {
-        return false;
-    }
-
     for (const Type* parentType : _parentTypes)
     {
         if (!parentType->ForEachPropertyWithTag(tag, callback))
@@ -173,6 +168,11 @@ bool Type::ForEachPropertyWithTag(const std::string& tag,
         }
     }
 
+    if (!_propertyMap.ForEachPropertyWithTag(tag, callback))
+    {
+        return false;
+    }
+    
     return true;
 }
 

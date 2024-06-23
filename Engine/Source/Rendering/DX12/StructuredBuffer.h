@@ -164,8 +164,9 @@ public:
             D3D12_RESOURCE_STATE_COPY_DEST);
         commandList->ResourceBarrier(1, &resourceToCopyDest);
 
-        const size_t alignedOffset = Math::RoundToNearest(static_cast<uint32>(offsetIndex) * _bufferByteSize, 256u);
-        const size_t numBytes = (count + offsetIndex - alignedOffset) * _bufferByteSize;
+        const size_t alignedOffset = Math::FloorToNearest(static_cast<uint32>(offsetIndex) * _bufferByteSize, 256u);
+        size_t numBytes = static_cast<uint32>(offsetIndex) * _bufferByteSize - alignedOffset+ count * _bufferByteSize;
+        numBytes = Math::Min(numBytes, _bufferByteSize * _capacity - alignedOffset);
 
         commandList->CopyBufferRegion(_structuredBuffer.Get(),
                                       alignedOffset,

@@ -12,7 +12,7 @@ class AssetCreatorMenu : public Widget
     GENERATED()
     
 public:
-    AssetCreatorMenu() = default;
+    AssetCreatorMenu();
 
     // Widget
 public:
