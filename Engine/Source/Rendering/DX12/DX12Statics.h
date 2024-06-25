@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "Rendering/DX12/DX12RenderingCore.h"
 
 namespace DX12Statics
 {

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "EngineSubsystem.h"
+#include <Windows.h>
 #include "Mouse.h"
 #include "PassKey.h"
 #include "MulticastDelegate.h"

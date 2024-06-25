@@ -1,4 +1,5 @@
-﻿#include "EntityTemplate.h"
+﻿#include "ECS/EntityTemplate.h"
+#include "ECS/Entity.h"
 
 void EntityTemplate::InitializeEntity(Entity& entity) const
 {

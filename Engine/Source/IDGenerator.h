@@ -1,6 +1,9 @@
 ﻿#pragma once
 
+#include "CoreMinimal.h"
 #include "ISerializeable.h"
+#include "MemoryReader.h"
+#include "MemoryWriter.h"
 #include <vector>
 
 template <typename T> requires std::is_integral_v<T>

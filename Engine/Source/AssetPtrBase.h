@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <memory>
+#include "ObjectShared.h"
 
 class Type;
 class Asset;

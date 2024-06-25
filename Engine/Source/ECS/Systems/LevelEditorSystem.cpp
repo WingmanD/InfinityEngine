@@ -8,6 +8,7 @@
 #include "ECS/Components/CRigidBody.h"
 #include "ECS/Components/CStaticMesh.h"
 #include "Engine/Subsystems/GameplaySubsystem.h"
+#include "Engine/Subsystems/InputSubsystem.h"
 #include "Rendering/Widgets/ViewportWidget.h"
 
 LevelEditorSystem::LevelEditorSystem(const LevelEditorSystem& other) : System(other)
@@ -152,19 +153,6 @@ void LevelEditorSystem::Initialize()
     });
 
     _onArchetypeChangedHandle = GetWorld().OnArchetypeChanged.RegisterListener(_onArchetypeChanged);
-
-    // auto friendlySpawner = AssetManager::Get().FindAssetByName<EntityTemplate>(Name(L"FriendlySpawner"));
-    // auto enemySpawner = AssetManager::Get().FindAssetByName<EntityTemplate>(Name(L"EnemySpawner"));
-    //
-    // Transform transform;
-    // for (int32 i = 0; i < 10; ++i)
-    // {
-    //     transform.SetWorldLocation(Vector3(static_cast<float>(i) * 20.0f - 100.0f, 15.0f, 0.0f));
-    //     SpawnEntity(friendlySpawner, transform);
-    //     
-    //     transform.SetWorldLocation(Vector3(static_cast<float>(i) * 20.0f - 100.0f, -15.0f, 0.0f));
-    //     SpawnEntity(enemySpawner, transform);
-    // }
 }
 
 void LevelEditorSystem::Tick(double deltaTime)

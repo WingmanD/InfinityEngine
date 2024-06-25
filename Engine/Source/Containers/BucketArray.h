@@ -123,13 +123,10 @@ public:
                     continue;
                 }
 
-                const double start2 = GetTimeInSeconds();
                 if (!callback(element))
                 {
                     return;
                 }
-                const double end2 = GetTimeInSeconds();
-                const double duration2 = end2 - start2;
 
                 ++count;
             }

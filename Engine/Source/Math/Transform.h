@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "CoreMinimal.h"
 #include "MathFwd.h"
 
 class MemoryWriter;

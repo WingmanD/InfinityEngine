@@ -19,7 +19,7 @@ void ReflectionInitializer::Generate(const std::filesystem::path& outputDirector
 {
     const std::filesystem::path path = outputDirectory / "Reflection.generated.h";
 
-    if (!force && !is_empty(path))
+    if (!force && exists(path) && !is_empty(path))
     {
         ParseExistingHeaderFile(outputDirectory, path);
     }
