@@ -14,6 +14,11 @@ constexpr Name::Name(uint64 id)
     _id = id;
 }
 
+constexpr Name::Name(const Name& other)
+{
+    _id = other._id;
+}
+
 uint64 Name::GetID() const
 {
     return _id;

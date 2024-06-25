@@ -7,7 +7,7 @@
 #include "ProjectileSystem.reflection.h"
 
 REFLECTED()
-class ProjectileSystem : public System<const CProjectile, const CTransform, CRigidBody>
+class ProjectileSystem : public System<CProjectile, CTransform, CRigidBody>
 {
     GENERATED()
     
@@ -20,6 +20,7 @@ public:
     virtual void Initialize() override;
     virtual void OnEntityCreated(const Archetype& archetype, Entity& entity) override;
     virtual void Tick(double deltaTime) override;
+    virtual void ProcessEntityList(EntityList& entityList, double deltaTime) override;
     virtual void Shutdown() override;
 
 private:

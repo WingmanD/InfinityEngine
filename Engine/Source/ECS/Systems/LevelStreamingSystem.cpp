@@ -62,6 +62,7 @@ void LevelStreamingSystem::OnChunkLoaded(const Level::Chunk& chunk) const
         {
             continue;
         }
+        entityTemplate->Load();
 
         const Transform& entityTransform = entityElement.EntityTransform;
 
@@ -70,6 +71,7 @@ void LevelStreamingSystem::OnChunkLoaded(const Level::Chunk& chunk) const
             [entityTransform](Entity& entity, const Archetype& archetype)
             {
                 entity.Get<CTransform>(archetype).ComponentTransform = entityTransform;
+                return &entity;
             },
             [](Entity& entity, const Archetype& archetype)
             {

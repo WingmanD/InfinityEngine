@@ -235,9 +235,10 @@ bool Level::Serialize(MemoryWriter& writer) const
         writer << index;
         writer << chunkOffset;
 
-        chunkOffset += chunk.EntityElements.Count() * sizeof(uint64) * 2 + sizeof(Vector3) * 3 + sizeof(uint64);
+        chunkOffset += chunk.EntityElements.Count() * (sizeof(uint64) * 2 + sizeof(Vector3) * 3 + sizeof(uint64));
     }
-    
+
+    writer << chunkOffset;
     writer << _elementIDGenerator;
 
     writer << writer.GetByteCount() + sizeof(uint64);
@@ -270,6 +271,14 @@ bool Level::Deserialize(MemoryReader& reader)
         previous = &_grid[index];
     }
 
+    uint64 lastChunkEnd;
+    reader >> lastChunkEnd;
+
+    if (previous != nullptr)
+    {
+        previous->ByteSize = lastChunkEnd - previous->Offset;
+    }
+    
     reader >> _elementIDGenerator;
     
     reader >> _chunksOffset;
@@ -354,24 +363,26 @@ void Level::LoadChunk(Chunk& chunk)
         LOG(L"Failed to open file {} for reading (level {})!", GetAssetPath().wstring(), GetName());
         return;
     }
-    file.seekg(_chunksOffset + sizeof(uint64));
+    const size_t offset = _chunksOffset + sizeof(uint64) + sizeof(uint64);
+    file.seekg(offset);
 
     MemoryReader reader;
-    reader.ReadFromFile(file, chunk.Offset, chunk.ByteSize);
+    reader.ReadFromFile(file, offset + chunk.Offset, chunk.ByteSize);
 
     reader >> chunk;
-    
-    AssetManager& assetManager = AssetManager::Get();
-    for (const EntityElement& entityElement : chunk.EntityElements)
-    {
-        SharedObjectPtr<EntityTemplate> entityTemplate = assetManager.FindAsset<EntityTemplate>(entityElement.EntityTemplateID);
-        if (entityTemplate == nullptr)
-        {
-            continue;
-        }
 
-        entityTemplate->Load();
-    } 
+    // todo async loading
+    // AssetManager& assetManager = AssetManager::Get();
+    // for (const EntityElement& entityElement : chunk.EntityElements)
+    // {
+    //     SharedObjectPtr<EntityTemplate> entityTemplate = assetManager.FindAsset<EntityTemplate>(entityElement.EntityTemplateID);
+    //     if (entityTemplate == nullptr)
+    //     {
+    //         continue;
+    //     }
+    //
+    //     entityTemplate->Load();
+    // } 
 
     chunk.IsBeingLoaded = false;
     chunk.IsLoaded = true;

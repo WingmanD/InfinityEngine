@@ -51,7 +51,14 @@ void StaticMeshRenderingSystem::OnEntityCreated(const Archetype& archetype, Enti
         staticMesh.MaterialOverride->GetShader());
     instanceData.MaterialIndex = materialInstanceBuffer.AddDefault();
     
-    staticMesh.MaterialOverride->GetParameterMap()->GetDefaultParameters()[0].Parameter->DuplicateAt(&materialInstanceBuffer[instanceData.MaterialIndex]);
+    // staticMesh.MaterialOverride->GetParameterMap()->GetDefaultParameters()[0].Parameter->DuplicateAt(&materialInstanceBuffer[instanceData.MaterialIndex]);
+
+    DefaultMaterialParameter& materialInstance = static_cast<DefaultMaterialParameter&>(materialInstanceBuffer[instanceData.MaterialIndex]);
+    const DefaultMaterialParameter& defaultInstance = *static_cast<DefaultMaterialParameter*>(
+        staticMesh.MaterialOverride->GetParameterMap()->GetDefaultParameters()[0].Parameter.get()
+    );
+    materialInstance.BaseColor = defaultInstance.BaseColor;
+    materialInstance.Metallic = defaultInstance.Metallic;
 
     // SharedObjectPtr<MaterialParameter> param = staticMesh.MaterialOverride->GetParameterMap()->GetDefaultParameters()[0].Parameter;
     // Type* type = param->GetType();

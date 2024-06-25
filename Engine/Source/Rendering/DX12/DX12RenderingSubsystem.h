@@ -30,7 +30,7 @@ public:
     DX12RenderingSubsystem(DX12RenderingSubsystem&&) = delete;
     DX12RenderingSubsystem& operator=(const DX12RenderingSubsystem&) = delete;
     DX12RenderingSubsystem& operator=(DX12RenderingSubsystem&&) = delete;
-    ~DX12RenderingSubsystem() override = default;
+    virtual ~DX12RenderingSubsystem() override = default;
 
     bool IsGPUReady() const;
     void WaitForGPU() const;

@@ -9,8 +9,8 @@
             <Item Name="Capacity">_capacity</Item>
 
             <CustomListItems>
-                <Variable Name="i" InitialValue="0" />
-                <Variable Name="SSOArrayCount" InitialValue="((_count &lt; $T2) ? _count : $T2)" />
+                <Variable Name="i" InitialValue="0"/>
+                <Variable Name="SSOArrayCount" InitialValue="((_count &lt; $T2) ? _count : $T2)"/>
                 <Loop Condition="i &lt; _count">
                     <If Condition="i &lt; SSOArrayCount">
                         <Item Name="[{i}]">(($T1*)_ssoBuffer)[i]</Item>

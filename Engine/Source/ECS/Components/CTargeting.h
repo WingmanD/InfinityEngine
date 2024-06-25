@@ -29,8 +29,14 @@ public:
     PROPERTY(Edit, Serialize)
     Transform ProjectileSpawnOffset;
 
+    // PROPERTY(Edit, Serialize)
+    float TargetingDelay = 5.0f;
+
+    float TargetingDelayTimer = 0.0f;
+
     float TimeSinceLastShot = 0.0f;
 
     Entity* Target = nullptr;
-    Archetype TargetArchetype;
+    uint64 TargetID = 0;
+    const Archetype* TargetArchetype;
 };

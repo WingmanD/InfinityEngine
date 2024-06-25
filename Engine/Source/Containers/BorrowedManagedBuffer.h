@@ -97,7 +97,9 @@ public:
 
     void RemoveAtSwap(uint32 index)
     {
-        (*this)[index] = (*this)[_count - 1];
+        auto& last = (*this)[_count - 1];
+        (*this)[index] = last;
+        std::memset(&last, 0, _elementSize);
         --_count;
     }
 

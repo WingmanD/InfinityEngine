@@ -3,7 +3,7 @@
 #include "Containers/DynamicGPUBuffer.h"
 #include "Math/MathFwd.h"
 
-struct SMInstance
+struct alignas(16) SMInstance
 {
     Matrix World;
     uint32 MeshID;

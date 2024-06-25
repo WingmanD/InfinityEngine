@@ -18,13 +18,12 @@ void DemoGame::OnInitializeWorld(World& world)
     world.AddSystem<PathfindingSystem>();
     FloatingControlSystem& controlSystem = world.AddSystem<FloatingControlSystem>();
     world.AddSystem<CameraSystem>();
-    //world.AddSystem<PhysicsSystem>();
     world.AddSystem<StaticMeshRenderingSystem>();
     world.AddSystem<PointLightSystem>();
     world.AddSystem<HealthSystem>();
     world.AddSystem<TargetingSystem>();
     world.AddSystem<SpawnerSystem>();
-    //world.AddSystem<ProjectileSystem>();
+    world.AddSystem<ProjectileSystem>();
     world.AddSystem<LevelStreamingSystem>().SetLevel(_level);
 
     GameplaySubsystem& gameplaySubsystem = GameplaySubsystem::Get();
@@ -40,7 +39,7 @@ void DemoGame::OnInitializeWorld(World& world)
     gameplaySubsystem.GetMainViewport()->SetCamera(&playerEntity.Get<CCamera>(playerArchetype));
 
     Transform& cameraEntityTransform = playerEntity.Get<CTransform>(playerArchetype).ComponentTransform;
-    cameraEntityTransform.SetWorldLocation({-5.0f, 0.0f, 1.0f});
+    cameraEntityTransform.SetWorldLocation({-110.0f, 0.0f, 5.0f});
 
     controlSystem.TakeControlOf(playerEntity);
 }

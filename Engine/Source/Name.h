@@ -13,6 +13,7 @@ public:
     explicit constexpr Name() = default;
     explicit Name(const std::wstring& name);    // todo this must be constexpr - register name somewhere else, write a compile time hasher
     explicit constexpr Name(uint64 id);
+    constexpr Name(const Name& other);
 
     uint64 GetID() const;
     const std::wstring& ToString() const;

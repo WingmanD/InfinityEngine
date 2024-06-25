@@ -101,11 +101,13 @@ public:
         {
             Entity& entity = world->CreateEntityInternal(entityTemplate);
             const Archetype& archetype = entityTemplate->GetArchetype();
-            preInitialize(entity, archetype);
+            Entity* newEntity = preInitialize(entity, archetype);
 
-            OnEntityCreated(entity, entityTemplate);
+            // preInitialize may change the archetype,
+            // todo this isn't enough because entity reference points to the old entity
+            OnEntityCreated(*newEntity, Archetype(*newEntity));
             
-            onCreated(entity, archetype);
+            onCreated(*newEntity, archetype);
         });
     }
     
@@ -221,6 +223,9 @@ private:
     EventQueue<World> _eventQueue;
 
     EventManager _eventManager;
+
+    IDGenerator<uint64> _entityIDGenerator;
+    uint64 _entityCount = 0;
 
 private:
     Entity& CreateEntityInternal(const Archetype& archetype);

@@ -21,6 +21,7 @@ struct SMInstance
     uint MaterialID;
     uint MaterialIndex;
     uint Count;
+    uint Padding[3];
 };
 
 struct InstanceOffset

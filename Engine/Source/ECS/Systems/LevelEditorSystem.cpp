@@ -104,6 +104,8 @@ void LevelEditorSystem::SpawnEntity(const SharedObjectPtr<EntityTemplate>& entit
             result.Component->LevelElementID = id;
 
             world.Get<CTransform>(*entityPtr, archetype).ComponentTransform = transform;
+
+            return entityPtr;
         },
         [](Entity& entity, const Archetype& archetype)
         {
@@ -150,6 +152,19 @@ void LevelEditorSystem::Initialize()
     });
 
     _onArchetypeChangedHandle = GetWorld().OnArchetypeChanged.RegisterListener(_onArchetypeChanged);
+
+    // auto friendlySpawner = AssetManager::Get().FindAssetByName<EntityTemplate>(Name(L"FriendlySpawner"));
+    // auto enemySpawner = AssetManager::Get().FindAssetByName<EntityTemplate>(Name(L"EnemySpawner"));
+    //
+    // Transform transform;
+    // for (int32 i = 0; i < 10; ++i)
+    // {
+    //     transform.SetWorldLocation(Vector3(static_cast<float>(i) * 20.0f - 100.0f, 15.0f, 0.0f));
+    //     SpawnEntity(friendlySpawner, transform);
+    //     
+    //     transform.SetWorldLocation(Vector3(static_cast<float>(i) * 20.0f - 100.0f, -15.0f, 0.0f));
+    //     SpawnEntity(enemySpawner, transform);
+    // }
 }
 
 void LevelEditorSystem::Tick(double deltaTime)

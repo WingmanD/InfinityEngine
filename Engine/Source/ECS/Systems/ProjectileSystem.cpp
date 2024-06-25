@@ -11,7 +11,7 @@ void ProjectileSystem::Initialize()
 {
     System::Initialize();
 
-    _onHitHandle = GetWorld().FindSystem<PhysicsSystem>()->OnHit.RegisterListener(_onHit);
+    //_onHitHandle = GetWorld().FindSystem<PhysicsSystem>()->OnHit.RegisterListener(_onHit);
 }
 
 void ProjectileSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
@@ -61,9 +61,34 @@ void ProjectileSystem::Tick(double deltaTime)
     }
 }
 
+void ProjectileSystem::ProcessEntityList(EntityList& entityList, double deltaTime)
+{
+    System::ProcessEntityList(entityList, deltaTime);
+
+    entityList.ForEach([this, deltaTime](Entity& entity)
+    {
+        CProjectile& projectile = Get<CProjectile>(entity);
+        CTransform& transform = Get<CTransform>(entity);
+
+        projectile.TimeAlive += static_cast<float>(deltaTime);
+        if (projectile.TimeAlive >= projectile.Lifetime)
+        {
+            GetWorld().DestroyEntityAsync(entity);
+            return true;
+        }
+        
+        const Vector3 velocity = transform.ComponentTransform.GetForwardVector() * projectile.Speed;
+        transform.ComponentTransform.SetWorldLocation(
+            transform.ComponentTransform.GetWorldLocation() + velocity * static_cast<float>(deltaTime)
+        );
+
+        return true;
+    });
+}
+
 void ProjectileSystem::Shutdown()
 {
     System::Shutdown();
 
-    GetWorld().FindSystem<PhysicsSystem>()->OnHit.UnregisterListener(_onHitHandle);
+    //GetWorld().FindSystem<PhysicsSystem>()->OnHit.UnregisterListener(_onHitHandle);
 }

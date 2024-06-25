@@ -52,6 +52,8 @@ void SpawnerSystem::ProcessEntityList(EntityList& entityList, double deltaTime)
                     {
                         teamMember->TeamID = teamID;
                     }
+
+                    return &newEntity;
                 },
                 [](Entity& entity, const Archetype& archetype)
                 {

@@ -14,4 +14,9 @@ public:
     
     PROPERTY(Edit, Serialize)
     float Damage = 50.0f;
+
+    // PROPERTY(Edit, Serialize)
+    float Lifetime = 1.0f;
+
+    float TimeAlive = 0.0f;
 };

@@ -1,7 +1,8 @@
 ﻿#include "Entity.h"
 
-Entity::Entity(uint64_t id) : _id(id)
+void Entity::SetID(uint64 id, PassKey<World>)
 {
+    _id = id;
 }
 
 uint64_t Entity::GetID() const

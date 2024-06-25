@@ -97,6 +97,7 @@ void World::DestroyEntity(Entity& entity)
         }
     }
 
+    --_entityCount;
     entityList.Remove(entity);
 }
 
@@ -181,6 +182,7 @@ Entity& World::CreateEntityInternal(const Archetype& archetype)
     EntityList& entityList = GetEntityList(archetype);
 
     Entity& entity = *entityList.AddDefault();
+    entity.SetID(_entityIDGenerator.GenerateID(), {});
     for (const Archetype::QualifiedComponentType& qualifiedType : archetype.GetComponentTypes())
     {
         AddComponentInternal(entity, *qualifiedType.Type, qualifiedType.Name);
@@ -201,6 +203,8 @@ Entity& World::CreateEntityInternal(const SharedObjectPtr<EntityTemplate>& entit
 
 void World::OnEntityCreated(Entity& entity, const Archetype& archetype) const
 {
+    ++const_cast<World*>(this)->_entityCount;
+
     for (const std::unique_ptr<SystemBase>& system : _systemScheduler.GetSystems())
     {
         if (archetype.IsSubsetOf(system->GetArchetype()))

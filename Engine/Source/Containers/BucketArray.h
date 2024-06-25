@@ -110,18 +110,28 @@ public:
     {
         for (auto& bucket : _buckets)
         {
-            for (size_t i = 0; i < BucketSize; ++i)
+            size_t count = 0;
+            size_t i = 0;
+            
+            while (count < bucket->Count())
             {
                 T& element = (*bucket.get())[i];
+                ++i;
+                
                 if (!element.IsValid())
                 {
                     continue;
                 }
-                
+
+                const double start2 = GetTimeInSeconds();
                 if (!callback(element))
                 {
                     return;
                 }
+                const double end2 = GetTimeInSeconds();
+                const double duration2 = end2 - start2;
+
+                ++count;
             }
         }
     }
@@ -130,9 +140,14 @@ public:
     {
         for (auto& bucket : _buckets)
         {
-            for (size_t i = 0; i < BucketSize; ++i)
+            size_t count = 0;
+            size_t i = 0;
+            
+            while (count < bucket->Count())
             {
                 T& element = (*bucket.get())[i];
+                ++i;
+                
                 if (!element.IsValid())
                 {
                     continue;
@@ -142,6 +157,8 @@ public:
                 {
                     return;
                 }
+
+                ++count;
             }
         }
     }
@@ -160,9 +177,14 @@ private:
 
         ~Bucket()
         {
-            for (size_t i = 0; i < BucketSize; ++i)
+            size_t count = 0;
+            size_t i = 0;
+
+            while (count < Count() && i < BucketSize)
             {
-                T& element = GetElement(i);
+                T& element = (*this)[i];
+                ++i;
+
                 if (!element.IsValid())
                 {
                     continue;
@@ -170,6 +192,8 @@ private:
 
                 element.~T();
                 element.SetValid(false);
+
+                ++count;
             }
         }
 
@@ -188,6 +212,7 @@ private:
                 ptr = &reinterpret_cast<T*>(&_data)[_index++];
             }
 
+            ++_count;
             return ptr;
         }
 
@@ -197,16 +222,20 @@ private:
             {
                 return false;
             }
-            
+
             const size_t index = IndexOf(element);
             if (index < BucketSize)
             {
-                element.~T();
-                element.SetValid(false);
+                if (element.IsValid())
+                {
+                    element.~T();
+                    element.SetValid(false);
 
-                _freeIndices.Add(index);
+                    _freeIndices.Add(index);
+                    --_count;
 
-                return true;
+                    return true;
+                }
             }
 
             return false;
@@ -235,12 +264,18 @@ private:
 
         T& operator[](size_t index)
         {
-            return GetElement(index);
+            return reinterpret_cast<T*>(&_data)[index];
+        }
+
+        size_t Count() const
+        {
+            return _count;
         }
 
     private:
         alignas(T) std::byte _data[sizeof(T) * BucketSize]{};
         size_t _index = 0;
+        size_t _count = 0;
 
         DArray<size_t, BucketSize / 2> _freeIndices{};
         // todo we need to keep track of size for ForEach optimization

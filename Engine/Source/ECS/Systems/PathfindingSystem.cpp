@@ -1,6 +1,5 @@
-﻿#include "PathfindingSystem.h"
+﻿#include "ECS/Systems/PathfindingSystem.h"
 #include "ECS/EntityList.h"
-#include "ECS/Components/CStaticMesh.h"
 #include "Math/Math.h"
 
 void PathfindingSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
@@ -22,20 +21,28 @@ void PathfindingSystem::ProcessEntityList(EntityList& entityList, double deltaTi
         {
             const CTransform& transform = Get<const CTransform>(entity);
 
-            if (Vector3::Distance(transform.ComponentTransform.GetWorldLocation(), pathfinding.Destination) < 0.1f)
+            if (Vector3::Distance(transform.ComponentTransform.GetWorldLocation(), pathfinding.Destination) < 0.75f)
             {
                 return true;
             }
         }
 
         CTransform& transform = Get<CTransform>(entity);
-        
+
         Vector3 direction = pathfinding.Destination - transform.ComponentTransform.GetWorldLocation();
         direction.Normalize();
 
         const Vector3 currentLocation = transform.ComponentTransform.GetWorldLocation();
         const Vector3 newLocation = currentLocation + direction * pathfinding.Speed * static_cast<float>(deltaTime);
         transform.ComponentTransform.SetWorldLocation(newLocation);
+
+        Vector3 euler = transform.ComponentTransform.GetWorldRotation().ToEuler();
+        euler.z = atan2f(direction.y, direction.x);
+
+        float horizontalLength = sqrtf(direction.x * direction.x + direction.y * direction.y);
+        euler.y = atan2f(direction.z, horizontalLength);
+        
+        transform.ComponentTransform.SetWorldRotation(Math::ToDegrees(euler));
 
         return true;
     });

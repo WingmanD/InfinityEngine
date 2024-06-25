@@ -60,7 +60,6 @@ protected:
     const ECSQuery& GetQuery() const;
 
 private:
-    
     Archetype _archetype;
     ECSQuery _persistentQuery;
     World* _world = nullptr;

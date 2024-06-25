@@ -15,9 +15,9 @@ public:
 
 public:
     explicit Entity() = default;
-    explicit Entity(uint64_t id);
 
-    [[nodiscard]] uint64_t GetID() const;
+    void SetID(uint64 id, PassKey<World>);
+    [[nodiscard]] uint64 GetID() const;
 
     void AddComponent(const SharedObjectPtr<Component>& newComponent, PassKey<World>);
     void RemoveComponent(uint16 index, PassKey<World>);
@@ -56,7 +56,7 @@ public:
     }
 
 private:
-    uint64_t _id = 0;
+    uint64 _id = 0;
 
     // todo this should be unique ptr, but Object only returns shared ptr
     DArray<SharedObjectPtr<Component>, 5> _components{};

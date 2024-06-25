@@ -227,7 +227,7 @@ public:
     }
 
 private:
-    T* _data = nullptr;
+    alignas(16) T* _data = nullptr;
     size_t _capacity = 0;
     uint32 _bufferByteSize = 0;
 
