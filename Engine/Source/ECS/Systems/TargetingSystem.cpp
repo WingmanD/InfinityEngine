@@ -1,14 +1,14 @@
 ﻿#include "ECS/Systems/TargetingSystem.h"
 #include "ECS/Systems/HealthSystem.h"
-#include "ECS/Systems/PhysicsSystem.h"
 #include "Math/Math.h"
 
 void TargetingSystem::OnEntityCreated(const Archetype& archetype, Entity& entity)
 {
     System::OnEntityCreated(archetype, entity);
 
-    CTargeting& targeting = Get<CTargeting>(entity);
-    const CTransform& transform = Get<const CTransform>(entity);
+    CTargeting& targeting = entity.Get<CTargeting>(archetype);
+    const CTransform& transform = entity.Get<const CTransform>(archetype);
+
     targeting.ProjectileSpawnOffset.SetParent(&transform.ComponentTransform);
 }
 

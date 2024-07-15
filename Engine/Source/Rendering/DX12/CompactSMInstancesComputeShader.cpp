@@ -1,5 +1,6 @@
-﻿#include "CompactSMInstancesComputeShader.h"
-#include "DX12RenderingSubsystem.h"
+﻿#include "Rendering/DX12/CompactSMInstancesComputeShader.h"
+#include "Math/Math.h"
+#include "Rendering/DX12/DX12RenderingSubsystem.h"
 
 CompactSMInstancesComputeShader::CompactSMInstancesComputeShader(const CompactSMInstancesComputeShader& other) :
     DX12ComputeShader(other)
@@ -25,7 +26,7 @@ void CompactSMInstancesComputeShader::Run(DX12GraphicsCommandList& commandList,
     _rootConstants.InstanceCount = instanceCount;
     _rootConstants.InstanceCapacity = static_cast<uint32>(instanceBuffer.GetData().Capacity());
     
-    const uint32 threads = std::max(instanceCount / 32u, 1u);
+    const uint32 threads = Math::Ceil(static_cast<float>(instanceCount) / Math::Square(32.0f));
     Dispatch(commandList, threads, 1, 1);
     
     DX12Statics::TransitionUAV(commandList, instanceBuffer.GetBuffer().Get());

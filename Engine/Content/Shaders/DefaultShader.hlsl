@@ -116,8 +116,10 @@ float4 PS(VertexOut pIn) : SV_Target
     float3 color = float3(0.0f, 0.0f, 0.0f);
 
     const uint2 tileIndex = uint2(floor(pIn.PositionCS.xy / FORWARD_PLUS_GROUP_THREADS));
+    const uint numGroupsX = ceil((float)GScene.ScreenSize.x / (float)FORWARD_PLUS_GROUP_THREADS);
+    const uint tileIndexFlat = tileIndex.x + tileIndex.y * numGroupsX;
     
-    const Tile tile = GLightTiles[tileIndex.x + tileIndex.y];
+    const Tile tile = GLightTiles[tileIndexFlat];
     for (uint i = tile.StartIndex; i < tile.StartIndex + tile.LightCount; ++i)
     {
         const uint lightIndex = GLightIndices[i].Value;

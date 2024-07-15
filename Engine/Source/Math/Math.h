@@ -38,17 +38,58 @@ namespace Math
         constexpr T mul = T(180.0) / std::numbers::pi_v<T>;
         return radians * mul;
     }
+    
+    constexpr auto Ceil(auto value)
+    {
+        const int64 integer = static_cast<int64>(value);
+        if (value == static_cast<double>(integer))
+        {
+            return integer;
+        }
+
+        if (value > 0)
+        {
+            return integer + 1;
+        }
+
+        return integer;
+    }
+
+    constexpr auto Round(auto value) {
+        if (value < 0.0) {
+            return static_cast<int64>(value - 0.5);
+        }
+
+        return static_cast<int64>(value + 0.5);
+    }
+
+    constexpr int32 Sign(auto value)
+    {
+        return value < 0 ? -1 : value > 0 ? 1 : 0;
+    }
+
+    constexpr int64 FloorToInt(auto value)
+    {
+        const int64 integer = static_cast<int64>(value);
+        if (value < 0 && value != integer)
+        {
+            return integer - 1;
+        }
+
+        return integer;
+    }
+
+    Vector2 FloorToInt(const Vector2& value);
+    Vector3 FloorToInt(const Vector3& value);
 
     template <typename T>
     constexpr T RoundToNearest(T value, T multiple)
     {
-        return static_cast<T>(static_cast<double>(value) / static_cast<double>(multiple) + 0.5) * multiple;
+        return static_cast<T>(Round(static_cast<double>(value) / static_cast<double>(multiple))) * multiple;
     }
 
-    template <typename T>
-    constexpr T FloorToNearest(T value, T multiple)
-    {
-        return static_cast<T>(static_cast<double>(value) / static_cast<double>(multiple)) * multiple;
+    constexpr auto FloorToNearest(auto value, auto multiple) {
+        return FloorToInt(static_cast<double>(value) / static_cast<double>(multiple)) * multiple;
     }
 
     template <typename T> requires std::is_integral_v<T>
@@ -127,30 +168,6 @@ namespace Math
     constexpr auto Abs(auto value)
     {
         return value < 0 ? -value : value;
-    }
-
-    constexpr auto Ceil(auto value)
-    {
-        return static_cast<uint64>(value) + value / static_cast<uint64>(value) - 1;
-    }
-
-    constexpr int64 FloorToInt(auto value)
-    {
-        const int64 integer = static_cast<int64>(value);
-        if (value < 0 && value != integer)
-        {
-            return integer - 1;
-        }
-
-        return integer;
-    }
-
-    Vector2 FloorToInt(const Vector2& value);
-    Vector3 FloorToInt(const Vector3& value);
-
-    constexpr int32 Sign(auto value)
-    {
-        return value < 0 ? -1 : value > 0 ? 1 : 0;
     }
 
     Matrix CreatePerspectiveMatrix(float horizontalFOV, float aspectRatio, float nearClipPlane, float farClipPlane);

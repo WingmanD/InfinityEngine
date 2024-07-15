@@ -28,7 +28,8 @@ void CS(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
         GLightCount = 0;
     }
     GroupMemoryBarrierWithGroupSync();
-    
+
+    // todo this is wrong, GFrustums[groupIndex], this is group frustum, not thread frustum
     for (uint i = groupIndex; i < GInput.NumLights; i += FORWARD_PLUS_GROUP_THREADS)
     {
         if (SphereFrustumIntersection(

@@ -17,17 +17,12 @@ void PathfindingSystem::ProcessEntityList(EntityList& entityList, double deltaTi
     entityList.ForEach([this, deltaTime](Entity& entity)
     {
         const CPathfinding& pathfinding = Get<const CPathfinding>(entity);
-
-        {
-            const CTransform& transform = Get<const CTransform>(entity);
-
-            if (Vector3::Distance(transform.ComponentTransform.GetWorldLocation(), pathfinding.Destination) < 0.75f)
-            {
-                return true;
-            }
-        }
-
         CTransform& transform = Get<CTransform>(entity);
+
+        if (Vector3::Distance(transform.ComponentTransform.GetWorldLocation(), pathfinding.Destination) < 0.75f)
+        {
+            return true;
+        }
 
         Vector3 direction = pathfinding.Destination - transform.ComponentTransform.GetWorldLocation();
         direction.Normalize();

@@ -597,10 +597,33 @@ bool DX12RenderingSubsystem::Initialize()
 #endif
     ThrowIfFailed(CreateDXGIFactory(IID_PPV_ARGS(&_dxgiFactory)));
 
-    const HRESULT deviceResult = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&_device));
-    if (FAILED(deviceResult))
     {
-        LOG(L"Failed to create D3D12 device!");
+        uint32 i = 0;
+        IDXGIAdapter* currentAdapter = nullptr;
+        while (_dxgiFactory->EnumAdapters(i, &currentAdapter) != DXGI_ERROR_NOT_FOUND)
+        {
+            DXGI_ADAPTER_DESC desc;
+            currentAdapter->GetDesc(&desc);
+
+            const HRESULT deviceResult = D3D12CreateDevice(
+                currentAdapter,
+                D3D_FEATURE_LEVEL_12_2,
+                IID_PPV_ARGS(&_device)
+            );
+            currentAdapter->Release();
+
+            if (SUCCEEDED(deviceResult))
+            {
+                break;
+            }
+
+            ++i;
+        }
+    }
+
+    if (_device == nullptr)
+    {
+        LOG(L"Failed to create D3D12 device - no supported graphics cards found!");
         return false;
     }
 
